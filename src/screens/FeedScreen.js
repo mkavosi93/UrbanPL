@@ -736,6 +736,30 @@ function MapStrip({ location }) {
   );
 }
 
+function shareGame(game) {
+  const date = game.kickoff_time
+    ? new Date(game.kickoff_time).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+    : '';
+  const filled = game.game_players?.length || 0;
+  const spotsLeft = game.total_spots - filled;
+  const fee = game.entry_fee > 0 ? `$${game.entry_fee}` : 'Free';
+
+  Share.share({
+    message: [
+      `⚽ Join me for a game on Urban PL!`,
+      ``,
+      `📍 ${game.location}`,
+      `📅 ${date}`,
+      `⚽ Format: ${game.format}`,
+      `💰 Entry: ${fee}`,
+      `👥 ${spotsLeft} spot${spotsLeft !== 1 ? 's' : ''} left`,
+      ``,
+      `Download Urban PL and join! 🟩`,
+    ].join('\n'),
+    title: 'Join my Urban PL game!',
+  });
+}
+
 function GameCard({ game, onJoin, isJoined, t }) {
   const filled = game.game_players?.length || 0;
   const isFull = filled >= game.total_spots;
@@ -767,23 +791,29 @@ function GameCard({ game, onJoin, isJoined, t }) {
 
         <FillBar filled={filled} total={game.total_spots} />
 
-        <TouchableOpacity
-          style={[
-            styles.joinBtn,
-            isJoined && styles.joinBtnJoined,
-            isFull && !isJoined && styles.joinBtnFull,
-          ]}
-          onPress={() => !isJoined && !isFull && onJoin(game)}
-          disabled={isJoined || isFull}
-        >
-          <Text style={[
-            styles.joinBtnText,
-            isJoined && styles.joinBtnTextJoined,
-            isFull && !isJoined && styles.joinBtnTextFull,
-          ]}>
-            {isJoined ? t('feed.joined') : isFull ? t('feed.full') : t('feed.joinGame')}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.cardActions}>
+          <TouchableOpacity
+            style={[
+              styles.joinBtn,
+              isJoined && styles.joinBtnJoined,
+              isFull && !isJoined && styles.joinBtnFull,
+            ]}
+            onPress={() => !isJoined && !isFull && onJoin(game)}
+            disabled={isJoined || isFull}
+          >
+            <Text style={[
+              styles.joinBtnText,
+              isJoined && styles.joinBtnTextJoined,
+              isFull && !isJoined && styles.joinBtnTextFull,
+            ]}>
+              {isJoined ? t('feed.joined') : isFull ? t('feed.full') : t('feed.joinGame')}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.shareBtn} onPress={() => shareGame(game)}>
+            <Text style={styles.shareBtnText}>📤</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -1174,6 +1204,7 @@ const styles = StyleSheet.create({
 
   // Join button
   joinBtn: {
+    flex: 1,
     backgroundColor: colors.gold,
     borderRadius: radius.md,
     padding: spacing.sm,
@@ -1322,6 +1353,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   retryText: { color: colors.gold },
+  cardActions: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' },
+  shareBtn: {
+    width: 42, height: 42, borderRadius: radius.md,
+    backgroundColor: colors.darkCard, borderWidth: 1, borderColor: colors.darkBorder,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  shareBtnText: { fontSize: 18 },
   emptyIcon: { fontSize: 48, marginBottom: spacing.md },
   emptyText: { color: colors.white, fontSize: 18, fontWeight: 'bold' },
   emptySubText: { color: colors.gray, fontSize: 13, marginTop: spacing.xs },

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  ActivityIndicator, ScrollView, Modal, Alert,
+  ActivityIndicator, ScrollView, Modal, Alert, Share,
 } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
@@ -375,16 +375,46 @@ function TournamentDetail({ tournament, onBack, onRegister }) {
         <CapacityBar registeredTeams={registeredTeams} maxTeams={maxTeams} format={tournament.format} />
       </View>
 
-      {/* Register CTA */}
-      <TouchableOpacity
-        style={[styles.bigRegisterBtn, isFull && styles.bigRegisterBtnFull]}
-        onPress={() => !isFull && setShowModal(true)}
-        disabled={isFull}
-      >
-        <Text style={styles.bigRegisterBtnText}>
-          {isFull ? 'Tournament Full' : `Register — $${tournament.entry_fee}`}
-        </Text>
-      </TouchableOpacity>
+      {/* Register + Share CTAs */}
+      <View style={styles.cupActions}>
+        <TouchableOpacity
+          style={[styles.bigRegisterBtn, isFull && styles.bigRegisterBtnFull]}
+          onPress={() => !isFull && setShowModal(true)}
+          disabled={isFull}
+        >
+          <Text style={styles.bigRegisterBtnText}>
+            {isFull ? 'Tournament Full' : `Register — $${tournament.entry_fee}`}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.cupShareBtn}
+          onPress={() => {
+            const date = tournament.kickoff_date
+              ? new Date(tournament.kickoff_date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
+              : '';
+            const registeredTeams = tournament.tournament_teams?.length || 0;
+            const maxTeams = tournament.max_teams || 8;
+            const spotsLeft = maxTeams - registeredTeams;
+            Share.share({
+              message: [
+                `🏆 Join me at ${tournament.name} on Urban PL!`,
+                ``,
+                `📍 ${tournament.venue}`,
+                `📅 ${date}`,
+                `⚽ Format: ${tournament.format}`,
+                `💰 Entry: $${tournament.entry_fee}`,
+                `👥 ${spotsLeft} team spot${spotsLeft !== 1 ? 's' : ''} left`,
+                ``,
+                `Download Urban PL and register your team! 🟩`,
+              ].join('\n'),
+              title: `Join ${tournament.name}!`,
+            });
+          }}
+        >
+          <Text style={styles.cupShareBtnText}>📤</Text>
+        </TouchableOpacity>
+      </View>
 
       <RegisterModal
         tournament={tournament}
@@ -672,8 +702,18 @@ const styles = StyleSheet.create({
   teamTypeText: { color: colors.gold, fontSize: 10, fontWeight: 'bold' },
   noTeamsText: { color: colors.gray, fontSize: 13, fontStyle: 'italic' },
 
+  // Cup actions row
+  cupActions: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' },
+  cupShareBtn: {
+    width: 48, height: 48, borderRadius: radius.md,
+    backgroundColor: colors.darkCard, borderWidth: 1, borderColor: colors.darkBorder,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  cupShareBtnText: { fontSize: 20 },
+
   // Big register button
   bigRegisterBtn: {
+    flex: 1,
     backgroundColor: colors.gold,
     borderRadius: radius.md,
     padding: spacing.md,
