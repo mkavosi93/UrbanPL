@@ -14,7 +14,10 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.urbanpl.app"
+      "bundleIdentifier": "com.urbanpl.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -36,7 +39,13 @@
           "sounds": []
         }
       ],
-      "@stripe/stripe-react-native"
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.urbanpl.app",
+          "enableGooglePay": false
+        }
+      ]
     ],
     "extra": {
       "eas": {

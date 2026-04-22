@@ -642,20 +642,23 @@ function CreateGameForm({ onCreated }) {
   const [refPay, setRefPay]             = useState('0');
   const [refsNeeded, setRefsNeeded]     = useState('1');
   const [saving, setSaving]             = useState(false);
+  const [error, setError]               = useState('');
+  const [success, setSuccess]           = useState('');
 
   async function handleCreate() {
-    if (!location.trim()) { Alert.alert('Missing', 'Please enter a location.'); return; }
-    if (!date.trim() || !time.trim()) { Alert.alert('Missing', 'Please enter date and time.\nFormat: YYYY-MM-DD and HH:MM'); return; }
-    if (!spots || isNaN(parseInt(spots))) { Alert.alert('Missing', 'Please enter total spots.'); return; }
+    setError(''); setSuccess('');
+    if (!location.trim()) { setError('Please enter a location.'); return; }
+    if (!date.trim() || !time.trim()) { setError('Please enter date (YYYY-MM-DD) and time (HH:MM).'); return; }
+    if (!spots || isNaN(parseInt(spots))) { setError('Please enter total spots.'); return; }
 
     const kickoff = new Date(`${date.trim()}T${time.trim()}:00`);
     if (isNaN(kickoff.getTime())) {
-      Alert.alert('Invalid date/time', 'Use format: Date → 2025-06-15  Time → 19:00');
+      setError('Invalid date/time. Use: Date → 2025-06-15  Time → 19:00');
       return;
     }
 
     setSaving(true);
-    const { error } = await supabase.from('games').insert({
+    const { error: dbError } = await supabase.from('games').insert({
       location: location.trim(),
       format,
       kickoff_time: kickoff.toISOString(),
@@ -668,10 +671,11 @@ function CreateGameForm({ onCreated }) {
     });
     setSaving(false);
 
-    if (error) {
-      Alert.alert('Error', error.message);
+    if (dbError) {
+      console.error('Create game error:', dbError);
+      setError(dbError.message);
     } else {
-      Alert.alert('✅ Game Created!', `${format} at ${location.trim()} on ${kickoff.toLocaleDateString()}`);
+      setSuccess(`✅ Game created! ${format} at ${location.trim()} on ${kickoff.toLocaleDateString()}`);
       setLocation(''); setDate(''); setTime(''); setSpots(''); setFee('0');
       setRefPay('0'); setRefsNeeded('1');
       onCreated?.();
@@ -774,6 +778,9 @@ function CreateGameForm({ onCreated }) {
         </View>
       </View>
 
+      {error ? <Text style={styles.formError}>⚠️ {error}</Text> : null}
+      {success ? <Text style={styles.formSuccess}>{success}</Text> : null}
+
       <TouchableOpacity
         style={[styles.createBtn, saving && { opacity: 0.6 }]}
         onPress={handleCreate}
@@ -800,20 +807,23 @@ function CreateCupForm({ onCreated }) {
   const [refPay, setRefPay]         = useState('0');
   const [refsNeeded, setRefsNeeded] = useState('1');
   const [saving, setSaving]         = useState(false);
+  const [error, setError]           = useState('');
+  const [success, setSuccess]       = useState('');
 
   async function handleCreate() {
-    if (!name.trim()) { Alert.alert('Missing', 'Please enter a cup name.'); return; }
-    if (!venue.trim()) { Alert.alert('Missing', 'Please enter a venue.'); return; }
-    if (!date.trim() || !time.trim()) { Alert.alert('Missing', 'Please enter date and time.'); return; }
+    setError(''); setSuccess('');
+    if (!name.trim()) { setError('Please enter a cup name.'); return; }
+    if (!venue.trim()) { setError('Please enter a venue.'); return; }
+    if (!date.trim() || !time.trim()) { setError('Please enter date (YYYY-MM-DD) and time (HH:MM).'); return; }
 
     const kickoff = new Date(`${date.trim()}T${time.trim()}:00`);
     if (isNaN(kickoff.getTime())) {
-      Alert.alert('Invalid date/time', 'Use format: Date → 2025-06-15  Time → 10:00');
+      setError('Invalid date/time. Use: Date → 2025-07-20  Time → 10:00');
       return;
     }
 
     setSaving(true);
-    const { error } = await supabase.from('tournaments').insert({
+    const { error: dbError } = await supabase.from('tournaments').insert({
       name: name.trim(),
       venue: venue.trim(),
       format,
@@ -826,10 +836,11 @@ function CreateCupForm({ onCreated }) {
     });
     setSaving(false);
 
-    if (error) {
-      Alert.alert('Error', error.message);
+    if (dbError) {
+      console.error('Create cup error:', dbError);
+      setError(dbError.message);
     } else {
-      Alert.alert('✅ Cup Created!', `${name.trim()} on ${kickoff.toLocaleDateString()}`);
+      setSuccess(`✅ Cup created! ${name.trim()} on ${kickoff.toLocaleDateString()}`);
       setName(''); setVenue(''); setDate(''); setTime(''); setMaxTeams(''); setFee('0');
       setRefPay('0'); setRefsNeeded('1');
       onCreated?.();
@@ -940,6 +951,9 @@ function CreateCupForm({ onCreated }) {
           />
         </View>
       </View>
+
+      {error ? <Text style={styles.formError}>⚠️ {error}</Text> : null}
+      {success ? <Text style={styles.formSuccess}>{success}</Text> : null}
 
       <TouchableOpacity
         style={[styles.createBtn, saving && { opacity: 0.6 }]}
@@ -1267,6 +1281,16 @@ const styles = StyleSheet.create({
   chipTextActive: { color: colors.dark, fontWeight: 'bold' },
   twoCol: { flexDirection: 'row', gap: spacing.sm },
   twoColField: { flex: 1 },
+  formError: {
+    color: '#ff6b6b', fontSize: 13, marginTop: spacing.md,
+    backgroundColor: 'rgba(255,80,80,0.1)', borderRadius: radius.sm,
+    padding: spacing.sm, borderWidth: 1, borderColor: 'rgba(255,80,80,0.3)',
+  },
+  formSuccess: {
+    color: colors.success, fontSize: 13, marginTop: spacing.md,
+    backgroundColor: 'rgba(76,175,80,0.1)', borderRadius: radius.sm,
+    padding: spacing.sm, borderWidth: 1, borderColor: 'rgba(76,175,80,0.3)',
+  },
   createBtn: {
     backgroundColor: colors.gold, borderRadius: radius.md,
     padding: spacing.md, alignItems: 'center', marginTop: spacing.xl,

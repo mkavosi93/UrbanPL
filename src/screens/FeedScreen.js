@@ -5,7 +5,10 @@ import {
   Share, Image, Alert,
 } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useStripe } from '@stripe/stripe-react-native';
+import { Platform } from 'react-native';
+const useStripe = Platform.OS !== 'web'
+  ? require('@stripe/stripe-react-native').useStripe
+  : () => ({ initPaymentSheet: async () => {}, presentPaymentSheet: async () => ({}) });
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
