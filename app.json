@@ -35,7 +35,8 @@
           "color": "#C9A84C",
           "sounds": []
         }
-      ]
+      ],
+      "@stripe/stripe-react-native"
     ],
     "extra": {
       "eas": {

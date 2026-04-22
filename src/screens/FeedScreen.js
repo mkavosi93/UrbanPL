@@ -5,10 +5,13 @@ import {
   Share, Image, Alert,
 } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useStripe } from '@stripe/stripe-react-native';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { scheduleGameReminders } from '../lib/notifications';
+
+const SUPABASE_FUNCTIONS_URL = 'https://zprtghdcmiavtoaltlld.supabase.co/functions/v1';
 import { colors, spacing, radius } from '../theme';
 
 // ─── Smart team balancer ──────────────────────────────────────────────────────
@@ -760,9 +763,18 @@ function shareGame(game) {
   });
 }
 
-function GameCard({ game, onJoin, isJoined, t }) {
+function GameCard({ game, onJoin, isJoined, isPaying, t }) {
   const filled = game.game_players?.length || 0;
   const isFull = filled >= game.total_spots;
+  const hasFee = game.entry_fee > 0;
+
+  function joinLabel() {
+    if (isPaying) return '⏳ Processing...';
+    if (isJoined) return t('feed.joined');
+    if (isFull) return t('feed.full');
+    if (hasFee) return `Pay $${game.entry_fee} & Join`;
+    return t('feed.joinGame');
+  }
 
   return (
     <View style={styles.card}>
@@ -775,7 +787,7 @@ function GameCard({ game, onJoin, isJoined, t }) {
         </View>
         <View style={[styles.badge, styles.badgeRight]}>
           <Text style={styles.badgeText}>
-            {game.entry_fee > 0 ? `$${game.entry_fee}` : t('feed.free')}
+            {hasFee ? `$${game.entry_fee}` : t('feed.free')}
           </Text>
         </View>
       </View>
@@ -797,17 +809,21 @@ function GameCard({ game, onJoin, isJoined, t }) {
               styles.joinBtn,
               isJoined && styles.joinBtnJoined,
               isFull && !isJoined && styles.joinBtnFull,
+              isPaying && { opacity: 0.7 },
             ]}
-            onPress={() => !isJoined && !isFull && onJoin(game)}
-            disabled={isJoined || isFull}
+            onPress={() => !isJoined && !isFull && !isPaying && onJoin(game)}
+            disabled={isJoined || isFull || isPaying}
           >
-            <Text style={[
-              styles.joinBtnText,
-              isJoined && styles.joinBtnTextJoined,
-              isFull && !isJoined && styles.joinBtnTextFull,
-            ]}>
-              {isJoined ? t('feed.joined') : isFull ? t('feed.full') : t('feed.joinGame')}
-            </Text>
+            {isPaying
+              ? <ActivityIndicator color={colors.dark} size="small" />
+              : <Text style={[
+                  styles.joinBtnText,
+                  isJoined && styles.joinBtnTextJoined,
+                  isFull && !isJoined && styles.joinBtnTextFull,
+                ]}>
+                  {joinLabel()}
+                </Text>
+            }
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.shareBtn} onPress={() => shareGame(game)}>
@@ -822,9 +838,11 @@ function GameCard({ game, onJoin, isJoined, t }) {
 export default function FeedScreen() {
   const [activeFilter, setActiveFilter] = useState('All');
   const [selectedReport, setSelectedReport] = useState(null);
+  const [payingGame, setPayingGame] = useState(null);
   const { player, signOut } = useAuth();
   const { t } = useLanguage();
   const queryClient = useQueryClient();
+  const { initPaymentSheet, presentPaymentSheet } = useStripe();
 
   const { data: games, isLoading, isError, refetch } = useQuery({
     queryKey: ['games', activeFilter],
@@ -838,18 +856,95 @@ export default function FeedScreen() {
     refetchInterval: 60000, // re-check every minute
   });
 
-  async function handleJoin(game) {
+  async function joinGame(game) {
     const { error } = await supabase
       .from('game_players')
       .insert({ game_id: game.id, player_id: player.id });
-
     if (error) {
-      console.log('Join error:', error.message);
+      Alert.alert('Error', error.message);
     } else {
       queryClient.invalidateQueries(['games']);
       queryClient.invalidateQueries(['myFixtures']);
-      // Schedule push reminders for this game
       await scheduleGameReminders(game);
+      Alert.alert('🎉 Joined!', `You're in for ${game.location.split(',')[0]}. See you on the pitch!`);
+    }
+  }
+
+  async function handleJoin(game) {
+    // Free game — join directly
+    if (!game.entry_fee || game.entry_fee <= 0) {
+      await joinGame(game);
+      return;
+    }
+
+    // Paid game — go through Stripe
+    try {
+      setPayingGame(game);
+
+      // 1. Ask Edge Function for a PaymentIntent client secret
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/create-payment-intent`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({
+          amount: game.entry_fee,
+          currency: 'usd',
+          gameId: game.id,
+          playerId: player.id,
+          gameTitle: game.location,
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.clientSecret) {
+        throw new Error(json.error || 'Could not create payment');
+      }
+
+      // 2. Initialise the Stripe payment sheet
+      const { error: initError } = await initPaymentSheet({
+        merchantDisplayName: 'Urban PL',
+        paymentIntentClientSecret: json.clientSecret,
+        defaultBillingDetails: {
+          name: `${player.first_name ?? ''} ${player.last_name ?? ''}`.trim(),
+          email: player.email ?? '',
+        },
+        appearance: {
+          colors: {
+            primary: '#C9A84C',
+            background: '#1A1A2E',
+            componentBackground: '#12122a',
+            componentBorder: '#2a2a4a',
+            componentDivider: '#2a2a4a',
+            primaryText: '#FFFFFF',
+            secondaryText: '#888888',
+            componentText: '#FFFFFF',
+            placeholderText: '#555555',
+          },
+        },
+      });
+
+      if (initError) throw new Error(initError.message);
+
+      // 3. Present the sheet — user pays (or cancels)
+      const { error: presentError } = await presentPaymentSheet();
+
+      if (presentError) {
+        if (presentError.code !== 'Canceled') {
+          Alert.alert('Payment failed', presentError.message);
+        }
+        return; // user cancelled — don't join
+      }
+
+      // 4. Payment succeeded — now join the game
+      await joinGame(game);
+
+    } catch (err) {
+      Alert.alert('Payment error', err.message);
+    } finally {
+      setPayingGame(null);
     }
   }
 
@@ -1005,6 +1100,7 @@ export default function FeedScreen() {
                 game={item.game}
                 onJoin={handleJoin}
                 isJoined={isPlayerJoined(item.game)}
+                isPaying={payingGame?.id === item.game.id}
                 t={t}
               />
             );
