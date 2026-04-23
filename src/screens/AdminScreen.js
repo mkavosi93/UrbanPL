@@ -15,7 +15,7 @@ const SLOT_LABELS = { AM: 'Morning', PM: 'Afternoon', EVE: 'Evening' };
 const FORMATS = ['5v5', '6v6', '7v7', '8v8', '11v11'];
 const GAME_STATUSES = ['open', 'active', 'completed', 'cancelled'];
 const CUP_STATUSES  = ['upcoming', 'active', 'completed', 'cancelled'];
-const SECTIONS = ['Dashboard', 'Availability', 'New Game', 'New Cup'];
+const SECTIONS = ['Dashboard', 'Availability', 'New Game', 'New Cup', 'Payments'];
 
 // ─── Fetch helpers ────────────────────────────────────────────────────────────
 async function fetchAvailabilities() {
@@ -44,6 +44,26 @@ async function fetchRecentCups() {
     .limit(10);
   if (error) throw error;
   return data || [];
+}
+
+async function fetchPayments() {
+  const { data, error } = await supabase
+    .from('payments')
+    .select('*, players(first_name, last_name, name), games(location, format, kickoff_time)')
+    .order('created_at', { ascending: false })
+    .limit(50);
+  if (error) throw error;
+  return data || [];
+}
+
+async function fetchRefereePayouts() {
+  const { data, error } = await supabase
+    .from('game_referees')
+    .select('*, players(id, first_name, last_name, name), games(id, location, format, kickoff_time, referee_pay, status)')
+    .eq('status', 'accepted');
+  if (error) throw error;
+  // Only show completed games
+  return (data || []).filter(r => r.games?.status === 'completed');
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -1037,6 +1057,152 @@ function Dashboard({ games, cups, onEditGame, onEditCup }) {
   );
 }
 
+// ─── Payments Panel ───────────────────────────────────────────────────────────
+function PaymentsPanel() {
+  const [tab, setTab] = useState('income');
+  const queryClient = useQueryClient();
+
+  const { data: payments = [], isLoading: loadingPayments } = useQuery({
+    queryKey: ['adminPayments'],
+    queryFn: fetchPayments,
+  });
+
+  const { data: refPayouts = [], isLoading: loadingPayouts, refetch: refetchPayouts } = useQuery({
+    queryKey: ['adminRefPayouts'],
+    queryFn: fetchRefereePayouts,
+  });
+
+  const totalIncome = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+  const totalOwed   = refPayouts.filter(r => !r.paid).reduce((sum, r) => sum + (r.games?.referee_pay || 0), 0);
+  const totalPaid   = refPayouts.filter(r => r.paid).reduce((sum, r) => sum + (r.games?.referee_pay || 0), 0);
+
+  async function markPaid(payout) {
+    await supabase
+      .from('referee_payouts')
+      .upsert({
+        referee_id: payout.referee_id,
+        game_id: payout.game_id,
+        amount: payout.games?.referee_pay || 0,
+        paid: true,
+        paid_at: new Date().toISOString(),
+      }, { onConflict: 'referee_id,game_id' });
+    queryClient.invalidateQueries(['adminRefPayouts']);
+  }
+
+  function playerName(p) {
+    return [p?.first_name, p?.last_name].filter(Boolean).join(' ') || p?.name || 'Unknown';
+  }
+
+  return (
+    <View>
+      {/* Summary cards */}
+      <View style={styles.statsGrid}>
+        <View style={styles.statCard}>
+          <Text style={styles.statCardValue}>${totalIncome.toFixed(2)}</Text>
+          <Text style={styles.statCardLabel}>Total Collected</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={[styles.statCardValue, { color: '#ff6b6b' }]}>${totalOwed.toFixed(2)}</Text>
+          <Text style={styles.statCardLabel}>Owed to Refs</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={[styles.statCardValue, { color: colors.success }]}>${totalPaid.toFixed(2)}</Text>
+          <Text style={styles.statCardLabel}>Refs Paid Out</Text>
+        </View>
+      </View>
+
+      {/* Tab toggle */}
+      <View style={styles.payTabRow}>
+        <TouchableOpacity
+          style={[styles.payTab, tab === 'income' && styles.payTabActive]}
+          onPress={() => setTab('income')}
+        >
+          <Text style={[styles.payTabText, tab === 'income' && styles.payTabTextActive]}>
+            💳 Income ({payments.length})
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.payTab, tab === 'payouts' && styles.payTabActive]}
+          onPress={() => setTab('payouts')}
+        >
+          <Text style={[styles.payTabText, tab === 'payouts' && styles.payTabTextActive]}>
+            🟨 Ref Payouts ({refPayouts.length})
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Income list */}
+      {tab === 'income' && (
+        loadingPayments
+          ? <ActivityIndicator color={colors.gold} style={{ marginTop: 40 }} />
+          : payments.length === 0
+            ? <Text style={styles.emptyText}>No payments yet</Text>
+            : payments.map(p => (
+                <View key={p.id} style={styles.payRow}>
+                  <View style={styles.payRowLeft}>
+                    <Text style={styles.payRowName} numberOfLines={1}>
+                      {playerName(p.players)}
+                    </Text>
+                    <Text style={styles.payRowMeta} numberOfLines={1}>
+                      {p.games?.location?.split(',')[0]} · {p.games?.format}
+                    </Text>
+                    <Text style={styles.payRowDate}>
+                      {new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </Text>
+                  </View>
+                  <View style={styles.payAmountBadge}>
+                    <Text style={styles.payAmount}>+${Number(p.amount).toFixed(2)}</Text>
+                    <Text style={styles.payStatus}>{p.status}</Text>
+                  </View>
+                </View>
+              ))
+      )}
+
+      {/* Referee payouts list */}
+      {tab === 'payouts' && (
+        loadingPayouts
+          ? <ActivityIndicator color={colors.gold} style={{ marginTop: 40 }} />
+          : refPayouts.length === 0
+            ? <Text style={styles.emptyText}>No completed games with referees yet</Text>
+            : refPayouts.map((r, i) => {
+                const isPaid = r.paid;
+                const amount = r.games?.referee_pay || 0;
+                return (
+                  <View key={i} style={styles.payRow}>
+                    <View style={styles.payRowLeft}>
+                      <Text style={styles.payRowName} numberOfLines={1}>
+                        {playerName(r.players)}
+                      </Text>
+                      <Text style={styles.payRowMeta} numberOfLines={1}>
+                        {r.games?.location?.split(',')[0]} · {r.games?.format}
+                      </Text>
+                      <Text style={styles.payRowDate}>
+                        {r.games?.kickoff_time
+                          ? new Date(r.games.kickoff_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                          : ''}
+                      </Text>
+                    </View>
+                    <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                      <Text style={[styles.payAmount, { color: isPaid ? colors.success : '#ff6b6b' }]}>
+                        ${amount.toFixed(2)}
+                      </Text>
+                      {isPaid
+                        ? <View style={styles.paidBadge}>
+                            <Text style={styles.paidBadgeText}>✓ Paid</Text>
+                          </View>
+                        : <TouchableOpacity style={styles.markPaidBtn} onPress={() => markPaid(r)}>
+                            <Text style={styles.markPaidBtnText}>Mark Paid</Text>
+                          </TouchableOpacity>
+                      }
+                    </View>
+                  </View>
+                );
+              })
+      )}
+    </View>
+  );
+}
+
 // ─── Main Admin Screen ────────────────────────────────────────────────────────
 export default function AdminScreen() {
   const { player } = useAuth();
@@ -1095,10 +1261,11 @@ export default function AdminScreen() {
             onPress={() => setActiveSection(s)}
           >
             <Text style={[styles.tabBtnText, activeSection === s && styles.tabBtnTextActive]}>
-              {s === 'Dashboard'   ? '📊 Dashboard'
+              {s === 'Dashboard'    ? '📊 Dashboard'
                 : s === 'Availability' ? '📅 Availability'
                 : s === 'New Game'     ? '⚽ New Game'
-                : '🏆 New Cup'}
+                : s === 'New Cup'      ? '🏆 New Cup'
+                : '💳 Payments'}
             </Text>
           </TouchableOpacity>
         ))}
@@ -1138,6 +1305,10 @@ export default function AdminScreen() {
 
           {activeSection === 'New Cup' && (
             <CreateCupForm onCreated={invalidateAll} />
+          )}
+
+          {activeSection === 'Payments' && (
+            <PaymentsPanel />
           )}
 
         </ScrollView>
@@ -1296,6 +1467,41 @@ const styles = StyleSheet.create({
     padding: spacing.md, alignItems: 'center', marginTop: spacing.xl,
   },
   createBtnText: { color: colors.dark, fontWeight: 'bold', fontSize: 16 },
+
+  // Payments
+  payTabRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
+  payTab: {
+    flex: 1, paddingVertical: spacing.sm, borderRadius: radius.md,
+    borderWidth: 1, borderColor: colors.darkBorder,
+    backgroundColor: colors.darkCard, alignItems: 'center',
+  },
+  payTabActive: { backgroundColor: colors.gold, borderColor: colors.gold },
+  payTabText: { color: colors.gray, fontSize: 12, fontWeight: '600' },
+  payTabTextActive: { color: colors.dark, fontWeight: 'bold' },
+  payRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: colors.darkCard, borderRadius: radius.md,
+    padding: spacing.md, marginBottom: spacing.sm,
+    borderWidth: 1, borderColor: colors.darkBorder,
+  },
+  payRowLeft: { flex: 1, marginRight: spacing.md },
+  payRowName: { color: colors.white, fontSize: 14, fontWeight: '600' },
+  payRowMeta: { color: colors.gray, fontSize: 12, marginTop: 2 },
+  payRowDate: { color: colors.gray, fontSize: 11, marginTop: 2 },
+  payAmountBadge: { alignItems: 'flex-end' },
+  payAmount: { color: colors.gold, fontSize: 16, fontWeight: 'bold' },
+  payStatus: { color: colors.success, fontSize: 11, marginTop: 2 },
+  paidBadge: {
+    backgroundColor: 'rgba(76,175,80,0.15)', borderRadius: radius.sm,
+    paddingVertical: 3, paddingHorizontal: spacing.sm,
+    borderWidth: 1, borderColor: colors.success,
+  },
+  paidBadgeText: { color: colors.success, fontSize: 11, fontWeight: 'bold' },
+  markPaidBtn: {
+    backgroundColor: colors.gold, borderRadius: radius.sm,
+    paddingVertical: 4, paddingHorizontal: spacing.sm,
+  },
+  markPaidBtnText: { color: colors.dark, fontSize: 11, fontWeight: 'bold' },
 
   // Edit modal
   modalContainer: { flex: 1, backgroundColor: colors.dark },

@@ -941,7 +941,15 @@ export default function FeedScreen() {
         return; // user cancelled — don't join
       }
 
-      // 4. Payment succeeded — now join the game
+      // 4. Payment succeeded — record it in DB then join the game
+      await supabase.from('payments').insert({
+        player_id: player.id,
+        game_id: game.id,
+        amount: game.entry_fee,
+        currency: 'usd',
+        stripe_payment_intent_id: json.clientSecret.split('_secret_')[0],
+        status: 'succeeded',
+      });
       await joinGame(game);
 
     } catch (err) {
