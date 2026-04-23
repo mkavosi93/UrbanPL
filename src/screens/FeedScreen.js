@@ -13,6 +13,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { scheduleGameReminders } from '../lib/notifications';
+import GameMap from '../components/GameMap';
 
 const SUPABASE_FUNCTIONS_URL = 'https://zprtghdcmiavtoaltlld.supabase.co/functions/v1';
 import { colors, spacing, radius } from '../theme';
@@ -676,7 +677,7 @@ function MatchReportModal({ report, playerId, visible, onClose, onVerified }) {
 async function fetchGames(filter) {
   let query = supabase
     .from('games')
-    .select(`*, game_players(player_id)`)
+    .select(`*, game_players(player_id), latitude, longitude`)
     .eq('status', 'open')
     .order('kickoff_time', { ascending: true });
 
@@ -781,7 +782,7 @@ function GameCard({ game, onJoin, isJoined, isPaying, t }) {
 
   return (
     <View style={styles.card}>
-      <MapStrip location={game.location} />
+      <GameMap latitude={game.latitude} longitude={game.longitude} location={game.location} />
 
       {/* Time & Cost badges */}
       <View style={styles.badgeRow}>

@@ -678,6 +678,23 @@ function CreateGameForm({ onCreated }) {
     }
 
     setSaving(true);
+
+    // Auto-geocode location using free Nominatim API
+    let latitude = null, longitude = null;
+    try {
+      const geoRes = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location.trim())}&format=json&limit=1`,
+        { headers: { 'User-Agent': 'UrbanPL/1.0' } }
+      );
+      const geoData = await geoRes.json();
+      if (geoData.length > 0) {
+        latitude  = parseFloat(geoData[0].lat);
+        longitude = parseFloat(geoData[0].lon);
+      }
+    } catch (e) {
+      console.warn('Geocoding failed:', e.message);
+    }
+
     const { error: dbError } = await supabase.from('games').insert({
       location: location.trim(),
       format,
@@ -688,6 +705,8 @@ function CreateGameForm({ onCreated }) {
       referees_needed: parseInt(refsNeeded) || 1,
       status: 'open',
       teams_balanced: false,
+      latitude,
+      longitude,
     });
     setSaving(false);
 
