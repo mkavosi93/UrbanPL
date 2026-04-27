@@ -1,16 +1,39 @@
 export const colors = {
-  gold: '#C9A84C',
-  goldDim: 'rgba(201, 168, 76, 0.15)',
-  dark: '#1A1A2E',
-  darkCard: '#16213E',
-  darkBorder: '#0F3460',
+  // Brand
+  gold: '#E8B84B',
+  goldDim: 'rgba(232, 184, 75, 0.12)',
+  goldBright: '#F5C842',
+
+  // Pitch green (soccer identity)
+  pitchGreen: '#00C46A',
+  pitchGreenDim: 'rgba(0, 196, 106, 0.12)',
+
+  // Dark surfaces — warm near-black, not navy
+  dark: '#0D0D0F',
+  darkCard: '#141416',
+  darkElevated: '#1C1C1F',
+  darkBorder: '#28282C',
+
+  // Text
   white: '#FFFFFF',
-  offWhite: '#F5F5F5',
-  gray: '#888888',
-  grayLight: '#CCCCCC',
-  success: '#4CAF50',
-  error: '#F44336',
-  warning: '#FF9800',
+  offWhite: '#F0F0F2',
+  gray: '#7A7A82',
+  grayLight: '#AEAEB8',
+
+  // States
+  success: '#00C46A',
+  error: '#FF453A',
+  warning: '#FF9F0A',
+};
+
+export const typography = {
+  hero:    { fontSize: 28, fontWeight: '800', letterSpacing: -0.5 },
+  title:   { fontSize: 20, fontWeight: '700', letterSpacing: -0.3 },
+  heading: { fontSize: 17, fontWeight: '600', letterSpacing: -0.2 },
+  body:    { fontSize: 15, fontWeight: '400' },
+  label:   { fontSize: 13, fontWeight: '500', letterSpacing: 0.1 },
+  caption: { fontSize: 11, fontWeight: '400', letterSpacing: 0.2 },
+  badge:   { fontSize: 10, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase' },
 };
 
 export const fonts = {
@@ -28,8 +51,9 @@ export const spacing = {
 };
 
 export const radius = {
-  sm: 6,
-  md: 12,
+  sm: 8,
+  md: 14,
   lg: 20,
+  xl: 28,
   full: 999,
 };

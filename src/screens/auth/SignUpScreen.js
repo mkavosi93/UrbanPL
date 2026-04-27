@@ -5,9 +5,9 @@ import {
   ScrollView, Alert, Image,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system/legacy';
 import { decode } from 'base64-arraybuffer';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../context/AuthContext';
 import { colors, spacing, radius } from '../../theme';
 
 const TOTAL_STEPS = 4;
@@ -15,6 +15,7 @@ const SKILLS = ['Beginner', 'Intermediate', 'Advanced'];
 const ROLES = ['Outfield', 'Goalkeeper', 'Versatile'];
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const SLOTS = ['AM', 'PM', 'EVE'];
+const SLOT_LABELS = { AM: '9am–2pm', PM: '2pm–6pm', EVE: '6pm–10pm' };
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 function ProgressBar({ step }) {
@@ -36,6 +37,7 @@ function SelectCard({ label, selected, onPress }) {
 }
 
 export default function SignUpScreen({ navigation }) {
+  const { fetchPlayer } = useAuth();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
@@ -89,7 +91,7 @@ export default function SignUpScreen({ navigation }) {
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.5,
@@ -148,10 +150,19 @@ export default function SignUpScreen({ navigation }) {
   }
 
   async function uploadPhoto(userId) {
-    if (!photo || !photo.base64) return null;
+    if (!photo?.base64) return null;
     try {
-      const filePath = `${userId}/avatar.jpg`;
+      // Verify the bucket is accessible first
+      const { error: bucketError } = await supabase.storage.from('avatars').list('', { limit: 1 });
+      if (bucketError) {
+        Alert.alert(
+          'Storage not set up',
+          `The avatars bucket is missing or not accessible.\n\nError: ${bucketError.message}\n\nPlease run the Storage SQL in your Supabase dashboard.`
+        );
+        return null;
+      }
 
+      const filePath = `${userId}/avatar.jpg`;
       const { error } = await supabase.storage
         .from('avatars')
         .upload(filePath, decode(photo.base64), {
@@ -160,14 +171,14 @@ export default function SignUpScreen({ navigation }) {
         });
 
       if (error) {
-        Alert.alert('Upload error', error.message);
+        Alert.alert('Photo upload failed', error.message);
         return null;
       }
 
       const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
       return data.publicUrl;
     } catch (err) {
-      Alert.alert('Upload failed', err.message);
+      Alert.alert('Photo upload error', err.message);
       return null;
     }
   }
@@ -183,7 +194,9 @@ export default function SignUpScreen({ navigation }) {
 
       const avatarUrl = await uploadPhoto(userId);
 
-      const { error: profileError } = await supabase.from('players').insert({
+      const skillRating = { Beginner: 2.2, Intermediate: 2.5, Advanced: 2.8 };
+
+      const { error: profileError } = await supabase.from('players').upsert({
         id: userId,
         first_name: firstName.trim(),
         last_name: lastName.trim(),
@@ -198,9 +211,17 @@ export default function SignUpScreen({ navigation }) {
         avatar_url: avatarUrl,
         sms_consent: smsConsent,
         marketing_consent: marketingConsent,
-      });
+        rating: skillRating[skill] ?? 2.5,
+        points: 0,
+        goals: 0,
+        games_played: 0,
+        wins: 0,
+      }, { onConflict: 'id' });
 
       if (profileError) throw profileError;
+
+      // Explicitly load the player into context now that the row exists
+      await fetchPlayer(userId);
 
     } catch (err) {
       Alert.alert('Sign up failed', err.message);
@@ -221,7 +242,15 @@ export default function SignUpScreen({ navigation }) {
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
 
-        <Image source={require('../../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+        <Image
+          source={require('../../../assets/logo.png')}
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
+        <View style={styles.wordmark}>
+          <Text style={styles.wordmarkUrban}>URBAN</Text>
+          <Text style={styles.wordmarkPL}>PL</Text>
+        </View>
         <ProgressBar step={step} />
         <Text style={styles.title}>{stepTitles[step - 1]}</Text>
         <Text style={styles.subtitle}>{stepSubs[step - 1]}</Text>
@@ -409,7 +438,7 @@ export default function SignUpScreen({ navigation }) {
               <View style={styles.gridHeaderRow}>
                 <View style={{ width: 36 }} />
                 {SLOTS.map(slot => (
-                  <Text key={slot} style={styles.gridSlotHeader}>{slot}</Text>
+                  <Text key={slot} style={styles.gridSlotHeader}>{SLOT_LABELS[slot]}</Text>
                 ))}
               </View>
               {DAYS.map(day => (
@@ -470,7 +499,30 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xl,
     alignItems: 'center',
   },
-  logo: { width: 80, height: 80, marginBottom: spacing.md },
+  logoImage: {
+    width: 88,
+    height: 88,
+    marginBottom: spacing.xs,
+  },
+  wordmark: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 4,
+    marginBottom: spacing.md,
+  },
+  wordmarkUrban: {
+    fontSize: 28,
+    fontWeight: '300',
+    color: colors.white,
+    letterSpacing: 4,
+  },
+  wordmarkPL: {
+    fontSize: 34,
+    fontWeight: '900',
+    color: colors.gold,
+    letterSpacing: -1,
+    lineHeight: 34,
+  },
   progressContainer: {
     flexDirection: 'row',
     gap: spacing.xs,
@@ -577,7 +629,7 @@ const styles = StyleSheet.create({
   gridHeaderRow: { flexDirection: 'row', marginBottom: spacing.xs },
   gridRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs },
   gridDayLabel: { width: 36, color: colors.gray, fontSize: 12 },
-  gridSlotHeader: { flex: 1, textAlign: 'center', color: colors.gray, fontSize: 11 },
+  gridSlotHeader: { flex: 1, textAlign: 'center', color: colors.gray, fontSize: 9, fontWeight: '600' },
   gridCell: {
     flex: 1, height: 28, borderRadius: radius.sm,
     marginHorizontal: 2, borderWidth: 1, borderColor: colors.darkBorder,

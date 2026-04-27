@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  ActivityIndicator, Image,
+  ActivityIndicator, Image, Share,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
@@ -101,6 +101,29 @@ function Podium({ players, t }) {
   );
 }
 
+function shareRanking(player, rank, sortKey) {
+  const statMap = { Points: 'points', Goals: 'goals', Games: 'games_played', Wins: 'wins' };
+  const statVal = player[statMap[sortKey]] ?? 0;
+  const fullName = [player.first_name, player.last_name].filter(Boolean).join(' ') || player.name || 'Player';
+
+  const medalMap = { 1: '🥇', 2: '🥈', 3: '🥉' };
+  const medal = medalMap[rank] || `#${rank}`;
+
+  Share.share({
+    message: [
+      `⚽ URBAN PL — CITY RANKINGS`,
+      ``,
+      `${medal}  ${fullName}`,
+      `⭐ Rating: ${player.rating ?? '2.5'}  ·  ${sortKey}: ${statVal}`,
+      `⚽ Goals: ${player.goals ?? 0}  ·  🏅 Points: ${player.points ?? 0}  ·  🎮 Games: ${player.games_played ?? 0}`,
+      ``,
+      `🟩 Play pickup soccer in your city`,
+      `Download Urban PL and compete! 🏆`,
+    ].join('\n'),
+    title: 'My Urban PL Ranking',
+  });
+}
+
 function RankRow({ player, rank, sortKey, isMe }) {
   const statMap = { Points: 'points', Goals: 'goals', Games: 'games_played', Wins: 'wins' };
   const statVal = player[statMap[sortKey]] ?? 0;
@@ -122,6 +145,14 @@ function RankRow({ player, rank, sortKey, isMe }) {
         <Text style={[styles.rankStatVal, isMe && styles.rankStatValMe]}>{statVal}</Text>
         <Text style={styles.rankStatLabel}>{sortKey}</Text>
       </View>
+      {isMe && (
+        <TouchableOpacity
+          style={styles.shareRankBtn}
+          onPress={() => shareRanking(player, rank, sortKey)}
+        >
+          <Text style={styles.shareRankIcon}>📤</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -220,6 +251,22 @@ export default function RankingsScreen() {
           contentContainerStyle={styles.listContent}
           ListHeaderComponent={
             <>
+              {/* Branded header — visible in screenshots shared to social */}
+              <View style={styles.brandHeader}>
+                <Image
+                  source={require('../../assets/logo.png')}
+                  style={styles.brandLogo}
+                  resizeMode="contain"
+                />
+                <View style={styles.brandText}>
+                  <View style={styles.brandWordmark}>
+                    <Text style={styles.brandUrban}>URBAN</Text>
+                    <Text style={styles.brandPL}>PL</Text>
+                  </View>
+                  <Text style={styles.brandTagline}>CITY RANKINGS</Text>
+                </View>
+              </View>
+
               <Podium players={top3} t={t} />
               <View style={styles.tableHeader}>
                 <Text style={styles.tableHeaderText}>{t('rankings.rank')}</Text>
@@ -301,6 +348,57 @@ const styles = StyleSheet.create({
   sortChipActive: { backgroundColor: colors.gold, borderColor: colors.gold },
   sortText: { color: colors.gray, fontSize: 12 },
   sortTextActive: { color: colors.dark, fontWeight: 'bold' },
+
+  // Branded header
+  brandHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.darkCard,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.darkBorder,
+    gap: spacing.md,
+  },
+  brandLogo: { width: 52, height: 52 },
+  brandText: { flex: 1 },
+  brandWordmark: { flexDirection: 'row', alignItems: 'flex-end', gap: 3 },
+  brandUrban: {
+    fontSize: 22,
+    fontWeight: '300',
+    color: colors.white,
+    letterSpacing: 4,
+  },
+  brandPL: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: colors.gold,
+    letterSpacing: -1,
+    lineHeight: 28,
+  },
+  brandTagline: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.gray,
+    letterSpacing: 2.5,
+    textTransform: 'uppercase',
+    marginTop: 3,
+  },
+
+  // Share rank button
+  shareRankBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: radius.sm,
+    backgroundColor: colors.goldDim,
+    borderWidth: 1,
+    borderColor: colors.gold,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: spacing.xs,
+  },
+  shareRankIcon: { fontSize: 14 },
 
   // Podium
   podiumContainer: {

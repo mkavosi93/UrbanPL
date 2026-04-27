@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, ScrollView, Modal, Alert, Share,
+  TextInput, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
@@ -25,6 +26,24 @@ async function fetchTournamentDetail(id) {
     .single();
   if (error) throw error;
   return data;
+}
+
+function generateInviteCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = 'UPL-';
+  for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+
+async function fetchTournamentMatches(tournamentId) {
+  const { data, error } = await supabase
+    .from('tournament_matches')
+    .select('id, tournament_id, round, match_number, team_a_id, team_b_id, score_a, score_b, winner_id, status, team_a:team_a_id(id, name), team_b:team_b_id(id, name)')
+    .eq('tournament_id', tournamentId)
+    .order('round', { ascending: true })
+    .order('match_number', { ascending: true });
+  if (error) throw error;
+  return data || [];
 }
 
 function formatDate(iso) {
@@ -140,57 +159,174 @@ function TournamentCard({ tournament, onPress }) {
   );
 }
 
-function BracketView({ teams }) {
-  if (!teams || teams.length === 0) {
+function BracketView({ matches, isAdmin, onScorePress }) {
+  if (!matches || matches.length === 0) {
     return (
       <View style={styles.bracketEmpty}>
         <Text style={styles.bracketEmptyText}>
-          Bracket will be generated 48hrs before kickoff once teams are confirmed.
+          {'Bracket not generated yet.' + (isAdmin ? ' Use "Generate Bracket" in the Admin panel → tap the cup.' : '')}
         </Text>
       </View>
     );
   }
+
+  const rounds = {};
+  matches.forEach(m => {
+    if (!rounds[m.round]) rounds[m.round] = [];
+    rounds[m.round].push(m);
+  });
+  const roundNums = Object.keys(rounds).map(Number).sort((a, b) => a - b);
+  const totalRounds = roundNums.length;
+
+  function getRoundLabel(round) {
+    const remaining = totalRounds - round + 1;
+    if (remaining === 1) return 'Final';
+    if (remaining === 2) return 'Semi-Finals';
+    if (remaining === 3) return 'Quarter-Finals';
+    return `Round ${round}`;
+  }
+
   return (
-    <View style={styles.bracketContainer}>
-      <View style={styles.bracketStage}>
-        <Text style={styles.bracketStageLabel}>Group Stage</Text>
-        {teams.slice(0, 4).map((team, i) => (
-          <View key={team.id} style={styles.bracketTeam}>
-            <Text style={styles.bracketTeamNum}>{i + 1}</Text>
-            <Text style={styles.bracketTeamName}>{team.name || 'TBD'}</Text>
-          </View>
-        ))}
+    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+      <View style={styles.bracketRow}>
+        {roundNums.map(roundNum => {
+          const roundMatches = rounds[roundNum].sort((a, b) => a.match_number - b.match_number);
+          return (
+            <View key={roundNum} style={styles.bracketColumn}>
+              <Text style={styles.bracketRoundLabel}>{getRoundLabel(roundNum)}</Text>
+              {roundMatches.map(match => {
+                const canEdit = isAdmin && match.team_a_id && match.team_b_id && match.status !== 'completed';
+                return (
+                  <TouchableOpacity
+                    key={match.id}
+                    style={[styles.bracketMatch, match.status === 'completed' && styles.bracketMatchDone]}
+                    onPress={() => canEdit && onScorePress(match)}
+                    activeOpacity={canEdit ? 0.7 : 1}
+                  >
+                    <View style={[
+                      styles.bracketTeamRow,
+                      match.winner_id && match.winner_id === match.team_a_id && styles.bracketWinnerRow,
+                    ]}>
+                      <Text style={styles.bracketTeamText} numberOfLines={1}>
+                        {match.team_a?.name || 'TBD'}
+                      </Text>
+                      {match.score_a != null && (
+                        <Text style={[styles.bracketScore, match.winner_id === match.team_a_id && styles.bracketScoreWinner]}>
+                          {match.score_a}
+                        </Text>
+                      )}
+                    </View>
+                    <View style={styles.bracketMatchDivider} />
+                    <View style={[
+                      styles.bracketTeamRow,
+                      match.winner_id && match.winner_id === match.team_b_id && styles.bracketWinnerRow,
+                    ]}>
+                      <Text style={styles.bracketTeamText} numberOfLines={1}>
+                        {match.team_b?.name || 'TBD'}
+                      </Text>
+                      {match.score_b != null && (
+                        <Text style={[styles.bracketScore, match.winner_id === match.team_b_id && styles.bracketScoreWinner]}>
+                          {match.score_b}
+                        </Text>
+                      )}
+                    </View>
+                    {canEdit && (
+                      <Text style={styles.bracketEditHint}>tap to score</Text>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          );
+        })}
       </View>
-      <Text style={styles.bracketArrow}>→</Text>
-      <View style={styles.bracketStage}>
-        <Text style={styles.bracketStageLabel}>Semi-Finals</Text>
-        {['SF 1', 'SF 2'].map(sf => (
-          <View key={sf} style={[styles.bracketTeam, styles.bracketTeamTbd]}>
-            <Text style={styles.bracketTeamName}>{sf}</Text>
-          </View>
-        ))}
-      </View>
-      <Text style={styles.bracketArrow}>→</Text>
-      <View style={styles.bracketStage}>
-        <Text style={styles.bracketStageLabel}>Final</Text>
-        <View style={[styles.bracketTeam, styles.bracketTeamFinal]}>
-          <Text style={styles.bracketTeamName}>🏆 Final</Text>
-        </View>
-      </View>
-    </View>
+    </ScrollView>
   );
 }
 
-function RegisterModal({ tournament, visible, onClose, onRegister }) {
+function RegisterModal({ tournament, visible, onClose, onDone }) {
+  const { player } = useAuth();
   const [type, setType] = useState('solo');
+  const [teamMode, setTeamMode] = useState('create');
   const [teamName, setTeamName] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
   const [registering, setRegistering] = useState(false);
 
   async function handleRegister() {
     setRegistering(true);
-    await onRegister(type, teamName);
-    setRegistering(false);
-    onClose();
+
+    if (type === 'solo') {
+      const { error } = await supabase.from('tournament_teams').insert({
+        tournament_id: tournament.id,
+        name: `${player.name || 'Player'}'s Team`,
+        player_ids: [player.id],
+        avg_rating: player.rating || 5.0,
+        registration_type: 'solo_draft',
+      });
+      setRegistering(false);
+      if (error) { Alert.alert('Error', error.message); return; }
+      onDone(); onClose();
+
+    } else if (teamMode === 'create') {
+      if (!teamName.trim()) { Alert.alert('Missing', 'Enter a team name.'); setRegistering(false); return; }
+      const code = generateInviteCode();
+      const { error } = await supabase.from('tournament_teams').insert({
+        tournament_id: tournament.id,
+        name: teamName.trim(),
+        player_ids: [player.id],
+        avg_rating: player.rating || 5.0,
+        registration_type: 'team',
+        invite_code: code,
+        captain_id: player.id,
+      });
+      setRegistering(false);
+      if (error) { Alert.alert('Error', error.message); return; }
+      onDone(); onClose();
+      Alert.alert(
+        '✅ Team Created!',
+        `Your invite code:\n\n${code}\n\nShare it so teammates can join.`,
+        [
+          { text: 'Share Code', onPress: () => Share.share({ message: `Join my team "${teamName.trim()}" at ${tournament.name} on Urban PL!\n\nUse invite code: ${code}` }) },
+          { text: 'Done' },
+        ]
+      );
+
+    } else {
+      const code = inviteCode.trim().toUpperCase();
+      if (!code) { Alert.alert('Missing', 'Enter an invite code.'); setRegistering(false); return; }
+      const { data: team, error: findError } = await supabase
+        .from('tournament_teams')
+        .select('id, player_ids, avg_rating, name')
+        .eq('invite_code', code)
+        .eq('tournament_id', tournament.id)
+        .maybeSingle();
+      if (findError || !team) {
+        setRegistering(false);
+        Alert.alert('Not Found', 'No team with that code. Double-check and try again.');
+        return;
+      }
+      const maxPlayers = playersPerSide(tournament.format) + 1;
+      if ((team.player_ids?.length || 0) >= maxPlayers) {
+        setRegistering(false);
+        Alert.alert('Team Full', `This team already has ${maxPlayers} players.`);
+        return;
+      }
+      if (team.player_ids?.includes(player.id)) {
+        setRegistering(false);
+        Alert.alert('Already Joined', 'You are already on this team.');
+        return;
+      }
+      const newIds = [...(team.player_ids || []), player.id];
+      const newAvg = ((team.avg_rating || 5.0) * (team.player_ids?.length || 0) + (player.rating || 5.0)) / newIds.length;
+      const { error: updateError } = await supabase
+        .from('tournament_teams')
+        .update({ player_ids: newIds, avg_rating: parseFloat(newAvg.toFixed(2)) })
+        .eq('id', team.id);
+      setRegistering(false);
+      if (updateError) { Alert.alert('Error', updateError.message); return; }
+      Alert.alert('✅ Joined!', `You've joined "${team.name}"!`);
+      onDone(); onClose();
+    }
   }
 
   return (
@@ -200,39 +336,79 @@ function RegisterModal({ tournament, visible, onClose, onRegister }) {
           <View style={styles.modalHandle} />
           <Text style={styles.modalTitle}>Register for {tournament?.name}</Text>
 
-          {/* Type Switcher */}
+          {/* Solo / Team tabs */}
           <View style={styles.typeSwitcher}>
             <TouchableOpacity
               style={[styles.typeBtn, type === 'solo' && styles.typeBtnActive]}
               onPress={() => setType('solo')}
             >
-              <Text style={[styles.typeBtnText, type === 'solo' && styles.typeBtnTextActive]}>
-                Solo
-              </Text>
+              <Text style={[styles.typeBtnText, type === 'solo' && styles.typeBtnTextActive]}>Solo</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.typeBtn, type === 'team' && styles.typeBtnActive]}
               onPress={() => setType('team')}
             >
-              <Text style={[styles.typeBtnText, type === 'team' && styles.typeBtnTextActive]}>
-                Team
-              </Text>
+              <Text style={[styles.typeBtnText, type === 'team' && styles.typeBtnTextActive]}>Team</Text>
             </TouchableOpacity>
           </View>
 
           {type === 'solo' ? (
             <View style={styles.modalInfo}>
               <Text style={styles.modalInfoText}>
-                🎲 You'll be auto-drafted into a balanced team 48 hours before the tournament.
-                Teams are assigned by skill rating for fair matchups.
+                🎲 You'll be auto-drafted into a balanced team 48 hours before the tournament. Teams are balanced by skill rating.
               </Text>
             </View>
           ) : (
-            <View style={styles.modalInfo}>
-              <Text style={styles.modalInfoText}>
-                👥 Register as a team. Enter your team name below.
-              </Text>
-            </View>
+            <>
+              {/* Create / Join sub-tabs */}
+              <View style={styles.teamSubSwitcher}>
+                <TouchableOpacity
+                  style={[styles.teamSubBtn, teamMode === 'create' && styles.teamSubBtnActive]}
+                  onPress={() => setTeamMode('create')}
+                >
+                  <Text style={[styles.teamSubBtnText, teamMode === 'create' && styles.teamSubBtnTextActive]}>
+                    Create Team
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.teamSubBtn, teamMode === 'join' && styles.teamSubBtnActive]}
+                  onPress={() => setTeamMode('join')}
+                >
+                  <Text style={[styles.teamSubBtnText, teamMode === 'join' && styles.teamSubBtnTextActive]}>
+                    Join Team
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {teamMode === 'create' ? (
+                <View style={styles.modalInfo}>
+                  <Text style={styles.modalInfoText}>
+                    👑 You'll be the captain. After registering you'll get an invite code to share with your teammates.
+                  </Text>
+                  <TextInput
+                    style={styles.teamNameInput}
+                    placeholder="Team name"
+                    placeholderTextColor={colors.gray}
+                    value={teamName}
+                    onChangeText={setTeamName}
+                  />
+                </View>
+              ) : (
+                <View style={styles.modalInfo}>
+                  <Text style={styles.modalInfoText}>
+                    🔑 Your captain shared a code with you. Enter it below to join their team.
+                  </Text>
+                  <TextInput
+                    style={styles.teamNameInput}
+                    placeholder="e.g. UPL-4X9K"
+                    placeholderTextColor={colors.gray}
+                    value={inviteCode}
+                    onChangeText={setInviteCode}
+                    autoCapitalize="characters"
+                  />
+                </View>
+              )}
+            </>
           )}
 
           {/* Booking Summary */}
@@ -267,7 +443,9 @@ function RegisterModal({ tournament, visible, onClose, onRegister }) {
           >
             {registering
               ? <ActivityIndicator color={colors.dark} />
-              : <Text style={styles.confirmBtnText}>Confirm & Register →</Text>
+              : <Text style={styles.confirmBtnText}>
+                  {type === 'solo' ? 'Confirm & Register →' : teamMode === 'create' ? 'Create Team →' : 'Join Team →'}
+                </Text>
             }
           </TouchableOpacity>
 
@@ -280,11 +458,139 @@ function RegisterModal({ tournament, visible, onClose, onRegister }) {
   );
 }
 
-function TournamentDetail({ tournament, onBack, onRegister }) {
+function ScoreModal({ match, visible, onClose, onSave }) {
+  const [scoreA, setScoreA] = useState('');
+  const [scoreB, setScoreB] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  React.useEffect(() => {
+    if (match) {
+      setScoreA(match.score_a != null ? String(match.score_a) : '');
+      setScoreB(match.score_b != null ? String(match.score_b) : '');
+    }
+  }, [match?.id]);
+
+  async function handleSave() {
+    const a = parseInt(scoreA);
+    const b = parseInt(scoreB);
+    if (isNaN(a) || isNaN(b) || a < 0 || b < 0) {
+      Alert.alert('Invalid', 'Enter valid scores (0 or more).');
+      return;
+    }
+    if (a === b) {
+      Alert.alert('Invalid', 'No draws in knockout — one team must win.');
+      return;
+    }
+    setSaving(true);
+    await onSave(match, a, b);
+    setSaving(false);
+    onClose();
+  }
+
+  if (!match) return null;
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        style={styles.modalOverlay}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <View style={styles.modalSheet}>
+          <View style={styles.modalHandle} />
+          <Text style={styles.modalTitle}>Enter Match Result</Text>
+          <View style={styles.scoreInputRow}>
+            <View style={styles.scoreInputBlock}>
+              <Text style={styles.scoreTeamName} numberOfLines={2}>
+                {match.team_a?.name || 'Team A'}
+              </Text>
+              <TextInput
+                style={styles.scoreInput}
+                value={scoreA}
+                onChangeText={setScoreA}
+                keyboardType="number-pad"
+                placeholder="0"
+                placeholderTextColor={colors.gray}
+              />
+            </View>
+            <Text style={styles.scoreVs}>vs</Text>
+            <View style={styles.scoreInputBlock}>
+              <Text style={styles.scoreTeamName} numberOfLines={2}>
+                {match.team_b?.name || 'Team B'}
+              </Text>
+              <TextInput
+                style={styles.scoreInput}
+                value={scoreB}
+                onChangeText={setScoreB}
+                keyboardType="number-pad"
+                placeholder="0"
+                placeholderTextColor={colors.gray}
+              />
+            </View>
+          </View>
+          <TouchableOpacity
+            style={[styles.confirmBtn, saving && styles.confirmBtnDisabled]}
+            onPress={handleSave}
+            disabled={saving}
+          >
+            {saving
+              ? <ActivityIndicator color={colors.dark} />
+              : <Text style={styles.confirmBtnText}>Save Result →</Text>
+            }
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
+            <Text style={styles.cancelBtnText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+function TournamentDetail({ tournament, onBack, onRegisterDone, isAdmin }) {
+  const queryClient = useQueryClient();
   const registeredTeams = tournament.tournament_teams?.length || 0;
   const maxTeams = tournament.max_teams || 8;
   const isFull = registeredTeams >= maxTeams;
   const [showModal, setShowModal] = useState(false);
+  const [showScoreModal, setShowScoreModal] = useState(false);
+  const [scoringMatch, setScoringMatch] = useState(null);
+
+  const { data: matches = [], refetch: refetchMatches } = useQuery({
+    queryKey: ['tournament_matches', tournament.id],
+    queryFn: () => fetchTournamentMatches(tournament.id),
+  });
+
+  async function handleSaveScore(match, scoreA, scoreB) {
+    const winnerId = scoreA > scoreB ? match.team_a_id : match.team_b_id;
+
+    const { error } = await supabase
+      .from('tournament_matches')
+      .update({ score_a: scoreA, score_b: scoreB, winner_id: winnerId, status: 'completed' })
+      .eq('id', match.id);
+
+    if (error) { Alert.alert('Error', error.message); return; }
+
+    const nextRound = match.round + 1;
+    const nextMatchNum = Math.ceil(match.match_number / 2);
+    const isTeamASlot = match.match_number % 2 === 1;
+
+    const { data: nextMatch } = await supabase
+      .from('tournament_matches')
+      .select('id')
+      .eq('tournament_id', match.tournament_id)
+      .eq('round', nextRound)
+      .eq('match_number', nextMatchNum)
+      .maybeSingle();
+
+    if (nextMatch) {
+      await supabase
+        .from('tournament_matches')
+        .update(isTeamASlot ? { team_a_id: winnerId } : { team_b_id: winnerId })
+        .eq('id', nextMatch.id);
+    }
+
+    refetchMatches();
+  }
 
   return (
     <ScrollView style={styles.detailContainer} contentContainerStyle={styles.detailContent}>
@@ -335,7 +641,11 @@ function TournamentDetail({ tournament, onBack, onRegister }) {
       {/* Bracket */}
       <View style={styles.detailSection}>
         <Text style={styles.detailSectionTitle}>🗂️ Bracket</Text>
-        <BracketView teams={tournament.tournament_teams} />
+        <BracketView
+          matches={matches}
+          isAdmin={isAdmin}
+          onScorePress={match => { setScoringMatch(match); setShowScoreModal(true); }}
+        />
       </View>
 
       {/* Teams */}
@@ -420,7 +730,14 @@ function TournamentDetail({ tournament, onBack, onRegister }) {
         tournament={tournament}
         visible={showModal}
         onClose={() => setShowModal(false)}
-        onRegister={(type, teamName) => onRegister(tournament, type, teamName)}
+        onDone={onRegisterDone}
+      />
+
+      <ScoreModal
+        match={scoringMatch}
+        visible={showScoreModal}
+        onClose={() => { setShowScoreModal(false); setScoringMatch(null); }}
+        onSave={handleSaveScore}
       />
 
     </ScrollView>
@@ -437,23 +754,11 @@ export default function CupsScreen() {
     queryFn: fetchTournaments,
   });
 
-  async function handleRegister(tournament, type, teamName) {
-    const { error } = await supabase.from('tournament_teams').insert({
-      tournament_id: tournament.id,
-      name: type === 'solo' ? `${player.name || 'Player'}'s Team` : teamName,
-      player_ids: [player.id],
-      avg_rating: player.rating || 5.0,
-      registration_type: type === 'solo' ? 'solo_draft' : 'team',
-    });
-
-    if (error) {
-      console.log('Registration error:', error.message);
-    } else {
-      queryClient.invalidateQueries(['tournaments']);
-      if (selectedTournament) {
-        const updated = await fetchTournamentDetail(selectedTournament.id);
-        setSelectedTournament(updated);
-      }
+  async function onRegisterDone() {
+    queryClient.invalidateQueries(['tournaments']);
+    if (selectedTournament) {
+      const updated = await fetchTournamentDetail(selectedTournament.id);
+      setSelectedTournament(updated);
     }
   }
 
@@ -462,7 +767,8 @@ export default function CupsScreen() {
       <TournamentDetail
         tournament={selectedTournament}
         onBack={() => setSelectedTournament(null)}
-        onRegister={handleRegister}
+        onRegisterDone={onRegisterDone}
+        isAdmin={player?.is_admin}
       />
     );
   }
@@ -670,6 +976,67 @@ const styles = StyleSheet.create({
   },
   bracketEmptyText: { color: colors.gray, fontSize: 12, textAlign: 'center', lineHeight: 18 },
 
+  // Real bracket
+  bracketRow: { flexDirection: 'row', paddingBottom: spacing.sm },
+  bracketColumn: { width: 130, marginRight: spacing.sm },
+  bracketRoundLabel: {
+    color: colors.gray, fontSize: 10, fontWeight: 'bold',
+    textAlign: 'center', marginBottom: spacing.sm,
+    textTransform: 'uppercase', letterSpacing: 0.5,
+  },
+  bracketMatch: {
+    backgroundColor: colors.dark,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.darkBorder,
+    marginBottom: spacing.sm,
+    overflow: 'hidden',
+  },
+  bracketMatchDone: { borderColor: colors.gold },
+  bracketTeamRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs + 2,
+  },
+  bracketWinnerRow: { backgroundColor: 'rgba(201,168,76,0.1)' },
+  bracketTeamText: { color: colors.grayLight, fontSize: 11, flex: 1 },
+  bracketScore: { color: colors.gray, fontSize: 13, fontWeight: 'bold', marginLeft: 4 },
+  bracketScoreWinner: { color: colors.gold },
+  bracketMatchDivider: { height: 1, backgroundColor: colors.darkBorder },
+  bracketEditHint: {
+    color: colors.gold, fontSize: 9, textAlign: 'center',
+    paddingVertical: 3, opacity: 0.7,
+  },
+
+  // Score modal
+  scoreInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginBottom: spacing.lg,
+    marginTop: spacing.sm,
+  },
+  scoreInputBlock: { flex: 1, alignItems: 'center' },
+  scoreTeamName: {
+    color: colors.grayLight, fontSize: 13, textAlign: 'center',
+    marginBottom: spacing.sm, fontWeight: '600',
+  },
+  scoreInput: {
+    backgroundColor: colors.dark,
+    borderWidth: 1,
+    borderColor: colors.darkBorder,
+    borderRadius: radius.md,
+    color: colors.gold,
+    fontSize: 32,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    width: 80,
+    padding: spacing.sm,
+  },
+  scoreVs: { color: colors.gray, fontSize: 16, fontWeight: 'bold' },
+
   // Teams
   teamRow: {
     flexDirection: 'row',
@@ -753,6 +1120,27 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     padding: 3,
     marginBottom: spacing.md,
+  },
+  teamSubSwitcher: {
+    flexDirection: 'row',
+    backgroundColor: colors.dark,
+    borderRadius: radius.sm,
+    padding: 3,
+    marginBottom: spacing.sm,
+  },
+  teamSubBtn: { flex: 1, paddingVertical: spacing.xs, alignItems: 'center', borderRadius: radius.sm },
+  teamSubBtnActive: { backgroundColor: 'rgba(201,168,76,0.2)', borderWidth: 1, borderColor: colors.gold },
+  teamSubBtnText: { color: colors.gray, fontSize: 13 },
+  teamSubBtnTextActive: { color: colors.gold, fontWeight: 'bold' },
+  teamNameInput: {
+    marginTop: spacing.sm,
+    backgroundColor: colors.darkCard,
+    borderWidth: 1,
+    borderColor: colors.darkBorder,
+    borderRadius: radius.md,
+    color: colors.white,
+    padding: spacing.sm,
+    fontSize: 15,
   },
   typeBtn: { flex: 1, paddingVertical: spacing.sm, alignItems: 'center', borderRadius: radius.sm },
   typeBtnActive: { backgroundColor: colors.gold },

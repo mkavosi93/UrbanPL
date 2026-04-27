@@ -71,7 +71,10 @@ export default function LoginScreen({ navigation }) {
             style={styles.logoImage}
             resizeMode="contain"
           />
-          <Text style={styles.logoText}>Urban PL</Text>
+          <View style={styles.wordmark}>
+            <Text style={styles.wordmarkUrban}>URBAN</Text>
+            <Text style={styles.wordmarkPL}>PL</Text>
+          </View>
           <Text style={styles.logoSub}>{t('login.tagline')}</Text>
         </View>
 
@@ -167,20 +170,36 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xxl,
   },
   logoImage: {
-    width: 120,
-    height: 120,
-    marginBottom: spacing.md,
+    width: 110,
+    height: 110,
+    marginBottom: spacing.sm,
   },
-  logoText: {
+  wordmark: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 5,
+    marginBottom: spacing.xs,
+  },
+  wordmarkUrban: {
     fontSize: 36,
-    fontWeight: 'bold',
+    fontWeight: '300',
+    color: colors.white,
+    letterSpacing: 5,
+  },
+  wordmarkPL: {
+    fontSize: 44,
+    fontWeight: '900',
     color: colors.gold,
-    letterSpacing: 2,
+    letterSpacing: -1,
+    lineHeight: 44,
   },
   logoSub: {
-    fontSize: 13,
+    fontSize: 11,
     color: colors.gray,
-    marginTop: spacing.xs,
+    letterSpacing: 3,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    marginTop: 2,
   },
   form: { width: '100%' },
   label: {

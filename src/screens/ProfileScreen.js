@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, Alert, Image, TextInput, Modal, RefreshControl,
 } from 'react-native';
+
+import * as ImagePicker from 'expo-image-picker';
+import { decode } from 'base64-arraybuffer';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { supabase } from '../lib/supabase';
@@ -10,6 +13,7 @@ import { colors, spacing, radius } from '../theme';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const SLOTS = ['AM', 'PM', 'EVE'];
+const SLOT_LABELS = { AM: '9am–2pm', PM: '2pm–6pm', EVE: '6pm–10pm' };
 
 function StatBox({ label, value }) {
   return (
@@ -103,7 +107,7 @@ function AvailabilityGrid({ availability, playerId, t }) {
         <View style={styles.gridHeaderRow}>
           <View style={{ width: 36 }} />
           {SLOTS.map(slot => (
-            <Text key={slot} style={styles.gridSlotHeader}>{t ? t(`slots.${slot}`) : slot}</Text>
+            <Text key={slot} style={styles.gridSlotHeader}>{SLOT_LABELS[slot]}</Text>
           ))}
         </View>
         {DAYS.map(day => (
@@ -157,7 +161,7 @@ function AvailabilityGrid({ availability, playerId, t }) {
 }
 
 export default function ProfileScreen() {
-  const { player, fetchPlayer, signOut } = useAuth();
+  const { player, playerLoading, playerError, fetchPlayer, signOut, session } = useAuth();
   const { t, language, setLanguage } = useLanguage();
   const [activeTab, setActiveTab] = useState('Info');
   const [showChangePassword, setShowChangePassword] = useState(false);
@@ -168,14 +172,40 @@ export default function ProfileScreen() {
 
   async function handleRefresh() {
     setRefreshing(true);
-    if (player?.id) await fetchPlayer(player.id);
+    const uid = session?.user?.id;
+    if (uid) await fetchPlayer(uid);
     setRefreshing(false);
   }
 
-  if (!player) {
+  // Still loading
+  if (!player && playerLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator color={colors.gold} size="large" />
+      </View>
+    );
+  }
+
+  // Player row missing or failed to load
+  if (!player || playerError) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={{ fontSize: 40, marginBottom: 16 }}>⚠️</Text>
+        <Text style={{ color: colors.white, fontSize: 17, fontWeight: 'bold', marginBottom: 8 }}>
+          Profile Not Found
+        </Text>
+        <Text style={{ color: colors.gray, fontSize: 13, textAlign: 'center', marginBottom: 24, paddingHorizontal: 32 }}>
+          Your account was created but your profile data is missing. This can happen if signup didn't complete fully.
+        </Text>
+        <TouchableOpacity
+          style={{ backgroundColor: colors.gold, borderRadius: radius.md, paddingVertical: 12, paddingHorizontal: 32, marginBottom: 12 }}
+          onPress={handleRefresh}
+        >
+          <Text style={{ color: colors.dark, fontWeight: 'bold', fontSize: 15 }}>Retry</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={signOut}>
+          <Text style={{ color: colors.gray, fontSize: 13 }}>Sign out and try again</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -209,6 +239,50 @@ export default function ProfileScreen() {
     ]);
   }
 
+  const [avatarError, setAvatarError] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  async function handleChangeAvatar() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Please allow access to your photo library.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+      base64: true,
+    });
+    if (result.canceled || !result.assets?.[0]?.base64) return;
+
+    setUploadingAvatar(true);
+    try {
+      const base64 = result.assets[0].base64;
+      const filePath = `${player.id}/avatar.jpg`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, decode(base64), { contentType: 'image/jpeg', upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      // Add cache-buster so React Native reloads the image
+      const avatarUrl = `${data.publicUrl}?t=${Date.now()}`;
+
+      await supabase.from('players').update({ avatar_url: avatarUrl }).eq('id', player.id);
+      await fetchPlayer(player.id);
+      setAvatarError(false);
+      Alert.alert('✅ Photo updated!', 'Your profile photo has been saved.');
+    } catch (err) {
+      Alert.alert('Upload failed', err.message);
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
+
   const fullName = [player.first_name, player.last_name].filter(Boolean).join(' ') || player.name || player.email;
   const initials = [player.first_name?.[0], player.last_name?.[0]].filter(Boolean).join('').toUpperCase() || fullName[0]?.toUpperCase() || 'U';
 
@@ -229,18 +303,39 @@ export default function ProfileScreen() {
         <View style={styles.pitchLines}>
           {[...Array(6)].map((_, i) => <View key={i} style={styles.pitchLine} />)}
         </View>
-        <Text style={styles.coverEmoji}>⚽</Text>
+        <Image
+          source={require('../../assets/logo.png')}
+          style={styles.coverLogo}
+          resizeMode="contain"
+        />
+        <View style={styles.coverWordmark}>
+          <Text style={styles.coverWordmarkUrban}>URBAN</Text>
+          <Text style={styles.coverWordmarkPL}>PL</Text>
+        </View>
+        <Text style={styles.coverTagline}>PICKUP LEAGUE</Text>
       </View>
 
       {/* Avatar */}
       <View style={styles.avatarRow}>
-        {player.avatar_url ? (
-          <Image source={{ uri: player.avatar_url }} style={styles.avatarImage} />
-        ) : (
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials}</Text>
+        <TouchableOpacity onPress={handleChangeAvatar} disabled={uploadingAvatar} activeOpacity={0.8}>
+          {player.avatar_url && !avatarError ? (
+            <Image
+              source={{ uri: player.avatar_url }}
+              style={styles.avatarImage}
+              onError={() => setAvatarError(true)}
+            />
+          ) : (
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{initials}</Text>
+            </View>
+          )}
+          <View style={styles.avatarEditBadge}>
+            {uploadingAvatar
+              ? <ActivityIndicator color={colors.dark} size="small" />
+              : <Text style={styles.avatarEditIcon}>📷</Text>
+            }
           </View>
-        )}
+        </TouchableOpacity>
         <View style={styles.avatarRowRight}>
           {/* Language Toggle */}
           <View style={styles.langToggle}>
@@ -301,18 +396,6 @@ export default function ProfileScreen() {
         <View style={styles.tabContent}>
           <View style={styles.infoCard}>
             <Text style={styles.infoCardTitle}>{t('profile.playerDetails')}</Text>
-            {player.first_name && (
-              <View style={styles.infoRow}>
-                <Text style={styles.infoKey}>{t('profile.firstName')}</Text>
-                <Text style={styles.infoVal}>{player.first_name}</Text>
-              </View>
-            )}
-            {player.last_name && (
-              <View style={styles.infoRow}>
-                <Text style={styles.infoKey}>{t('profile.lastName')}</Text>
-                <Text style={styles.infoVal}>{player.last_name}</Text>
-              </View>
-            )}
             <View style={styles.infoRow}>
               <Text style={styles.infoKey}>{t('profile.role')}</Text>
               <Text style={styles.infoVal}>{player.role || '—'}</Text>
@@ -325,15 +408,6 @@ export default function ProfileScreen() {
               <Text style={styles.infoKey}>{t('profile.rating')}</Text>
               <Text style={styles.infoVal}>⭐ {player.rating ?? 5.0}</Text>
             </View>
-            {player.birth_month && player.birth_year && (
-              <View style={styles.infoRow}>
-                <Text style={styles.infoKey}>{t('profile.born')}</Text>
-                <Text style={styles.infoVal}>
-                  {new Date(player.birth_year, player.birth_month - 1)
-                    .toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                </Text>
-              </View>
-            )}
           </View>
 
           <AvailabilityGrid availability={player.availability} playerId={player.id} t={t} />
@@ -415,15 +489,44 @@ const styles = StyleSheet.create({
   content: { paddingBottom: spacing.xxl },
   loadingContainer: { flex: 1, backgroundColor: colors.dark, alignItems: 'center', justifyContent: 'center' },
   cover: {
-    height: 160, backgroundColor: colors.darkCard,
+    height: 190, backgroundColor: colors.darkCard,
     overflow: 'hidden', alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 12,
   },
   pitchLines: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     flexDirection: 'row', justifyContent: 'space-around', alignItems: 'stretch',
   },
   pitchLine: { width: 1, backgroundColor: 'rgba(201, 168, 76, 0.15)' },
-  coverEmoji: { fontSize: 64, opacity: 0.6 },
+  coverLogo: { width: 72, height: 72, opacity: 0.9 },
+  coverWordmark: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 4,
+    marginTop: 6,
+  },
+  coverWordmarkUrban: {
+    fontSize: 22,
+    fontWeight: '300',
+    color: colors.white,
+    letterSpacing: 4,
+    opacity: 0.9,
+  },
+  coverWordmarkPL: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: colors.gold,
+    letterSpacing: -1,
+    lineHeight: 28,
+  },
+  coverTagline: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: colors.gray,
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+    marginTop: 3,
+  },
   avatarRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: spacing.lg, marginTop: -30, marginBottom: spacing.sm,
@@ -438,6 +541,13 @@ const styles = StyleSheet.create({
     borderWidth: 3, borderColor: colors.gold,
   },
   avatarText: { fontSize: 28, fontWeight: 'bold', color: colors.gold },
+  avatarEditBadge: {
+    position: 'absolute', bottom: 0, right: 0,
+    width: 24, height: 24, borderRadius: 12,
+    backgroundColor: colors.gold, borderWidth: 2, borderColor: colors.dark,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  avatarEditIcon: { fontSize: 11 },
   avatarRowRight: { alignItems: 'flex-end', gap: spacing.xs },
   langToggle: {
     flexDirection: 'row',
@@ -536,7 +646,7 @@ const styles = StyleSheet.create({
   gridHeaderRow: { flexDirection: 'row', marginBottom: spacing.xs },
   gridRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs },
   gridDayLabel: { width: 36, color: colors.gray, fontSize: 12 },
-  gridSlotHeader: { flex: 1, textAlign: 'center', color: colors.gray, fontSize: 11 },
+  gridSlotHeader: { flex: 1, textAlign: 'center', color: colors.gray, fontSize: 9, fontWeight: '600' },
   gridCell: {
     flex: 1, height: 28, borderRadius: radius.sm,
     marginHorizontal: 2, borderWidth: 1, borderColor: colors.darkBorder,

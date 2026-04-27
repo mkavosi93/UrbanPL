@@ -29,7 +29,7 @@ async function fetchAvailabilities() {
 async function fetchRecentGames() {
   const { data, error } = await supabase
     .from('games')
-    .select('*, game_players(player_id)')
+    .select('*, game_players(player_id), game_referees(status, players(first_name, last_name, name))')
     .order('kickoff_time', { ascending: false })
     .limit(20);
   if (error) throw error;
@@ -124,7 +124,7 @@ function EditGameModal({ game, visible, onClose, onSaved }) {
     if (isNaN(kickoff.getTime())) { Alert.alert('Invalid', 'Check date/time format.'); return; }
 
     setSaving(true);
-    const { error } = await supabase
+    const { data: updated, error } = await supabase
       .from('games')
       .update({
         location: location.trim(),
@@ -136,10 +136,12 @@ function EditGameModal({ game, visible, onClose, onSaved }) {
         referee_pay: parseFloat(refPay) || 0,
         referees_needed: parseInt(refsNeeded) || 1,
       })
-      .eq('id', game.id);
+      .eq('id', game.id)
+      .select();
     setSaving(false);
 
     if (error) { Alert.alert('Error', error.message); }
+    else if (!updated?.length) { Alert.alert('Permission Denied', 'Update blocked. Add an RLS UPDATE policy for admins in Supabase.'); }
     else { Alert.alert('✅ Saved', 'Game updated.'); onSaved?.(); onClose(); }
   }
 
@@ -319,6 +321,7 @@ function EditCupModal({ cup, visible, onClose, onSaved }) {
   const [refPay, setRefPay]         = useState(String(cup?.referee_pay || '0'));
   const [refsNeeded, setRefsNeeded] = useState(String(cup?.referees_needed || '1'));
   const [saving, setSaving]         = useState(false);
+  const [generating, setGenerating] = useState(false);
 
   React.useEffect(() => {
     if (cup) {
@@ -360,6 +363,83 @@ function EditCupModal({ cup, visible, onClose, onSaved }) {
 
     if (error) { Alert.alert('Error', error.message); }
     else { Alert.alert('✅ Saved', 'Cup updated.'); onSaved?.(); onClose(); }
+  }
+
+  async function generateBracket() {
+    setGenerating(true);
+
+    const { data: teams, error } = await supabase
+      .from('tournament_teams')
+      .select('id, name, avg_rating')
+      .eq('tournament_id', cup.id)
+      .order('avg_rating', { ascending: false });
+
+    if (error) {
+      Alert.alert('Error', error.message);
+      setGenerating(false);
+      return;
+    }
+
+    const count = teams.length;
+    if (![4, 8, 16].includes(count)) {
+      Alert.alert(
+        'Cannot Generate',
+        `Need exactly 4, 8, or 16 registered teams. Currently ${count} team${count !== 1 ? 's' : ''}.`
+      );
+      setGenerating(false);
+      return;
+    }
+
+    const { data: existing } = await supabase
+      .from('tournament_matches')
+      .select('id')
+      .eq('tournament_id', cup.id)
+      .limit(1);
+
+    if (existing?.length > 0) {
+      Alert.alert('Already Exists', 'A bracket has already been generated for this cup.');
+      setGenerating(false);
+      return;
+    }
+
+    const totalRounds = Math.log2(count);
+    const matchesToInsert = [];
+
+    for (let i = 0; i < count / 2; i++) {
+      matchesToInsert.push({
+        tournament_id: cup.id,
+        round: 1,
+        match_number: i + 1,
+        team_a_id: teams[i].id,
+        team_b_id: teams[count - 1 - i].id,
+        status: 'scheduled',
+      });
+    }
+
+    for (let r = 2; r <= totalRounds; r++) {
+      const matchCount = count / Math.pow(2, r);
+      for (let m = 1; m <= matchCount; m++) {
+        matchesToInsert.push({
+          tournament_id: cup.id,
+          round: r,
+          match_number: m,
+          status: 'scheduled',
+        });
+      }
+    }
+
+    const { error: insertError } = await supabase
+      .from('tournament_matches')
+      .insert(matchesToInsert);
+
+    setGenerating(false);
+
+    if (insertError) {
+      Alert.alert('Error', insertError.message);
+    } else {
+      Alert.alert('✅ Bracket Generated', `${count}-team knockout bracket is ready!`);
+      onSaved?.();
+    }
   }
 
   function handleDelete() {
@@ -512,6 +592,17 @@ function EditCupModal({ cup, visible, onClose, onSaved }) {
                 />
               </View>
             </View>
+
+            <TouchableOpacity
+              style={[styles.generateBracketBtn, generating && { opacity: 0.6 }]}
+              onPress={generateBracket}
+              disabled={generating}
+            >
+              {generating
+                ? <ActivityIndicator color={colors.dark} size="small" />
+                : <Text style={styles.generateBracketBtnText}>⚡ Generate Bracket</Text>
+              }
+            </TouchableOpacity>
 
             <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
               <Text style={styles.deleteBtnText}>🗑️ Delete Cup</Text>
@@ -1037,21 +1128,32 @@ function Dashboard({ games, cups, onEditGame, onEditCup }) {
       {(!games || games.length === 0) && (
         <Text style={styles.emptyText}>No games yet</Text>
       )}
-      {games?.map(g => (
-        <TouchableOpacity key={g.id} style={styles.dashRow} onPress={() => onEditGame(g)} activeOpacity={0.7}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.dashRowTitle} numberOfLines={1}>{g.location?.split(',')[0]}</Text>
-            <Text style={styles.dashRowMeta}>
-              {g.format} · {new Date(g.kickoff_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-            </Text>
-          </View>
-          <View style={[styles.statusBadge, { borderColor: statusColor(g.status) }]}>
-            <Text style={[styles.statusText, { color: statusColor(g.status) }]}>{g.status}</Text>
-          </View>
-          <Text style={styles.dashCount}>{g.game_players?.length || 0}/{g.total_spots}</Text>
-          <Text style={styles.editIcon}>›</Text>
-        </TouchableOpacity>
-      ))}
+      {games?.map(g => {
+        const acceptedRef = g.game_referees?.find(r => r.status === 'accepted');
+        const refName = acceptedRef?.players
+          ? ([acceptedRef.players.first_name, acceptedRef.players.last_name].filter(Boolean).join(' ') || acceptedRef.players.name)
+          : null;
+        return (
+          <TouchableOpacity key={g.id} style={styles.dashRow} onPress={() => onEditGame(g)} activeOpacity={0.7}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.dashRowTitle} numberOfLines={1}>{g.location?.split(',')[0]}</Text>
+              <Text style={styles.dashRowMeta}>
+                {g.format} · {new Date(g.kickoff_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              </Text>
+              <View style={[styles.refPill, refName ? styles.refPillConfirmed : styles.refPillMissing]}>
+                <Text style={[styles.refPillText, { color: refName ? colors.success : '#ff6b6b' }]}>
+                  {refName ? `🟢 ${refName}` : '🔴 No referee'}
+                </Text>
+              </View>
+            </View>
+            <View style={[styles.statusBadge, { borderColor: statusColor(g.status) }]}>
+              <Text style={[styles.statusText, { color: statusColor(g.status) }]}>{g.status}</Text>
+            </View>
+            <Text style={styles.dashCount}>{g.game_players?.length || 0}/{g.total_spots}</Text>
+            <Text style={styles.editIcon}>›</Text>
+          </TouchableOpacity>
+        );
+      })}
 
       {/* Cups list */}
       <Text style={[styles.dashSectionTitle, { marginTop: spacing.lg }]}>Cups  <Text style={styles.dashHint}>tap to edit</Text></Text>
@@ -1407,6 +1509,10 @@ const styles = StyleSheet.create({
   editIcon: { color: colors.gray, fontSize: 22, marginLeft: 2 },
   statusBadge: { borderRadius: radius.sm, borderWidth: 1, paddingVertical: 2, paddingHorizontal: spacing.sm },
   statusText: { fontSize: 11, fontWeight: 'bold' },
+  refPill: { alignSelf: 'flex-start', marginTop: 4, borderRadius: radius.sm, paddingVertical: 2, paddingHorizontal: spacing.xs },
+  refPillConfirmed: { backgroundColor: 'rgba(0,200,100,0.1)' },
+  refPillMissing: { backgroundColor: 'rgba(255,107,107,0.1)' },
+  refPillText: { fontSize: 11, fontWeight: '600' },
   emptyText: { color: colors.gray, fontSize: 14, marginBottom: spacing.md },
 
   // Heatmap
@@ -1553,4 +1659,9 @@ const styles = StyleSheet.create({
     borderColor: '#e05555', alignItems: 'center',
   },
   deleteBtnText: { color: '#e05555', fontWeight: 'bold', fontSize: 15 },
+  generateBracketBtn: {
+    marginTop: spacing.lg, padding: spacing.md,
+    borderRadius: radius.md, backgroundColor: colors.gold, alignItems: 'center',
+  },
+  generateBracketBtnText: { color: colors.dark, fontWeight: 'bold', fontSize: 15 },
 });

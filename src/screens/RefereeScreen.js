@@ -6,9 +6,10 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { colors, spacing, radius } from '../theme';
 
-const SECTIONS = ['Feed', 'Score', 'Profile'];
+const SECTIONS = ['Feed', 'Bookings', 'Rankings', 'Profile'];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function formatDate(iso) {
@@ -82,11 +83,12 @@ async function fetchRefereeHistory(refereeId) {
 async function fetchMyFixtures(refereeId) {
   const { data, error } = await supabase
     .from('game_referees')
-    .select('game_id, games(*, game_players(player_id, team, players(id, first_name, last_name, name, role, rating, avatar_url)))')
+    .select('game_id, checked_in, games(*, game_players(player_id, team, players(id, first_name, last_name, name, role, rating, avatar_url)))')
     .eq('referee_id', refereeId)
     .eq('status', 'accepted');
   if (error) return [];
-  return (data || []).map(r => r.games).filter(Boolean);
+  // Merge checked_in onto the game object so it travels through the app
+  return (data || []).map(r => r.games ? { ...r.games, checked_in: r.checked_in ?? false } : null).filter(Boolean);
 }
 
 async function fetchRefereeRatings(refereeId) {
@@ -95,6 +97,16 @@ async function fetchRefereeRatings(refereeId) {
     .select('rating, game_id, created_at')
     .eq('referee_id', refereeId);
   if (error) return [];
+  return data || [];
+}
+
+async function fetchRefereeRankings() {
+  const { data, error } = await supabase
+    .from('players')
+    .select('id, first_name, last_name, name, avatar_url, points, games_played')
+    .eq('role', 'Referee')
+    .order('points', { ascending: false });
+  if (error) throw error;
   return data || [];
 }
 
@@ -356,6 +368,7 @@ function StatsModal({ game, visible, onClose, onSubmitted }) {
 // ─── Feed Tab ─────────────────────────────────────────────────────────────────
 function FeedTab({ refereeId }) {
   const queryClient = useQueryClient();
+  const { t } = useLanguage();
 
   const { data: games = [] }       = useQuery({ queryKey: ['refFeedGames'],   queryFn: fetchFeedGames });
   const { data: cups = [] }        = useQuery({ queryKey: ['refFeedCups'],    queryFn: fetchFeedCups });
@@ -381,8 +394,8 @@ function FeedTab({ refereeId }) {
     return (
       <View style={styles.emptyState}>
         <Text style={styles.emptyIcon}>📋</Text>
-        <Text style={styles.emptyTitle}>No openings yet</Text>
-        <Text style={styles.emptySub}>No upcoming games or tournaments posted yet.</Text>
+        <Text style={styles.emptyTitle}>{t('referee.noOpenings')}</Text>
+        <Text style={styles.emptySub}>{t('referee.noOpeningsSub')}</Text>
       </View>
     );
   }
@@ -393,17 +406,17 @@ function FeedTab({ refereeId }) {
       {/* Your Fixtures */}
       {fixtures.length > 0 && (
         <>
-          <Text style={styles.feedSection}>📅 Your Fixtures</Text>
+          <Text style={styles.feedSection}>{t('referee.yourFixtures')}</Text>
           {fixtures.map(g => (
             <View key={g.id} style={[styles.oppCard, { borderColor: colors.gold }]}>
               <View style={styles.oppCardTop}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.oppCardTitle} numberOfLines={1}>{g.location?.split(',')[0]}</Text>
                   <Text style={styles.oppCardMeta}>{g.format} · {formatDate(g.kickoff_time)}</Text>
-                  <Text style={styles.oppCardMeta}>👥 {g.game_players?.length || 0} players registered</Text>
+                  <Text style={styles.oppCardMeta}>👥 {g.game_players?.length || 0} {t('referee.playersRegistered')}</Text>
                 </View>
                 <View style={[styles.acceptedBadge, { flex: 0, paddingHorizontal: spacing.sm }]}>
-                  <Text style={styles.acceptedText}>✓ Confirmed</Text>
+                  <Text style={styles.acceptedText}>{t('referee.confirmed')}</Text>
                 </View>
               </View>
             </View>
@@ -413,7 +426,7 @@ function FeedTab({ refereeId }) {
 
       {games.length > 0 && (
         <>
-          <Text style={styles.feedSection}>⚽ Games</Text>
+          <Text style={styles.feedSection}>{t('referee.gamesSection')}</Text>
           {games.map(g => {
             const isAccepted = accepted.includes(g.id);
             return (
@@ -439,15 +452,15 @@ function FeedTab({ refereeId }) {
                   {isAccepted ? (
                     <>
                       <View style={styles.acceptedBadge}>
-                        <Text style={styles.acceptedText}>✓ Accepted</Text>
+                        <Text style={styles.acceptedText}>{t('referee.accepted')}</Text>
                       </View>
                       <TouchableOpacity style={styles.declineBtn} onPress={() => handleDecline(g.id)}>
-                        <Text style={styles.declineBtnText}>Withdraw</Text>
+                        <Text style={styles.declineBtnText}>{t('referee.withdraw')}</Text>
                       </TouchableOpacity>
                     </>
                   ) : (
                     <TouchableOpacity style={styles.acceptBtn} onPress={() => handleAccept(g.id)}>
-                      <Text style={styles.acceptBtnText}>Accept Game →</Text>
+                      <Text style={styles.acceptBtnText}>{t('referee.acceptGame')}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -459,7 +472,7 @@ function FeedTab({ refereeId }) {
 
       {cups.length > 0 && (
         <>
-          <Text style={styles.feedSection}>🏆 Tournaments</Text>
+          <Text style={styles.feedSection}>{t('referee.tournamentsSection')}</Text>
           {cups.map(c => {
             const isAccepted = accepted.includes(c.id);
             return (
@@ -485,15 +498,15 @@ function FeedTab({ refereeId }) {
                   {isAccepted ? (
                     <>
                       <View style={styles.acceptedBadge}>
-                        <Text style={styles.acceptedText}>✓ Accepted</Text>
+                        <Text style={styles.acceptedText}>{t('referee.accepted')}</Text>
                       </View>
                       <TouchableOpacity style={styles.declineBtn} onPress={() => handleDecline(c.id)}>
-                        <Text style={styles.declineBtnText}>Withdraw</Text>
+                        <Text style={styles.declineBtnText}>{t('referee.withdraw')}</Text>
                       </TouchableOpacity>
                     </>
                   ) : (
                     <TouchableOpacity style={styles.acceptBtn} onPress={() => handleAccept(c.id)}>
-                      <Text style={styles.acceptBtnText}>Accept Tournament →</Text>
+                      <Text style={styles.acceptBtnText}>{t('referee.acceptTournament')}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -506,8 +519,85 @@ function FeedTab({ refereeId }) {
   );
 }
 
+// ─── Rankings Tab ─────────────────────────────────────────────────────────────
+function RefereeRankingsTab({ currentRefereeId }) {
+  const { t } = useLanguage();
+
+  const { data: referees = [], isLoading } = useQuery({
+    queryKey: ['refereeRankings'],
+    queryFn: fetchRefereeRankings,
+    refetchInterval: 5 * 60 * 1000,
+  });
+
+  if (isLoading) {
+    return <View style={styles.center}><ActivityIndicator color={colors.gold} size="large" /></View>;
+  }
+
+  if (referees.length === 0) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.emptyIcon}>🏆</Text>
+        <Text style={styles.emptyTitle}>{t('referee.noRankings')}</Text>
+        <Text style={styles.emptySub}>{t('referee.noRankingsSub')}</Text>
+      </View>
+    );
+  }
+
+  const MEDAL = ['🥇', '🥈', '🥉'];
+
+  return (
+    <ScrollView contentContainerStyle={styles.rankingsContent}>
+      <View style={styles.rankingsHeader}>
+        <Text style={styles.rankingsTitle}>{t('referee.topReferees')}</Text>
+      </View>
+
+      {/* Column headers */}
+      <View style={styles.rankRow}>
+        <Text style={[styles.rankCol, styles.rankColRank]}>{t('referee.rankLabel')}</Text>
+        <Text style={[styles.rankCol, { flex: 1 }]}>{t('referee.refereeLabel')}</Text>
+        <Text style={[styles.rankCol, styles.rankColStat]}>{t('referee.gamesRefereed')}</Text>
+        <Text style={[styles.rankCol, styles.rankColStat]}>{t('referee.pointsLabel')}</Text>
+      </View>
+
+      {referees.map((ref, index) => {
+        const isMe = ref.id === currentRefereeId;
+        const name = [ref.first_name, ref.last_name].filter(Boolean).join(' ') || ref.name || 'Referee';
+        const initials = [ref.first_name?.[0], ref.last_name?.[0]].filter(Boolean).join('').toUpperCase() || 'R';
+        const medal = MEDAL[index] || null;
+        return (
+          <View key={ref.id} style={[styles.rankRow, styles.rankRowData, isMe && styles.rankRowMe]}>
+            <View style={[styles.rankCol, styles.rankColRank, { alignItems: 'center' }]}>
+              {medal
+                ? <Text style={styles.rankMedal}>{medal}</Text>
+                : <Text style={[styles.rankNum, isMe && { color: colors.gold }]}>{index + 1}</Text>
+              }
+            </View>
+            <View style={[styles.rankCol, { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }]}>
+              {ref.avatar_url
+                ? <Image source={{ uri: ref.avatar_url }} style={styles.rankAvatar} />
+                : <View style={styles.rankAvatarFallback}><Text style={styles.rankAvatarText}>{initials}</Text></View>
+              }
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.rankName, isMe && { color: colors.gold }]} numberOfLines={1}>{name}</Text>
+                {isMe && <Text style={styles.rankYouLabel}>← You</Text>}
+              </View>
+            </View>
+            <Text style={[styles.rankCol, styles.rankColStat, styles.rankStatVal]}>{ref.games_played ?? 0}</Text>
+            <Text style={[styles.rankCol, styles.rankColStat, styles.rankStatPts, isMe && { color: colors.gold }]}>
+              {ref.points ?? 0}
+            </Text>
+          </View>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
 // ─── Profile Tab ──────────────────────────────────────────────────────────────
 function ProfileTab({ player }) {
+  const { t } = useLanguage();
+  const { language, setLanguage } = useLanguage();
+  const { signOut } = useAuth();
   const { data: history = [] } = useQuery({
     queryKey: ['refHistory', player?.id],
     queryFn: () => fetchRefereeHistory(player.id),
@@ -526,6 +616,13 @@ function ProfileTab({ player }) {
   const fullName = [player?.first_name, player?.last_name].filter(Boolean).join(' ') || player?.name || 'Referee';
   const initials = [player?.first_name?.[0], player?.last_name?.[0]].filter(Boolean).join('').toUpperCase() || 'R';
 
+  function handleSignOut() {
+    Alert.alert(t('referee.signOutTitle'), t('referee.signOutMsg'), [
+      { text: t('referee.cancel'), style: 'cancel' },
+      { text: t('referee.signOut'), style: 'destructive', onPress: signOut },
+    ]);
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.profileContent}>
 
@@ -539,7 +636,7 @@ function ProfileTab({ player }) {
         </View>
         <Text style={styles.profileName}>{fullName}</Text>
         <View style={styles.refBadge}>
-          <Text style={styles.refBadgeText}>🟨 Official Referee</Text>
+          <Text style={styles.refBadgeText}>{t('referee.officialReferee')}</Text>
         </View>
         {avgRating && (
           <View style={styles.avgRatingRow}>
@@ -562,11 +659,11 @@ function ProfileTab({ player }) {
             <View style={styles.bonusCardTop}>
               <Text style={styles.bonusIcon}>🎁</Text>
               <View style={{ flex: 1 }}>
-                <Text style={styles.bonusTitle}>${BONUS_AMOUNT} Bonus Reward</Text>
+                <Text style={styles.bonusTitle}>{t('referee.bonusTitle')}</Text>
                 <Text style={styles.bonusSub}>
                   {earned
-                    ? '🎉 You\'ve earned your bonus!'
-                    : `Referee ${gamesLeft} more game${gamesLeft !== 1 ? 's' : ''} to unlock`}
+                    ? t('referee.bonusEarned')
+                    : `${gamesLeft} ${gamesLeft !== 1 ? t('referee.bonusLeftPlural') : t('referee.bonusLeft')}`}
                 </Text>
               </View>
               <Text style={styles.bonusCount}>{gamesRefereed}/{BONUS_THRESHOLD}</Text>
@@ -580,25 +677,25 @@ function ProfileTab({ player }) {
 
       {/* Credentials */}
       <View style={styles.profileSection}>
-        <Text style={styles.profileSectionTitle}>📋 Credentials</Text>
+        <Text style={styles.profileSectionTitle}>{t('referee.credentials')}</Text>
         <View style={styles.infoRow}>
-          <Text style={styles.infoKey}>Email</Text>
+          <Text style={styles.infoKey}>{t('referee.email')}</Text>
           <Text style={styles.infoVal}>{player?.email || '—'}</Text>
         </View>
         <View style={styles.infoRow}>
-          <Text style={styles.infoKey}>Phone</Text>
+          <Text style={styles.infoKey}>{t('referee.phone')}</Text>
           <Text style={styles.infoVal}>{player?.phone || '—'}</Text>
         </View>
         <View style={styles.infoRow}>
-          <Text style={styles.infoKey}>Certification</Text>
+          <Text style={styles.infoKey}>{t('referee.certification')}</Text>
           <Text style={styles.infoVal}>{player?.referee_cert || '—'}</Text>
         </View>
         <View style={styles.infoRow}>
-          <Text style={styles.infoKey}>Experience</Text>
+          <Text style={styles.infoKey}>{t('referee.experience')}</Text>
           <Text style={styles.infoVal}>{player?.referee_experience || '—'}</Text>
         </View>
         <View style={styles.infoRow}>
-          <Text style={styles.infoKey}>Formats</Text>
+          <Text style={styles.infoKey}>{t('referee.formats')}</Text>
           <Text style={styles.infoVal}>{Array.isArray(player?.referee_formats) ? player.referee_formats.join(', ') : (player?.referee_formats || '—')}</Text>
         </View>
       </View>
@@ -607,25 +704,25 @@ function ProfileTab({ player }) {
       <View style={styles.statsRow}>
         <View style={styles.statBox}>
           <Text style={styles.statVal}>{history.length}</Text>
-          <Text style={styles.statLbl}>Games</Text>
+          <Text style={styles.statLbl}>{t('referee.gamesLabel')}</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statBox}>
           <Text style={styles.statVal}>{avgRating ?? '—'}</Text>
-          <Text style={styles.statLbl}>Avg Rating</Text>
+          <Text style={styles.statLbl}>{t('referee.avgRating')}</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statBox}>
           <Text style={styles.statVal}>{ratings.length}</Text>
-          <Text style={styles.statLbl}>Reviews</Text>
+          <Text style={styles.statLbl}>{t('referee.reviews')}</Text>
         </View>
       </View>
 
       {/* Game History */}
       <View style={styles.profileSection}>
-        <Text style={styles.profileSectionTitle}>🎮 Game History</Text>
+        <Text style={styles.profileSectionTitle}>{t('referee.gameHistory')}</Text>
         {history.length === 0 ? (
-          <Text style={styles.noDataText}>No games refereed yet</Text>
+          <Text style={styles.noDataText}>{t('referee.noGamesRefereed')}</Text>
         ) : (
           history.slice(0, 10).map(h => (
             <View key={h.id} style={styles.historyRow}>
@@ -652,7 +749,7 @@ function ProfileTab({ player }) {
       {/* Ratings breakdown */}
       {ratings.length > 0 && (
         <View style={styles.profileSection}>
-          <Text style={styles.profileSectionTitle}>⭐ Player Ratings</Text>
+          <Text style={styles.profileSectionTitle}>{t('referee.playerRatings')}</Text>
           {[5, 4, 3, 2, 1, 0].map(n => {
             const count = ratings.filter(r => r.rating === n).length;
             const pct = ratings.length > 0 ? (count / ratings.length) * 100 : 0;
@@ -668,6 +765,30 @@ function ProfileTab({ player }) {
           })}
         </View>
       )}
+
+      {/* Language toggle */}
+      <View style={styles.profileSection}>
+        <Text style={styles.profileSectionTitle}>{t('referee.language')}</Text>
+        <View style={styles.langRow}>
+          <TouchableOpacity
+            style={[styles.langBtn, language === 'en' && styles.langBtnActive]}
+            onPress={() => setLanguage('en')}
+          >
+            <Text style={[styles.langBtnText, language === 'en' && styles.langBtnTextActive]}>🇺🇸 English</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.langBtn, language === 'es' && styles.langBtnActive]}
+            onPress={() => setLanguage('es')}
+          >
+            <Text style={[styles.langBtnText, language === 'es' && styles.langBtnTextActive]}>🇪🇸 Español</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Sign Out */}
+      <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut}>
+        <Text style={styles.signOutBtnText}>{t('referee.signOut')}</Text>
+      </TouchableOpacity>
 
     </ScrollView>
   );
@@ -1063,9 +1184,10 @@ function MatchModal({ game, visible, onClose, onSaved }) {
   );
 }
 
-// ─── Score Tab ────────────────────────────────────────────────────────────────
-function ScoreTab({ refereeId }) {
+// ─── Bookings Tab ─────────────────────────────────────────────────────────────
+function BookingsTab({ refereeId }) {
   const queryClient = useQueryClient();
+  const { t } = useLanguage();
   const [selectedGame, setSelectedGame] = useState(null);
 
   const { data: fixtures = [], isLoading, refetch } = useQuery({
@@ -1082,6 +1204,20 @@ function ScoreTab({ refereeId }) {
   const fixtureIds = new Set(fixtures.map(g => g.id));
   const otherGames = allGames.filter(g => !fixtureIds.has(g.id));
 
+  async function handleCheckIn(game) {
+    const { error } = await supabase
+      .from('game_referees')
+      .update({ checked_in: true, checked_in_at: new Date().toISOString() })
+      .eq('game_id', game.id)
+      .eq('referee_id', refereeId);
+    if (error) {
+      Alert.alert('Error', error.message);
+    } else {
+      queryClient.invalidateQueries(['refFixturesScore', refereeId]);
+      queryClient.invalidateQueries(['refFixtures', refereeId]);
+    }
+  }
+
   if (isLoading) return <View style={styles.center}><ActivityIndicator color={colors.gold} size="large" /></View>;
 
   return (
@@ -1090,26 +1226,53 @@ function ScoreTab({ refereeId }) {
 
         {fixtures.length > 0 && (
           <>
-            <Text style={styles.scoreSection}>📅 Your Fixtures</Text>
-            {fixtures.map(item => (
-              <TouchableOpacity key={item.id} style={[styles.gameCard, { borderColor: colors.gold }]}
-                onPress={() => setSelectedGame(item)} activeOpacity={0.85}>
-                <View style={styles.gameCardLeft}>
-                  <Text style={styles.gameCardTitle} numberOfLines={1}>{item.location?.split(',')[0]}</Text>
-                  <Text style={styles.gameCardMeta}>{item.format} · {formatDate(item.kickoff_time)}</Text>
-                  <Text style={styles.gameCardPlayers}>👥 {item.game_players?.length || 0} players</Text>
+            <Text style={styles.scoreSection}>{t('referee.yourFixtures')}</Text>
+            {fixtures.map(item => {
+              const kickoff = new Date(item.kickoff_time);
+              const now = new Date();
+              const minsUntil = (kickoff - now) / (1000 * 60);
+              const showCheckIn = minsUntil <= 60 && minsUntil > -30; // within 1 hr before or 30 min after kickoff
+              const isCheckedIn = item.checked_in;
+
+              return (
+                <View key={item.id} style={[styles.gameCard, { borderColor: colors.gold, flexDirection: 'column' }]}>
+                  <TouchableOpacity
+                    style={styles.gameCardInner}
+                    onPress={() => setSelectedGame(item)}
+                    activeOpacity={0.85}
+                  >
+                    <View style={styles.gameCardLeft}>
+                      <Text style={styles.gameCardTitle} numberOfLines={1}>{item.location?.split(',')[0]}</Text>
+                      <Text style={styles.gameCardMeta}>{item.format} · {formatDate(item.kickoff_time)}</Text>
+                      <Text style={styles.gameCardPlayers}>👥 {item.game_players?.length || 0} players</Text>
+                    </View>
+                    <View style={styles.gameCardRight}>
+                      <Text style={styles.arrowIcon}>›</Text>
+                    </View>
+                  </TouchableOpacity>
+
+                  {showCheckIn && (
+                    <View style={styles.checkInRow}>
+                      {isCheckedIn ? (
+                        <View style={styles.checkedInBadge}>
+                          <Text style={styles.checkedInText}>✅ {t('referee.checkedIn')}</Text>
+                        </View>
+                      ) : (
+                        <TouchableOpacity style={styles.checkInBtn} onPress={() => handleCheckIn(item)}>
+                          <Text style={styles.checkInBtnText}>📍 {t('referee.imHere')}</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  )}
                 </View>
-                <View style={styles.gameCardRight}>
-                  <Text style={styles.arrowIcon}>›</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
+              );
+            })}
           </>
         )}
 
         {otherGames.length > 0 && (
           <>
-            <Text style={styles.scoreSection}>⚽ Other Games</Text>
+            <Text style={styles.scoreSection}>{t('referee.otherGames')}</Text>
             {otherGames.map(item => (
               <TouchableOpacity key={item.id} style={styles.gameCard}
                 onPress={() => setSelectedGame(item)} activeOpacity={0.85}>
@@ -1131,8 +1294,8 @@ function ScoreTab({ refereeId }) {
         {fixtures.length === 0 && otherGames.length === 0 && (
           <View style={styles.center}>
             <Text style={styles.emptyIcon}>📋</Text>
-            <Text style={styles.emptyTitle}>No games yet</Text>
-            <Text style={styles.emptySub}>Accept a game from Feed to manage it here.</Text>
+            <Text style={styles.emptyTitle}>{t('referee.noGames')}</Text>
+            <Text style={styles.emptySub}>{t('referee.noGamesSub')}</Text>
           </View>
         )}
       </ScrollView>
@@ -1156,17 +1319,15 @@ function ScoreTab({ refereeId }) {
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function RefereeScreen() {
   const { player } = useAuth();
+  const { t } = useLanguage();
   const [activeSection, setActiveSection] = useState('Feed');
 
-  if (!player?.is_referee && !player?.is_admin) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.lockIcon}>🔒</Text>
-        <Text style={styles.lockText}>Referee Access Only</Text>
-        <Text style={styles.lockSub}>Contact your admin to get referee access.</Text>
-      </View>
-    );
-  }
+  const TAB_LABELS = {
+    Feed:     t('referee.tabFeed'),
+    Bookings: t('referee.tabBookings'),
+    Rankings: t('referee.tabRankings'),
+    Profile:  t('referee.tabProfile'),
+  };
 
   return (
     <View style={styles.container}>
@@ -1179,15 +1340,16 @@ export default function RefereeScreen() {
             onPress={() => setActiveSection(s)}
           >
             <Text style={[styles.tabBtnText, activeSection === s && styles.tabBtnTextActive]}>
-              {s === 'Feed' ? '📋 Feed' : s === 'Score' ? '🟨 Score' : '👤 Profile'}
+              {TAB_LABELS[s]}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      {activeSection === 'Feed'    && <FeedTab refereeId={player?.id} />}
-      {activeSection === 'Score'   && <ScoreTab refereeId={player?.id} />}
-      {activeSection === 'Profile' && <ProfileTab player={player} />}
+      {activeSection === 'Feed'     && <FeedTab refereeId={player?.id} />}
+      {activeSection === 'Bookings' && <BookingsTab refereeId={player?.id} />}
+      {activeSection === 'Rankings' && <RefereeRankingsTab currentRefereeId={player?.id} />}
+      {activeSection === 'Profile'  && <ProfileTab player={player} />}
     </View>
   );
 }
@@ -1278,6 +1440,31 @@ const styles = StyleSheet.create({
   statusDot: { width: 8, height: 8, borderRadius: 4 },
   statusLabel: { color: colors.gray, fontSize: 11 },
   arrowIcon: { color: colors.gold, fontSize: 22, fontWeight: 'bold' },
+  gameCardInner: { flexDirection: 'row', alignItems: 'center' },
+
+  // Check-in
+  checkInRow: {
+    borderTopWidth: 1,
+    borderTopColor: colors.darkBorder,
+    paddingTop: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  checkInBtn: {
+    backgroundColor: colors.gold,
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm,
+    alignItems: 'center',
+  },
+  checkInBtnText: { color: colors.dark, fontWeight: 'bold', fontSize: 15 },
+  checkedInBadge: {
+    backgroundColor: 'rgba(76,175,80,0.12)',
+    borderWidth: 1,
+    borderColor: colors.success,
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm,
+    alignItems: 'center',
+  },
+  checkedInText: { color: colors.success, fontWeight: 'bold', fontSize: 14 },
 
   // Profile tab
   profileContent: { padding: spacing.md, paddingBottom: 80 },
@@ -1358,6 +1545,52 @@ const styles = StyleSheet.create({
   ratingBarTrack: { flex: 1, height: 8, backgroundColor: colors.dark, borderRadius: 4, overflow: 'hidden' },
   ratingBarFill: { height: '100%', backgroundColor: colors.gold, borderRadius: 4 },
   ratingBarCount: { color: colors.gray, fontSize: 12, width: 20 },
+
+  // Language + Sign Out
+  langRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
+  langBtn: {
+    flex: 1, paddingVertical: spacing.sm, borderRadius: radius.md,
+    borderWidth: 1, borderColor: colors.darkBorder, alignItems: 'center',
+  },
+  langBtnActive: { borderColor: colors.gold, backgroundColor: 'rgba(232,184,75,0.1)' },
+  langBtnText: { color: colors.gray, fontSize: 13, fontWeight: '600' },
+  langBtnTextActive: { color: colors.gold },
+  signOutBtn: {
+    marginBottom: spacing.xl, marginHorizontal: spacing.md,
+    padding: spacing.md, borderRadius: radius.md,
+    borderWidth: 1, borderColor: colors.error, alignItems: 'center',
+  },
+  signOutBtnText: { color: colors.error, fontWeight: '700', fontSize: 15 },
+
+  // Referee Rankings
+  rankingsContent: { padding: spacing.md, paddingBottom: 80 },
+  rankingsHeader: { alignItems: 'center', marginBottom: spacing.lg },
+  rankingsTitle: { color: colors.gold, fontSize: 20, fontWeight: 'bold', letterSpacing: 0.5 },
+  rankRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: spacing.sm, paddingVertical: spacing.xs,
+  },
+  rankRowData: {
+    backgroundColor: colors.darkCard, borderRadius: radius.md,
+    borderWidth: 1, borderColor: colors.darkBorder,
+    marginBottom: spacing.xs, paddingVertical: spacing.sm,
+  },
+  rankRowMe: { borderColor: colors.gold, backgroundColor: 'rgba(232,184,75,0.07)' },
+  rankCol: { color: colors.gray, fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
+  rankColRank: { width: 44, alignItems: 'center', justifyContent: 'center' },
+  rankColStat: { width: 52, textAlign: 'center' },
+  rankMedal: { fontSize: 20 },
+  rankNum: { color: colors.grayLight, fontSize: 15, fontWeight: 'bold' },
+  rankAvatar: { width: 36, height: 36, borderRadius: 18 },
+  rankAvatarFallback: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: colors.darkBorder, alignItems: 'center', justifyContent: 'center',
+  },
+  rankAvatarText: { color: colors.gold, fontSize: 13, fontWeight: 'bold' },
+  rankName: { color: colors.white, fontSize: 14, fontWeight: '600' },
+  rankYouLabel: { color: colors.gold, fontSize: 10, fontWeight: '600', marginTop: 1 },
+  rankStatVal: { color: colors.grayLight, fontSize: 14, fontWeight: '600', textAlign: 'center' },
+  rankStatPts: { color: colors.white, fontSize: 15, fontWeight: 'bold', textAlign: 'center' },
 
   // Modal
   modalContainer: { flex: 1, backgroundColor: colors.dark },
