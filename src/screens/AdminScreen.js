@@ -28,7 +28,7 @@ const SLOT_LABELS = { AM: 'Morning', PM: 'Afternoon', EVE: 'Evening' };
 const FORMATS = ['5v5', '6v6', '7v7', '8v8', '11v11'];
 const GAME_STATUSES = ['open', 'active', 'completed', 'cancelled'];
 const CUP_STATUSES  = ['upcoming', 'active', 'completed', 'cancelled'];
-const SECTIONS = ['Dashboard', 'Availability', 'New Game', 'New Cup', 'Payments'];
+const SECTIONS = ['Dashboard', 'Availability', 'New Game', 'New Cup', 'Payments', 'Referees'];
 
 // ─── Fetch helpers ────────────────────────────────────────────────────────────
 async function fetchAvailabilities() {
@@ -65,6 +65,16 @@ async function fetchPayments() {
     .select('*, players(first_name, last_name, name), games(location, format, kickoff_time)')
     .order('created_at', { ascending: false })
     .limit(50);
+  if (error) throw error;
+  return data || [];
+}
+
+async function fetchReferees() {
+  const { data, error } = await supabase
+    .from('players')
+    .select('id, first_name, last_name, name, email, referee_cert, referee_experience, referee_formats, referee_id_url, referee_selfie_url, referee_approved, created_at')
+    .eq('role', 'Referee')
+    .order('created_at', { ascending: false });
   if (error) throw error;
   return data || [];
 }
@@ -1340,6 +1350,142 @@ function PaymentsPanel() {
   );
 }
 
+// ─── Referees Panel ───────────────────────────────────────────────────────────
+function RefereesPanel() {
+  const queryClient = useQueryClient();
+  const { data: referees = [], isLoading } = useQuery({
+    queryKey: ['adminReferees'],
+    queryFn: fetchReferees,
+  });
+
+  const pending  = referees.filter(r => !r.referee_approved);
+  const approved = referees.filter(r => r.referee_approved);
+
+  async function approveReferee(ref) {
+    const { error } = await supabase
+      .from('players')
+      .update({ referee_approved: true })
+      .eq('id', ref.id);
+    if (error) { Alert.alert('Error', error.message); return; }
+    queryClient.invalidateQueries(['adminReferees']);
+    Alert.alert('✅ Approved', `${ref.first_name} ${ref.last_name} can now accept games.`);
+  }
+
+  async function rejectReferee(ref) {
+    Alert.alert(
+      'Reject Referee',
+      `Remove ${ref.first_name} ${ref.last_name}'s referee account? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove', style: 'destructive',
+          onPress: async () => {
+            await supabase.from('players').delete().eq('id', ref.id);
+            queryClient.invalidateQueries(['adminReferees']);
+          },
+        },
+      ]
+    );
+  }
+
+  function refName(r) {
+    return [r.first_name, r.last_name].filter(Boolean).join(' ') || r.name || 'Unknown';
+  }
+
+  if (isLoading) return <ActivityIndicator color={colors.gold} style={{ marginTop: 40 }} />;
+
+  return (
+    <View>
+      <View style={styles.statsGrid}>
+        <View style={styles.statCard}>
+          <Text style={[styles.statCardValue, { color: '#ff6b6b' }]}>{pending.length}</Text>
+          <Text style={styles.statCardLabel}>Pending Review</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={[styles.statCardValue, { color: colors.success }]}>{approved.length}</Text>
+          <Text style={styles.statCardLabel}>Approved</Text>
+        </View>
+      </View>
+
+      {/* Pending referees */}
+      {pending.length > 0 && (
+        <>
+          <Text style={styles.dashSectionTitle}>⏳ Pending Approval</Text>
+          {pending.map(r => (
+            <View key={r.id} style={[styles.dashRow, { flexDirection: 'column', alignItems: 'stretch', gap: spacing.sm }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.dashRowTitle}>{refName(r)}</Text>
+                  <Text style={styles.dashRowMeta}>{r.email}</Text>
+                  <Text style={styles.dashRowMeta}>
+                    {r.referee_cert} · {r.referee_experience} · {(r.referee_formats || []).join(', ')}
+                  </Text>
+                </View>
+              </View>
+              {/* View buttons */}
+              <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                <TouchableOpacity
+                  style={styles.refViewBtn}
+                  onPress={() => viewRefereeId(r.referee_selfie_url)}
+                >
+                  <Text style={styles.refViewBtnText}>🤳 View Selfie</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.refViewBtn}
+                  onPress={() => viewRefereeId(r.referee_id_url)}
+                >
+                  <Text style={styles.refViewBtnText}>🪪 View ID</Text>
+                </TouchableOpacity>
+              </View>
+              {/* Approve / Reject */}
+              <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                <TouchableOpacity
+                  style={[styles.refActionBtn, { backgroundColor: colors.success }]}
+                  onPress={() => approveReferee(r)}
+                >
+                  <Text style={styles.refActionBtnText}>✅ Approve</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.refActionBtn, { backgroundColor: '#ff6b6b' }]}
+                  onPress={() => rejectReferee(r)}
+                >
+                  <Text style={styles.refActionBtnText}>❌ Reject</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+        </>
+      )}
+
+      {/* Approved referees */}
+      {approved.length > 0 && (
+        <>
+          <Text style={[styles.dashSectionTitle, { marginTop: spacing.lg }]}>✅ Approved Referees</Text>
+          {approved.map(r => (
+            <View key={r.id} style={styles.dashRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.dashRowTitle}>{refName(r)}</Text>
+                <Text style={styles.dashRowMeta}>{r.referee_cert} · {r.referee_experience}</Text>
+              </View>
+              <TouchableOpacity onPress={() => viewRefereeId(r.referee_selfie_url)}>
+                <Text style={styles.viewIdBtn}>🤳 Selfie</Text>
+              </TouchableOpacity>
+              <Text style={{ color: colors.gray, marginHorizontal: spacing.xs }}>|</Text>
+              <TouchableOpacity onPress={() => viewRefereeId(r.referee_id_url)}>
+                <Text style={styles.viewIdBtn}>🪪 ID</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </>
+      )}
+
+      {referees.length === 0 && (
+        <Text style={styles.emptyText}>No referees have signed up yet</Text>
+      )}
+    </View>
+  );
+}
+
 // ─── Main Admin Screen ────────────────────────────────────────────────────────
 export default function AdminScreen() {
   const { player } = useAuth();
@@ -1402,7 +1548,8 @@ export default function AdminScreen() {
                 : s === 'Availability' ? '📅 Availability'
                 : s === 'New Game'     ? '⚽ New Game'
                 : s === 'New Cup'      ? '🏆 New Cup'
-                : '💳 Payments'}
+                : s === 'Payments'     ? '💳 Payments'
+                : '🟨 Referees'}
             </Text>
           </TouchableOpacity>
         ))}
@@ -1446,6 +1593,10 @@ export default function AdminScreen() {
 
           {activeSection === 'Payments' && (
             <PaymentsPanel />
+          )}
+
+          {activeSection === 'Referees' && (
+            <RefereesPanel />
           )}
 
         </ScrollView>
@@ -1530,6 +1681,17 @@ const styles = StyleSheet.create({
   refPillMissing: { backgroundColor: 'rgba(255,107,107,0.1)' },
   refPillText: { fontSize: 11, fontWeight: '600' },
   viewIdBtn: { color: colors.gold, fontSize: 12, fontWeight: '600' },
+  refViewBtn: {
+    flex: 1, backgroundColor: colors.darkCard, borderRadius: radius.sm,
+    paddingVertical: spacing.xs, alignItems: 'center',
+    borderWidth: 1, borderColor: colors.darkBorder,
+  },
+  refViewBtnText: { color: colors.gold, fontSize: 12, fontWeight: '600' },
+  refActionBtn: {
+    flex: 1, borderRadius: radius.sm,
+    paddingVertical: spacing.sm, alignItems: 'center',
+  },
+  refActionBtnText: { color: colors.dark, fontSize: 13, fontWeight: 'bold' },
   emptyText: { color: colors.gray, fontSize: 14, marginBottom: spacing.md },
 
   // Heatmap

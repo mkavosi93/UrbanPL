@@ -11,7 +11,7 @@ import { supabase } from '../../lib/supabase';
 import { colors, spacing, radius } from '../../theme';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const TOTAL_STEPS   = 5;
+const TOTAL_STEPS   = 6;
 const CERT_LEVELS   = ['None (Learning)', 'FA Level 1', 'USSF Grade 8', 'USSF Grade 7', 'Pro'];
 const EXPERIENCE    = ['0–1 yr', '1–3 yrs', '3–5 yrs', '5+ yrs'];
 const FORMATS       = ['5v5', '6v6', '7v7', '8v8', '11v11'];
@@ -181,7 +181,10 @@ export default function RefereeSignUpScreen({ navigation }) {
   // Step 4 – Availability
   const [availability, setAvailability] = useState({});
 
-  // Step 5 – ID + Access Code
+  // Step 5 – Live Selfie (front camera only)
+  const [selfieUri, setSelfieUri]       = useState(null);
+
+  // Step 6 – ID + Access Code
   const [idDocUri, setIdDocUri]         = useState(null);
   const [accessCode, setAccessCode]     = useState('');
 
@@ -220,13 +223,18 @@ export default function RefereeSignUpScreen({ navigation }) {
   }
 
   function validateStep5() {
+    if (!selfieUri) { Alert.alert('Selfie Required', 'A live selfie is required to verify your identity matches your ID. Use the front camera — no uploads allowed.'); return false; }
+    return true;
+  }
+
+  function validateStep6() {
     if (!idDocUri)          { Alert.alert('ID Required', "A government-issued ID is required to verify your identity. This is kept secure and only seen by admins."); return false; }
     if (!accessCode.trim()) { Alert.alert('Missing', 'Please enter your referee access code.'); return false; }
     return true;
   }
 
   function next() {
-    const validators = [null, validateStep1, validateStep2, validateStep3, validateStep4, validateStep5];
+    const validators = [null, validateStep1, validateStep2, validateStep3, validateStep4, validateStep5, validateStep6];
     if (validators[step]?.()) setStep(s => s + 1);
   }
   function back() {
@@ -262,9 +270,22 @@ export default function RefereeSignUpScreen({ navigation }) {
     ]);
   }
 
+  // Front camera only — no gallery option — for identity selfie
+  async function takeSelfie() {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') { Alert.alert('Permission needed', 'Allow camera access to take your selfie.'); return; }
+    const result = await ImagePicker.launchCameraAsync({
+      cameraType: ImagePicker.CameraType.front,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled) setSelfieUri(result.assets[0].uri);
+  }
+
   // ── Final Submit ─────────────────────────────────────────────────────────────
   async function handleSubmit() {
-    if (!validateStep5()) return;
+    if (!validateStep6()) return;
     setLoading(true);
 
     try {
@@ -292,7 +313,14 @@ export default function RefereeSignUpScreen({ navigation }) {
         catch (e) { console.warn('Avatar upload failed:', e.message); }
       }
 
-      // 4. Upload ID document to PRIVATE referee-ids bucket
+      // 4. Upload live selfie to PRIVATE referee-ids bucket
+      let selfiePath = null;
+      if (selfieUri) {
+        try { selfiePath = await uploadPrivateId(selfieUri, `${userId}/selfie.jpg`); }
+        catch (e) { console.warn('Selfie upload failed:', e.message); }
+      }
+
+      // 5. Upload ID document to PRIVATE referee-ids bucket
       let idDocPath = null;
       if (idDocUri) {
         try { idDocPath = await uploadPrivateId(idDocUri, `${userId}/referee-id.jpg`); }
@@ -317,7 +345,9 @@ export default function RefereeSignUpScreen({ navigation }) {
         referee_cert: certLevel,
         referee_experience: experience,
         referee_formats: formats,
-        referee_id_url: idDocPath, // private storage path, not a public URL
+        referee_selfie_url: selfiePath,   // private selfie path for identity check
+        referee_id_url: idDocPath,        // private ID doc path
+        referee_approved: false,          // admin must approve before they can accept games
       });
 
       if (playerError) throw new Error(playerError.message);
@@ -325,7 +355,7 @@ export default function RefereeSignUpScreen({ navigation }) {
       setLoading(false);
       Alert.alert(
         '✅ Application Submitted!',
-        'Your referee account has been created. The admin will review your ID and activate your account. You can now sign in.',
+        'Your account has been created. The admin will compare your selfie against your ID to verify your identity. You\'ll be able to accept games once approved.',
         [{ text: 'Sign In', onPress: () => navigation.navigate('RefereeLogin') }]
       );
 
@@ -543,7 +573,51 @@ export default function RefereeSignUpScreen({ navigation }) {
     </KeyboardAvoidingView>
   );
 
-  // ── Step 5: ID Document + Access Code ────────────────────────────────────────
+  // ── Step 5: Live Selfie ───────────────────────────────────────────────────────
+  if (step === 5) return (
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+        <View style={styles.topRow}>
+          <TouchableOpacity onPress={back}><Text style={styles.backText}>← Back</Text></TouchableOpacity>
+        </View>
+
+        <StepHeader step={5} title="Identity Selfie" subtitle="Prove it's really you — front camera only" />
+
+        <View style={styles.infoBox}>
+          <Text style={styles.infoBoxText}>
+            📸 Take a live selfie so the admin can verify your face matches your ID document. This photo is private and only seen by admins.{'\n\n'}
+            ⚠️ Gallery uploads are not allowed — you must take the photo now.
+          </Text>
+        </View>
+
+        <View style={styles.photoSection}>
+          {selfieUri ? (
+            <>
+              <Image source={{ uri: selfieUri }} style={styles.selfiePreview} />
+              <View style={styles.selfieConfirmed}>
+                <Text style={styles.selfieConfirmedText}>✅ Selfie captured</Text>
+              </View>
+              <TouchableOpacity style={styles.retakeBtn} onPress={takeSelfie}>
+                <Text style={styles.retakeBtnText}>Retake Selfie</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <TouchableOpacity style={styles.selfieCaptureBtn} onPress={takeSelfie}>
+              <Text style={styles.selfieCaptureBtnIcon}>🤳</Text>
+              <Text style={styles.selfieCaptureBtnText}>Take Selfie</Text>
+              <Text style={styles.selfieCaptureBtnHint}>Front camera · No uploads</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <TouchableOpacity style={[styles.nextBtn, !selfieUri && { opacity: 0.5 }]} onPress={next} disabled={!selfieUri}>
+          <Text style={styles.nextBtnText}>Next →</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+
+  // ── Step 6: ID Document + Access Code ────────────────────────────────────────
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
@@ -551,7 +625,7 @@ export default function RefereeSignUpScreen({ navigation }) {
           <TouchableOpacity onPress={back}><Text style={styles.backText}>← Back</Text></TouchableOpacity>
         </View>
 
-        <StepHeader step={5} title="Verification" subtitle="ID document + referee access code" />
+        <StepHeader step={6} title="Verification" subtitle="ID document + referee access code" />
 
         {/* ID Document Upload */}
         <Text style={styles.sectionLabel}>🪪 Government-Issued ID</Text>
@@ -625,6 +699,12 @@ export default function RefereeSignUpScreen({ navigation }) {
             <Text style={styles.submitKey}>Photo</Text>
             <Text style={[styles.submitVal, { color: avatarUri ? colors.success : colors.error }]}>
               {avatarUri ? '✅ Uploaded' : '❌ Missing'}
+            </Text>
+          </View>
+          <View style={styles.submitRow}>
+            <Text style={styles.submitKey}>Selfie</Text>
+            <Text style={[styles.submitVal, { color: selfieUri ? colors.success : colors.error }]}>
+              {selfieUri ? '✅ Captured' : '❌ Missing'}
             </Text>
           </View>
           <View style={styles.submitRow}>
@@ -776,6 +856,29 @@ const styles = StyleSheet.create({
     borderRadius: radius.md, borderWidth: 2, borderColor: colors.gold,
     backgroundColor: colors.darkCard,
   },
+
+  // Selfie
+  selfiePreview: {
+    width: 180, height: 180, borderRadius: 90,
+    borderWidth: 3, borderColor: colors.gold,
+    marginBottom: spacing.md,
+  },
+  selfieConfirmed: {
+    backgroundColor: 'rgba(0,200,100,0.15)', borderRadius: radius.md,
+    paddingVertical: spacing.xs, paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  selfieConfirmedText: { color: colors.success, fontWeight: '600', fontSize: 13 },
+  selfieCaptureBtn: {
+    width: 180, height: 180, borderRadius: 90,
+    backgroundColor: colors.darkCard,
+    borderWidth: 2, borderColor: colors.gold,
+    alignItems: 'center', justifyContent: 'center',
+    gap: spacing.xs,
+  },
+  selfieCaptureBtnIcon: { fontSize: 40 },
+  selfieCaptureBtnText: { color: colors.gold, fontWeight: 'bold', fontSize: 15 },
+  selfieCaptureBtnHint: { color: colors.gray, fontSize: 11 },
 
   // Availability
   avGrid: { marginTop: spacing.sm },
