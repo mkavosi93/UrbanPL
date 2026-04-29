@@ -126,11 +126,12 @@ UrbanPL/
 - ⏳ Enroll in Apple Developer Program ($99/yr) → developer.apple.com
 - ⏳ Run EAS iOS build: `eas build --platform ios --profile preview`
 - ⏳ Test end-to-end on phone (home WiFi: `npx expo start --lan`)
-- ⏳ Move referee ID photos to private Supabase storage bucket
 - ⏳ App Store screenshots
 - ⏳ App Store Connect listing (description, keywords, category)
 
 ## Recently Completed
+- ✅ Private referee-ids Supabase storage bucket (RLS: admin-read, referee-upload only)
+- ✅ Admin "View ID" button in Ref Payouts tab (60-min signed URL)
 - ✅ Auto team balancing via `apply_team_assignments` Supabase SECURITY DEFINER function
 - ✅ Lineup card in UpcomingFixtures (expands 2h before kickoff)
 - ✅ Fixed snake draft algorithm (even split regardless of equal ratings)
