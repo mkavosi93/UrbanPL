@@ -14,6 +14,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { scheduleGameReminders } from '../lib/notifications';
 import GameMap from '../components/GameMap';
+import GameChat from '../components/GameChat';
 
 const SUPABASE_FUNCTIONS_URL = 'https://zprtghdcmiavtoaltlld.supabase.co/functions/v1';
 import { colors, spacing, radius } from '../theme';
@@ -161,9 +162,10 @@ async function fetchMyFixtures(playerId) {
   return fixtures;
 }
 
-function FixtureDetailModal({ fixture, visible, onClose, onWithdraw, onCheckIn, t }) {
+function FixtureDetailModal({ fixture, visible, onClose, onWithdraw, onCheckIn, playerId, playerName, isAdmin, t }) {
   const [checkedIn, setCheckedIn] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
 
   // Sync local state whenever the fixture changes (different game opened)
   useEffect(() => {
@@ -377,11 +379,31 @@ function FixtureDetailModal({ fixture, visible, onClose, onWithdraw, onCheckIn, 
             </TouchableOpacity>
           )}
 
+          {/* Chat button — games only */}
+          {isGame && (
+            <TouchableOpacity style={styles.chatBtn} onPress={() => setChatOpen(true)}>
+              <Text style={styles.chatBtnText}>💬 Game Chat</Text>
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity style={styles.modalCloseBtn} onPress={onClose}>
             <Text style={styles.modalCloseBtnText}>{t('feed.close')}</Text>
           </TouchableOpacity>
         </Pressable>
       </Pressable>
+
+      {/* Game Chat */}
+      {isGame && (
+        <GameChat
+          gameId={data?.id}
+          gameLocation={data?.location}
+          playerId={playerId}
+          playerName={playerName}
+          isAdmin={isAdmin}
+          visible={chatOpen}
+          onClose={() => setChatOpen(false)}
+        />
+      )}
     </Modal>
   );
 }
@@ -501,7 +523,7 @@ function FixtureCard({ fixture, onPress, t }) {
   );
 }
 
-function UpcomingFixtures({ playerId, playerRole, t }) {
+function UpcomingFixtures({ playerId, playerName, playerRole, isAdmin, t }) {
   const [selectedFixture, setSelectedFixture] = useState(null);
   const queryClient = useQueryClient();
 
@@ -602,6 +624,9 @@ function UpcomingFixtures({ playerId, playerRole, t }) {
         onClose={() => setSelectedFixture(null)}
         onWithdraw={playerRole !== 'Referee' ? handleWithdraw : null}
         onCheckIn={handleCheckIn}
+        playerId={playerId}
+        playerName={playerName}
+        isAdmin={isAdmin}
         t={t}
       />
     </View>
@@ -1502,7 +1527,13 @@ export default function FeedScreen() {
       )}
 
       {/* Upcoming Fixtures */}
-      <UpcomingFixtures playerId={player?.id} playerRole={player?.role} t={t} />
+      <UpcomingFixtures
+        playerId={player?.id}
+        playerName={[player?.first_name, player?.last_name].filter(Boolean).join(' ') || player?.name}
+        playerRole={player?.role}
+        isAdmin={player?.is_admin}
+        t={t}
+      />
 
       {/* Filter Chips */}
       <FlatList
@@ -2129,6 +2160,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(244, 67, 54, 0.08)',
   },
   withdrawBtnText: { color: '#F44336', fontWeight: '600', fontSize: 14 },
+
+  chatBtn: {
+    borderRadius: radius.md, borderWidth: 1, borderColor: colors.gold,
+    paddingVertical: spacing.sm, alignItems: 'center', marginBottom: spacing.sm,
+    backgroundColor: 'rgba(201,168,76,0.08)',
+  },
+  chatBtnText: { color: colors.gold, fontWeight: '600', fontSize: 14 },
 
   // States
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
