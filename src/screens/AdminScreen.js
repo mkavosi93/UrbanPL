@@ -2,12 +2,25 @@ import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, Alert, Modal, KeyboardAvoidingView,
-  Platform,
+  Platform, Linking,
 } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { colors, spacing, radius } from '../theme';
+
+// Generate a 60-minute signed URL for a private referee ID doc and open it
+async function viewRefereeId(storagePath) {
+  if (!storagePath) { Alert.alert('No ID', 'This referee has not uploaded an ID document.'); return; }
+  const { data, error } = await supabase.storage
+    .from('referee-ids')
+    .createSignedUrl(storagePath, 3600); // 1-hour expiry
+  if (error || !data?.signedUrl) {
+    Alert.alert('Error', 'Could not load ID document. ' + (error?.message || ''));
+    return;
+  }
+  Linking.openURL(data.signedUrl);
+}
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const SLOTS = ['AM', 'PM', 'EVE'];
@@ -59,7 +72,7 @@ async function fetchPayments() {
 async function fetchRefereePayouts() {
   const { data, error } = await supabase
     .from('game_referees')
-    .select('*, players(id, first_name, last_name, name), games(id, location, format, kickoff_time, referee_pay, status)')
+    .select('*, players(id, first_name, last_name, name, referee_id_url), games(id, location, format, kickoff_time, referee_pay, status)')
     .eq('status', 'accepted');
   if (error) throw error;
   // Only show completed games
@@ -1307,6 +1320,9 @@ function PaymentsPanel() {
                       <Text style={[styles.payAmount, { color: isPaid ? colors.success : '#ff6b6b' }]}>
                         ${amount.toFixed(2)}
                       </Text>
+                      <TouchableOpacity onPress={() => viewRefereeId(r.players?.referee_id_url)}>
+                        <Text style={styles.viewIdBtn}>🪪 View ID</Text>
+                      </TouchableOpacity>
                       {isPaid
                         ? <View style={styles.paidBadge}>
                             <Text style={styles.paidBadgeText}>✓ Paid</Text>
@@ -1513,6 +1529,7 @@ const styles = StyleSheet.create({
   refPillConfirmed: { backgroundColor: 'rgba(0,200,100,0.1)' },
   refPillMissing: { backgroundColor: 'rgba(255,107,107,0.1)' },
   refPillText: { fontSize: 11, fontWeight: '600' },
+  viewIdBtn: { color: colors.gold, fontSize: 12, fontWeight: '600' },
   emptyText: { color: colors.gray, fontSize: 14, marginBottom: spacing.md },
 
   // Heatmap

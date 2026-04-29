@@ -29,7 +29,8 @@ async function getRefereeCode() {
   } catch { return FALLBACK_CODE; }
 }
 
-async function uploadImage(uri, storagePath) {
+// Upload profile photo to public avatars bucket — returns public URL
+async function uploadAvatar(uri, storagePath) {
   const base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
   const { error } = await supabase.storage
     .from('avatars')
@@ -37,6 +38,16 @@ async function uploadImage(uri, storagePath) {
   if (error) throw error;
   const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(storagePath);
   return publicUrl;
+}
+
+// Upload ID document to PRIVATE referee-ids bucket — returns storage path only (no public URL)
+async function uploadPrivateId(uri, storagePath) {
+  const base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
+  const { error } = await supabase.storage
+    .from('referee-ids')
+    .upload(storagePath, decode(base64), { contentType: 'image/jpeg', upsert: true });
+  if (error) throw error;
+  return storagePath; // store path, not URL — admin generates signed URL to view
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -274,17 +285,17 @@ export default function RefereeSignUpScreen({ navigation }) {
       const userId = authData.user?.id;
       if (!userId) throw new Error('Could not create account.');
 
-      // 3. Upload profile photo (non-fatal if storage bucket missing)
+      // 3. Upload profile photo to public avatars bucket
       let avatarUrl = null;
       if (avatarUri) {
-        try { avatarUrl = await uploadImage(avatarUri, `${userId}/avatar.jpg`); }
+        try { avatarUrl = await uploadAvatar(avatarUri, `${userId}/avatar.jpg`); }
         catch (e) { console.warn('Avatar upload failed:', e.message); }
       }
 
-      // 4. Upload ID document (non-fatal if storage bucket missing)
-      let idDocUrl = null;
+      // 4. Upload ID document to PRIVATE referee-ids bucket
+      let idDocPath = null;
       if (idDocUri) {
-        try { idDocUrl = await uploadImage(idDocUri, `${userId}/referee-id.jpg`); }
+        try { idDocPath = await uploadPrivateId(idDocUri, `${userId}/referee-id.jpg`); }
         catch (e) { console.warn('ID doc upload failed:', e.message); }
       }
 
@@ -306,7 +317,7 @@ export default function RefereeSignUpScreen({ navigation }) {
         referee_cert: certLevel,
         referee_experience: experience,
         referee_formats: formats,
-        referee_id_url: idDocUrl,
+        referee_id_url: idDocPath, // private storage path, not a public URL
       });
 
       if (playerError) throw new Error(playerError.message);

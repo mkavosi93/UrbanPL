@@ -130,6 +130,14 @@ UrbanPL/
 - ⏳ App Store screenshots
 - ⏳ App Store Connect listing (description, keywords, category)
 
+## Recently Completed
+- ✅ Auto team balancing via `apply_team_assignments` Supabase SECURITY DEFINER function
+- ✅ Lineup card in UpcomingFixtures (expands 2h before kickoff)
+- ✅ Fixed snake draft algorithm (even split regardless of equal ratings)
+- ✅ Referee accepted/pending status shown on Admin Dashboard game rows
+- ✅ Splash screen + Onboarding screen
+- ✅ i18n (English/Spanish)
+
 ---
 
 ## How to Run
