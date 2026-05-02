@@ -28,7 +28,9 @@ Target platform: **iOS first** (App Store submission planned).
 - **EAS Project ID:** `6a6f69d9-82bf-4834-9704-0b3a087502fe`
 - **iOS Bundle ID:** `com.urbanpl.app`
 - **GitHub Repo:** `https://github.com/mkavosi93/UrbanPL`
-- **Privacy Policy URL:** `https://resilient-fenglisu-9c6e4e.netlify.app/privacy-policy.html`
+- **Website:** `https://www.theurbanpl.com` (Netlify — docs/ folder)
+- **Netlify URL:** `https://candid-platypus-4730b0.netlify.app`
+- **Privacy Policy URL:** `https://www.theurbanpl.com/privacy-policy.html`
 - **Contact Email:** `urbanpl.app@gmail.com`
 - **Stripe keys:** stored in `APP_STORE_NOTES.txt` (never commit secret key)
 - **Stripe secret key:** stored as Supabase secret `STRIPE_SECRET_KEY`
