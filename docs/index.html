@@ -249,7 +249,14 @@
       font-variant-numeric: tabular-nums;
     }
 
-    .step-icon { font-size: 32px; margin-bottom: 14px; display: block; }
+    .step-icon { font-size: 32px; margin-bottom: 14px; display: block; line-height: 1; }
+    .step-icon svg, .feature-icon svg { display: inline-block; vertical-align: middle; }
+    .yellow-card {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 36px;
+      background: #c9a84c; border-radius: 4px;
+      box-shadow: 2px 2px 6px rgba(0,0,0,0.4);
+    }
 
     .step-title {
       font-size: 20px; font-weight: 700; margin-bottom: 10px;
@@ -330,7 +337,7 @@
       font-size: 20px; font-weight: 800; color: var(--gold);
       letter-spacing: -0.5px;
     }
-    .footer-logo span { color: var(--gray); font-weight: 400; font-size: 13px; display: block; margin-top: 4px; }
+    .footer-logo span { color: var(--gray); font-weight: 400; font-size: 12px; display: block; margin-top: 4px; }
 
     .footer-links {
       display: flex; gap: 24px; flex-wrap: wrap;
@@ -423,7 +430,7 @@
         </div>
         <div class="step-card">
           <div class="step-num">02</div>
-          <span class="step-icon">🟨</span>
+          <span class="step-icon"><span class="yellow-card"></span></span>
           <h3 class="step-title">Referee Runs the Match</h3>
           <p class="step-desc">A verified referee manages attendance, runs the clock, and logs goals and cards in real time from the sideline.</p>
         </div>
@@ -505,7 +512,7 @@
         <div>
           <ul class="referee-perks">
             <li>
-              <span>🟨</span>
+              <span><span class="yellow-card" style="width:18px;height:24px;border-radius:3px;"></span></span>
               <div>
                 <strong>Dedicated Referee App</strong><br />
                 A full match management panel — attendance, live timer, goals, cards — all from your phone.
@@ -535,7 +542,9 @@
           </ul>
         </div>
         <div class="referee-card">
-          <div style="font-size:48px; text-align:center; margin-bottom:20px;">🟨</div>
+          <div style="display:flex; justify-content:center; margin-bottom:20px;">
+            <span class="yellow-card" style="width:40px; height:52px; border-radius:6px; box-shadow:4px 4px 12px rgba(0,0,0,0.5);"></span>
+          </div>
           <h3 style="font-size:22px; font-weight:800; text-align:center; margin-bottom:8px;">Become a Referee</h3>
           <p style="font-size:14px; color:var(--gray-light); text-align:center; margin-bottom:28px; line-height:1.7;">
             Apply through the app. Submit your credentials and ID. Start officiating once approved.
@@ -571,7 +580,7 @@
         <img src="logo.png" alt="Urban PL" style="width:32px; height:32px; border-radius:8px;" />
         <div>
           Urban PL
-          <span>© 2026 Urban PL · theurbanpl.com</span>
+          <span>© 2026 Urban PL. All rights reserved.</span>
         </div>
       </div>
       <ul class="footer-links">
