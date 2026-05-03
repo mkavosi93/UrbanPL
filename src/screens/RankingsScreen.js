@@ -30,6 +30,81 @@ async function fetchRankings(sort) {
   return data || [];
 }
 
+// ── Football Boot ─────────────────────────────────────────────────────────────
+function BootIcon({ size = 36, color = colors.gold }) {
+  const s = size;
+  return (
+    <View style={{ width: s * 1.3, height: s, position: 'relative' }}>
+      {/* Ankle shaft */}
+      <View style={{
+        position: 'absolute', right: 0, top: 0,
+        width: s * 0.42, height: s * 0.65,
+        backgroundColor: color,
+        borderTopLeftRadius: s * 0.12, borderTopRightRadius: s * 0.18,
+      }} />
+      {/* Foot / toe */}
+      <View style={{
+        position: 'absolute', left: 0, bottom: s * 0.18,
+        width: s * 1.0, height: s * 0.42,
+        backgroundColor: color,
+        borderTopLeftRadius: s * 0.08,
+        borderBottomLeftRadius: s * 0.22,
+        borderBottomRightRadius: s * 0.06,
+        borderTopRightRadius: s * 0.04,
+      }} />
+      {/* Sole */}
+      <View style={{
+        position: 'absolute', left: s * 0.02, bottom: 0,
+        width: s * 1.0, height: s * 0.2,
+        backgroundColor: color, opacity: 0.55,
+        borderRadius: s * 0.06,
+      }} />
+      {/* Studs */}
+      {[0.12, 0.34, 0.58, 0.80].map((x, i) => (
+        <View key={i} style={{
+          position: 'absolute', bottom: -s * 0.06,
+          left: s * x,
+          width: s * 0.13, height: s * 0.13,
+          borderRadius: s * 0.07,
+          backgroundColor: color, opacity: 0.8,
+        }} />
+      ))}
+    </View>
+  );
+}
+
+// ── Captain's Armband ─────────────────────────────────────────────────────────
+function ArmbandIcon({ size = 36 }) {
+  return (
+    <View style={{
+      width: size * 1.25, height: size * 0.62,
+      borderRadius: size * 0.12,
+      backgroundColor: colors.gold,
+      alignItems: 'center', justifyContent: 'center',
+      borderWidth: size * 0.055,
+      borderColor: '#fff',
+      shadowColor: colors.gold, shadowOpacity: 0.6,
+      shadowRadius: 6, elevation: 4,
+    }}>
+      {/* Stripe accent */}
+      <View style={{
+        position: 'absolute', left: size * 0.18, top: 0, bottom: 0,
+        width: size * 0.12, backgroundColor: 'rgba(0,0,0,0.15)',
+        borderRadius: size * 0.06,
+      }} />
+      <View style={{
+        position: 'absolute', right: size * 0.18, top: 0, bottom: 0,
+        width: size * 0.12, backgroundColor: 'rgba(0,0,0,0.15)',
+        borderRadius: size * 0.06,
+      }} />
+      <Text style={{
+        color: colors.dark, fontWeight: '900',
+        fontSize: size * 0.38, letterSpacing: 1,
+      }}>C</Text>
+    </View>
+  );
+}
+
 function Avatar({ player, size = 40, rank }) {
   const fullName = [player.first_name, player.last_name].filter(Boolean).join(' ');
   const initial = (fullName || player.name || player.email || 'U')[0].toUpperCase();
@@ -44,11 +119,31 @@ function Avatar({ player, size = 40, rank }) {
   );
 }
 
-function Podium({ players, t }) {
+function Podium({ players, t, sortKey }) {
   if (!players || players.length < 1) return null;
   const first = players[0];
   const second = players[1];
   const third = players[2];
+
+  function TopIcon({ size = 28 }) {
+    if (sortKey === 'Goals') return <BootIcon size={size} color={colors.gold} />;
+    if (sortKey === 'Games') return <ArmbandIcon size={size} />;
+    return <Text style={[styles.crownIcon, { fontSize: size }]}>👑</Text>;
+  }
+
+  function SmallIcon({ size = 20, color = '#C0C0C0' }) {
+    if (sortKey === 'Goals') return <BootIcon size={size} color={color} />;
+    if (sortKey === 'Games') return (
+      <View style={{
+        width: size * 1.2, height: size * 0.55, borderRadius: size * 0.1,
+        backgroundColor: color, alignItems: 'center', justifyContent: 'center',
+        borderWidth: 1.5, borderColor: '#fff',
+      }}>
+        <Text style={{ color: colors.dark, fontWeight: '900', fontSize: size * 0.35 }}>C</Text>
+      </View>
+    );
+    return null;
+  }
 
   return (
     <View style={styles.podiumContainer}>
@@ -58,7 +153,10 @@ function Podium({ players, t }) {
         {/* 2nd Place */}
         {second && (
           <View style={styles.podiumItem}>
-            <Avatar player={second} size={52} rank={2} />
+            <SmallIcon size={20} color="#C0C0C0" />
+            <View style={{ marginTop: 4 }}>
+              <Avatar player={second} size={52} rank={2} />
+            </View>
             <Text style={styles.podiumName} numberOfLines={1}>
               {[second.first_name, second.last_name].filter(Boolean).join(' ') || second.name || second.email?.split('@')[0]}
             </Text>
@@ -71,8 +169,10 @@ function Podium({ players, t }) {
 
         {/* 1st Place */}
         <View style={[styles.podiumItem, styles.podiumFirst]}>
-          <Text style={styles.crownIcon}>👑</Text>
-          <Avatar player={first} size={68} rank={1} />
+          <TopIcon size={30} />
+          <View style={{ marginTop: 4 }}>
+            <Avatar player={first} size={68} rank={1} />
+          </View>
           <Text style={[styles.podiumName, styles.podiumNameFirst]} numberOfLines={1}>
             {[first.first_name, first.last_name].filter(Boolean).join(' ') || first.name || first.email?.split('@')[0]}
           </Text>
@@ -85,7 +185,10 @@ function Podium({ players, t }) {
         {/* 3rd Place */}
         {third && (
           <View style={styles.podiumItem}>
-            <Avatar player={third} size={52} rank={3} />
+            <SmallIcon size={20} color="#CD7F32" />
+            <View style={{ marginTop: 4 }}>
+              <Avatar player={third} size={52} rank={3} />
+            </View>
             <Text style={styles.podiumName} numberOfLines={1}>
               {[third.first_name, third.last_name].filter(Boolean).join(' ') || third.name || third.email?.split('@')[0]}
             </Text>
@@ -130,9 +233,20 @@ function RankRow({ player, rank, sortKey, isMe }) {
   const fullName = [player.first_name, player.last_name].filter(Boolean).join(' ');
   const displayName = fullName || player.name || player.email?.split('@')[0];
 
+  const showBoot = sortKey === 'Goals' && rank === 1;
+  const showBand = sortKey === 'Games' && rank === 1;
+
   return (
     <View style={[styles.rankRow, isMe && styles.rankRowMe]}>
-      <Text style={[styles.rankNum, rank <= 3 && styles.rankNumTop]}>{rank}</Text>
+      {/* Rank number or special icon for #1 */}
+      <View style={styles.rankNumCell}>
+        {showBoot
+          ? <BootIcon size={22} color={colors.gold} />
+          : showBand
+            ? <ArmbandIcon size={22} />
+            : <Text style={[styles.rankNum, rank <= 3 && styles.rankNumTop]}>{rank}</Text>
+        }
+      </View>
       <Avatar player={player} size={36} rank={rank} />
       <View style={styles.rankInfo}>
         <Text style={[styles.rankName, isMe && styles.rankNameMe]} numberOfLines={1}>
@@ -267,7 +381,7 @@ export default function RankingsScreen() {
                 </View>
               </View>
 
-              <Podium players={top3} t={t} />
+              <Podium players={top3} t={t} sortKey={activeSortKey} />
               <View style={styles.tableHeader}>
                 <Text style={styles.tableHeaderText}>{t('rankings.rank')}</Text>
                 <Text style={[styles.tableHeaderText, { flex: 1, marginLeft: 52 }]}>{t('rankings.player')}</Text>
@@ -479,6 +593,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.gold,
   },
+  rankNumCell: { width: 36, alignItems: 'center', justifyContent: 'center' },
   rankNum: { width: 28, textAlign: 'center', color: colors.gray, fontSize: 13, fontWeight: 'bold' },
   rankNumTop: { color: colors.gold },
   rankInfo: { flex: 1 },
