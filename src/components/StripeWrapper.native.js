@@ -1,6 +1,6 @@
 import { StripeProvider } from '@stripe/stripe-react-native';
 
-const STRIPE_PUBLISHABLE_KEY = 'pk_test_51TOn9CRl2cHtARaHUFhvWWRbMoMVqml5UQey9e4gMiMwhNoR6nTcJKcE3tY7TBWi7ie7VRNTExVkmhgUpgUcdMWa009WtlpIVr';
+const STRIPE_PUBLISHABLE_KEY = 'pk_live_51TOplrJMza4VY3OCdWWHgGNjRcdPHJZAkLwA4mNeUEa3J50rx0GVeUkUsW3Z4ajLuOjPSHTGJrivJJCxPFWSR7ZV00BC36teFw';
 
 export default function StripeWrapper({ children }) {
   return (
