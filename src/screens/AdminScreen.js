@@ -28,7 +28,7 @@ const SLOT_LABELS = { AM: 'Morning', PM: 'Afternoon', EVE: 'Evening' };
 const FORMATS = ['5v5', '6v6', '7v7', '8v8', '11v11'];
 const GAME_STATUSES = ['open', 'active', 'completed', 'cancelled'];
 const CUP_STATUSES  = ['upcoming', 'active', 'completed', 'cancelled'];
-const SECTIONS = ['Dashboard', 'Availability', 'New Game', 'New Cup', 'Payments', 'Referees'];
+const SECTIONS = ['Dashboard', 'Reports', 'Availability', 'New Game', 'New Cup', 'Payments', 'Referees'];
 
 // ─── Fetch helpers ────────────────────────────────────────────────────────────
 async function fetchAvailabilities() {
@@ -87,6 +87,24 @@ async function fetchRefereePayouts() {
   if (error) throw error;
   // Only show completed games
   return (data || []).filter(r => r.games?.status === 'completed');
+}
+
+async function fetchMatchReports() {
+  const { data, error } = await supabase
+    .from('games')
+    .select(`
+      id, location, format, kickoff_time, score_a, score_b, completed_at, referee_notes,
+      game_player_stats(
+        goals, won, yellow_cards, red_cards, is_goalkeeper,
+        players(first_name, last_name, name, role)
+      ),
+      game_referees(status, players(first_name, last_name, name))
+    `)
+    .eq('status', 'completed')
+    .order('completed_at', { ascending: false })
+    .limit(50);
+  if (error) throw error;
+  return data || [];
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -1122,6 +1140,142 @@ function CreateCupForm({ onCreated }) {
   );
 }
 
+// ─── Match Reports Panel ──────────────────────────────────────────────────────
+function MatchReportsPanel() {
+  const [expanded, setExpanded] = useState(null);
+
+  const { data: reports = [], isLoading } = useQuery({
+    queryKey: ['matchReports'],
+    queryFn: fetchMatchReports,
+  });
+
+  function playerName(p) {
+    return [p?.first_name, p?.last_name].filter(Boolean).join(' ') || p?.name || 'Unknown';
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '';
+    return new Date(iso).toLocaleDateString('en-US', {
+      weekday: 'short', month: 'short', day: 'numeric',
+      year: 'numeric', hour: '2-digit', minute: '2-digit',
+    });
+  }
+
+  if (isLoading) return <ActivityIndicator color={colors.gold} size="large" style={{ marginTop: 60 }} />;
+  if (reports.length === 0) {
+    return (
+      <View style={styles.center}>
+        <Text style={{ fontSize: 36, marginBottom: 12 }}>📋</Text>
+        <Text style={styles.emptyText}>No completed matches yet</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View>
+      <Text style={styles.mrHeading}>Match Reports</Text>
+      <Text style={styles.mrSubheading}>{reports.length} completed game{reports.length !== 1 ? 's' : ''}</Text>
+
+      {reports.map(g => {
+        const isOpen = expanded === g.id;
+        const acceptedRef = g.game_referees?.find(r => r.status === 'accepted');
+        const refName = acceptedRef ? playerName(acceptedRef.players) : null;
+        const scoreA = g.score_a ?? '–';
+        const scoreB = g.score_b ?? '–';
+        const scorers = (g.game_player_stats || []).filter(s => s.goals > 0);
+        const hasNotes = !!g.referee_notes?.trim();
+
+        return (
+          <TouchableOpacity
+            key={g.id}
+            style={styles.mrCard}
+            onPress={() => setExpanded(isOpen ? null : g.id)}
+            activeOpacity={0.8}
+          >
+            {/* Card header */}
+            <View style={styles.mrCardHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.mrVenue} numberOfLines={1}>
+                  {g.location?.split(',')[0]}
+                </Text>
+                <Text style={styles.mrMeta}>
+                  {g.format} · {formatDate(g.completed_at || g.kickoff_time)}
+                </Text>
+              </View>
+              <Text style={styles.mrChevron}>{isOpen ? '▲' : '▼'}</Text>
+            </View>
+
+            {/* Score badge */}
+            <View style={styles.mrScoreRow}>
+              <View style={styles.mrScoreBox}>
+                <Text style={styles.mrScoreTeam}>⚪ Team A</Text>
+                <Text style={styles.mrScoreNum}>{scoreA}</Text>
+              </View>
+              <Text style={styles.mrScoreDash}>—</Text>
+              <View style={styles.mrScoreBox}>
+                <Text style={styles.mrScoreNum}>{scoreB}</Text>
+                <Text style={styles.mrScoreTeam}>Team B ⚫</Text>
+              </View>
+            </View>
+
+            {/* Referee row */}
+            <View style={styles.mrRefRow}>
+              <Text style={styles.mrRefLabel}>🟨 Referee: </Text>
+              <Text style={styles.mrRefName}>{refName || 'Unassigned'}</Text>
+              {hasNotes && <Text style={styles.mrNotesBadge}>📋 Notes</Text>}
+            </View>
+
+            {/* Expanded detail */}
+            {isOpen && (
+              <View style={styles.mrDetail}>
+                {/* Player stats */}
+                <Text style={styles.mrDetailTitle}>Player Stats</Text>
+                {(g.game_player_stats || []).length === 0 && (
+                  <Text style={styles.mrNoStats}>No stats recorded</Text>
+                )}
+                {(g.game_player_stats || []).map((s, i) => {
+                  const name = playerName(s.players);
+                  const won = s.won;
+                  return (
+                    <View key={i} style={styles.mrStatRow}>
+                      <View style={[styles.mrWonDot, { backgroundColor: won ? colors.success : '#e05555' }]} />
+                      <Text style={styles.mrStatName} numberOfLines={1}>{name}</Text>
+                      {s.is_goalkeeper && <Text style={styles.mrGKBadge}>GK</Text>}
+                      <Text style={styles.mrStatGoals}>⚽ {s.goals || 0}</Text>
+                      {s.yellow_cards > 0 && <Text style={styles.mrStatCard}>🟡{s.yellow_cards}</Text>}
+                      {s.red_cards > 0 && <Text style={styles.mrStatCard}>🔴{s.red_cards}</Text>}
+                    </View>
+                  );
+                })}
+
+                {/* Goal scorers summary */}
+                {scorers.length > 0 && (
+                  <View style={styles.mrScorerBox}>
+                    <Text style={styles.mrDetailTitle}>⚽ Goal Scorers</Text>
+                    {scorers.map((s, i) => (
+                      <Text key={i} style={styles.mrScorerName}>
+                        {playerName(s.players)} — {s.goals} goal{s.goals !== 1 ? 's' : ''}
+                      </Text>
+                    ))}
+                  </View>
+                )}
+
+                {/* Referee notes */}
+                {hasNotes && (
+                  <View style={styles.mrNotesBox}>
+                    <Text style={styles.mrNotesTitle}>📋 Referee Notes</Text>
+                    <Text style={styles.mrNotesText}>{g.referee_notes}</Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+}
+
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 function Dashboard({ games, cups, onEditGame, onEditCup }) {
   const openGames   = games?.filter(g => g.status === 'open').length || 0;
@@ -1545,6 +1699,7 @@ export default function AdminScreen() {
           >
             <Text style={[styles.tabBtnText, activeSection === s && styles.tabBtnTextActive]}>
               {s === 'Dashboard'    ? '📊 Dashboard'
+                : s === 'Reports'      ? '📋 Reports'
                 : s === 'Availability' ? '📅 Availability'
                 : s === 'New Game'     ? '⚽ New Game'
                 : s === 'New Cup'      ? '🏆 New Cup'
@@ -1565,6 +1720,10 @@ export default function AdminScreen() {
               onEditGame={setEditingGame}
               onEditCup={setEditingCup}
             />
+          )}
+
+          {activeSection === 'Reports' && (
+            <MatchReportsPanel />
           )}
 
           {activeSection === 'Availability' && (
@@ -1843,4 +2002,95 @@ const styles = StyleSheet.create({
     borderRadius: radius.md, backgroundColor: colors.gold, alignItems: 'center',
   },
   generateBracketBtnText: { color: colors.dark, fontWeight: 'bold', fontSize: 15 },
+
+  // ── Match Reports ────────────────────────────────────────────────────────────
+  mrHeading: {
+    color: colors.white, fontSize: 20, fontWeight: '800',
+    marginBottom: 2,
+  },
+  mrSubheading: {
+    color: colors.gray, fontSize: 12, marginBottom: spacing.md,
+  },
+  mrCard: {
+    backgroundColor: colors.darkCard,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.darkBorder,
+    marginBottom: spacing.md,
+    overflow: 'hidden',
+  },
+  mrCardHeader: {
+    flexDirection: 'row', alignItems: 'flex-start',
+    padding: spacing.md, paddingBottom: spacing.xs,
+  },
+  mrVenue: { color: colors.white, fontSize: 15, fontWeight: '700' },
+  mrMeta: { color: colors.gray, fontSize: 11, marginTop: 2 },
+  mrChevron: { color: colors.gold, fontSize: 16, paddingLeft: spacing.sm },
+  mrScoreRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    paddingVertical: spacing.sm,
+    borderTopWidth: 1, borderBottomWidth: 1,
+    borderColor: colors.darkBorder,
+    marginHorizontal: spacing.md,
+    gap: spacing.lg,
+  },
+  mrScoreBox: { alignItems: 'center', flex: 1 },
+  mrScoreTeam: { color: colors.gray, fontSize: 11, marginBottom: 2 },
+  mrScoreNum: { color: colors.gold, fontSize: 30, fontWeight: '900' },
+  mrScoreDash: { color: colors.gray, fontSize: 22, fontWeight: '300' },
+  mrRefRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+    flexWrap: 'wrap', gap: 6,
+  },
+  mrRefLabel: { color: colors.gray, fontSize: 12 },
+  mrRefName: { color: colors.white, fontSize: 12, fontWeight: '600', flex: 1 },
+  mrNotesBadge: {
+    backgroundColor: colors.gold + '22', borderRadius: 6,
+    paddingHorizontal: 6, paddingVertical: 2,
+    color: colors.gold, fontSize: 10, fontWeight: '700',
+    borderWidth: 1, borderColor: colors.gold + '44',
+  },
+  mrDetail: {
+    backgroundColor: colors.dark,
+    borderTopWidth: 1, borderColor: colors.darkBorder,
+    padding: spacing.md,
+  },
+  mrDetailTitle: {
+    color: colors.gold, fontSize: 11, fontWeight: '700',
+    letterSpacing: 0.8, textTransform: 'uppercase',
+    marginBottom: spacing.xs, marginTop: spacing.xs,
+  },
+  mrNoStats: { color: colors.gray, fontSize: 12, fontStyle: 'italic', marginBottom: spacing.xs },
+  mrStatRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingVertical: 5,
+    borderBottomWidth: 1, borderColor: colors.darkBorder,
+    gap: 6,
+  },
+  mrWonDot: { width: 8, height: 8, borderRadius: 4 },
+  mrStatName: { color: colors.white, fontSize: 13, flex: 1 },
+  mrGKBadge: {
+    color: colors.dark, backgroundColor: colors.gold,
+    fontSize: 9, fontWeight: '800',
+    paddingHorizontal: 5, paddingVertical: 1,
+    borderRadius: 4,
+  },
+  mrStatGoals: { color: colors.gray, fontSize: 12 },
+  mrStatCard: { fontSize: 12 },
+  mrScorerBox: { marginTop: spacing.sm },
+  mrScorerName: { color: colors.grayLight, fontSize: 13, paddingVertical: 2 },
+  mrNotesBox: {
+    marginTop: spacing.md,
+    backgroundColor: colors.darkCard,
+    borderRadius: 8, borderWidth: 1,
+    borderColor: colors.gold + '44',
+    padding: spacing.md,
+  },
+  mrNotesTitle: {
+    color: colors.gold, fontSize: 11, fontWeight: '700',
+    letterSpacing: 0.8, textTransform: 'uppercase',
+    marginBottom: spacing.xs,
+  },
+  mrNotesText: { color: colors.grayLight, fontSize: 13, lineHeight: 19 },
 });
