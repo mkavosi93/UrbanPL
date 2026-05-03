@@ -876,6 +876,7 @@ function MatchModal({ game, visible, onClose, onSaved, initialPresent }) {
   const [cards, setCards]       = useState({});
   const [scoreA, setScoreA]     = useState('');
   const [scoreB, setScoreB]     = useState('');
+  const [matchNotes, setMatchNotes] = useState('');
   const [timeLeft, setTimeLeft] = useState(FIRST_HALF_SECS);
   const [running, setRunning]   = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -1000,6 +1001,7 @@ function MatchModal({ game, visible, onClose, onSaved, initialPresent }) {
         score_a: a,
         score_b: b,
         completed_at: new Date().toISOString(),
+        referee_notes: matchNotes.trim() || null,
       }).eq('id', game.id);
       Alert.alert('✅ Match Complete!', 'Stats saved and game closed.', [
         { text: 'Done', onPress: () => { onSaved?.(); onClose(); } },
@@ -1173,6 +1175,26 @@ function MatchModal({ game, visible, onClose, onSaved, initialPresent }) {
                 </View>
               );
             })}
+
+            {/* ── Referee Notes ── */}
+            <View style={styles.refNotesBox}>
+              <Text style={styles.refNotesLabel}>📋 Referee Notes</Text>
+              <Text style={styles.refNotesHint}>
+                Log any technical difficulties, disputes, or incidents (optional)
+              </Text>
+              <TextInput
+                style={styles.refNotesInput}
+                value={matchNotes}
+                onChangeText={setMatchNotes}
+                placeholder="e.g. Pitch lights failed at 70', game paused 8 mins. Player dispute resolved."
+                placeholderTextColor={colors.gray}
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+                maxLength={1000}
+              />
+              <Text style={styles.refNotesCount}>{matchNotes.length}/1000</Text>
+            </View>
           </ScrollView>
         )}
 
@@ -2092,6 +2114,46 @@ const styles = StyleSheet.create({
   finalStatName: { color: colors.white, fontSize: 13, flex: 1 },
   finalStatGoals: { color: colors.gray, fontSize: 12 },
   finalStatCard: { fontSize: 12 },
+
+  // Referee Notes
+  refNotesBox: {
+    marginTop: spacing.lg,
+    backgroundColor: colors.dark,
+    borderWidth: 1,
+    borderColor: colors.gold + '55',
+    borderRadius: 10,
+    padding: spacing.md,
+  },
+  refNotesLabel: {
+    color: colors.gold,
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 4,
+    letterSpacing: 0.5,
+  },
+  refNotesHint: {
+    color: colors.gray,
+    fontSize: 11,
+    marginBottom: spacing.sm,
+    lineHeight: 15,
+  },
+  refNotesInput: {
+    backgroundColor: colors.darkCard,
+    borderWidth: 1,
+    borderColor: colors.darkBorder,
+    borderRadius: 8,
+    color: colors.white,
+    fontSize: 13,
+    padding: spacing.sm,
+    minHeight: 90,
+    lineHeight: 20,
+  },
+  refNotesCount: {
+    color: colors.gray,
+    fontSize: 10,
+    textAlign: 'right',
+    marginTop: 4,
+  },
 
   // Match footer
   matchFooter: {
