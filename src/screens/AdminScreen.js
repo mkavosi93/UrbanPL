@@ -95,9 +95,10 @@ async function fetchMatchReports() {
     .select(`
       id, location, format, kickoff_time, score_a, score_b, completed_at, referee_notes,
       game_player_stats(
-        goals, won, yellow_cards, red_cards, is_goalkeeper,
-        players(first_name, last_name, name, role)
+        team, goals, won, yellow_cards, red_cards, is_goalkeeper, goals_conceded,
+        players(id, first_name, last_name, name, role)
       ),
+      game_players(player_id, team),
       game_referees(status, players(first_name, last_name, name))
     `)
     .eq('status', 'completed')
@@ -105,6 +106,19 @@ async function fetchMatchReports() {
     .limit(50);
   if (error) throw error;
   return data || [];
+}
+
+function calcPoints(s) {
+  let pts = 0;
+  if (s.won) pts += 3;
+  pts += (s.goals || 0);
+  if (s.is_goalkeeper) {
+    if ((s.goals_conceded || 0) === 0) pts += 3;
+    else if ((s.goals_conceded || 0) < 2) pts += 1;
+  }
+  pts -= (s.yellow_cards || 0);
+  pts -= (s.red_cards || 0) * 3;
+  return Math.max(0, pts);
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -1155,15 +1169,18 @@ function MatchReportsPanel() {
     queryFn: fetchMatchReports,
   });
 
-  function playerName(p) {
+  function pName(p) {
     return [p?.first_name, p?.last_name].filter(Boolean).join(' ') || p?.name || 'Unknown';
   }
-
+  function shortName(p) {
+    const fn = p?.first_name || '';
+    const ln = p?.last_name || '';
+    return ln ? `${fn} ${ln[0]}.` : (p?.name || 'Unknown');
+  }
   function formatDate(iso) {
     if (!iso) return '';
     return new Date(iso).toLocaleDateString('en-US', {
-      weekday: 'short', month: 'short', day: 'numeric',
-      year: 'numeric', hour: '2-digit', minute: '2-digit',
+      weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
     });
   }
 
@@ -1185,11 +1202,28 @@ function MatchReportsPanel() {
       {reports.map(g => {
         const isOpen = expanded === g.id;
         const acceptedRef = g.game_referees?.find(r => r.status === 'accepted');
-        const refName = acceptedRef ? playerName(acceptedRef.players) : null;
-        const scoreA = g.score_a ?? '–';
-        const scoreB = g.score_b ?? '–';
-        const scorers = (g.game_player_stats || []).filter(s => s.goals > 0);
+        const refName = acceptedRef ? pName(acceptedRef.players) : null;
+        const sA = g.score_a ?? '–', sB = g.score_b ?? '–';
         const hasNotes = !!g.referee_notes?.trim();
+
+        // Merge team from game_players as fallback if stats.team is null
+        const teamMap = {};
+        (g.game_players || []).forEach(gp => { teamMap[gp.player_id] = gp.team; });
+        const stats = (g.game_player_stats || []).map(s => ({
+          ...s, team: s.team || teamMap[s.players?.id] || null,
+        }));
+
+        const darkStats  = stats.filter(s => s.team === 'A');
+        const whiteStats = stats.filter(s => s.team === 'B');
+        const scorers    = stats.filter(s => (s.goals || 0) > 0)
+          .sort((a, b) => b.goals - a.goals);
+
+        // Result label
+        const darkWon  = (g.score_a ?? 0) > (g.score_b ?? 0);
+        const whiteWon = (g.score_b ?? 0) > (g.score_a ?? 0);
+        const draw     = !darkWon && !whiteWon && g.score_a != null;
+        const resultLabel = darkWon ? '🖤 Dark Win' : whiteWon ? '🤍 White Win' : draw ? 'Draw' : '';
+        const resultColor = darkWon ? colors.white : whiteWon ? '#ddd' : colors.gold;
 
         return (
           <TouchableOpacity
@@ -1198,71 +1232,136 @@ function MatchReportsPanel() {
             onPress={() => setExpanded(isOpen ? null : g.id)}
             activeOpacity={0.8}
           >
-            {/* Card header */}
+            {/* ── Header ── */}
             <View style={styles.mrCardHeader}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.mrVenue} numberOfLines={1}>
-                  {g.location?.split(',')[0]}
-                </Text>
-                <Text style={styles.mrMeta}>
-                  {g.format} · {formatDate(g.completed_at || g.kickoff_time)}
-                </Text>
+                <Text style={styles.mrVenue} numberOfLines={1}>{g.location?.split(',')[0]}</Text>
+                <Text style={styles.mrMeta}>{g.format} · {formatDate(g.completed_at || g.kickoff_time)}</Text>
               </View>
+              {resultLabel ? <Text style={[styles.mrResultLabel, { color: resultColor }]}>{resultLabel}</Text> : null}
               <Text style={styles.mrChevron}>{isOpen ? '▲' : '▼'}</Text>
             </View>
 
-            {/* Score badge */}
+            {/* ── Score ── */}
             <View style={styles.mrScoreRow}>
               <View style={styles.mrScoreBox}>
                 <Text style={styles.mrScoreTeam}>🖤 Dark</Text>
-                <Text style={styles.mrScoreNum}>{scoreA}</Text>
+                <Text style={[styles.mrScoreNum, darkWon && { color: colors.gold }]}>{sA}</Text>
               </View>
               <Text style={styles.mrScoreDash}>—</Text>
               <View style={styles.mrScoreBox}>
-                <Text style={styles.mrScoreNum}>{scoreB}</Text>
+                <Text style={[styles.mrScoreNum, whiteWon && { color: colors.gold }]}>{sB}</Text>
                 <Text style={styles.mrScoreTeam}>White 🤍</Text>
               </View>
             </View>
 
-            {/* Referee row */}
+            {/* ── Referee + notes badge ── */}
             <View style={styles.mrRefRow}>
               <Text style={styles.mrRefLabel}>🟨 Referee: </Text>
               <Text style={styles.mrRefName}>{refName || 'Unassigned'}</Text>
               {hasNotes && <Text style={styles.mrNotesBadge}>📋 Notes</Text>}
             </View>
 
-            {/* Expanded detail */}
+            {/* ── Expanded detail ── */}
             {isOpen && (
               <View style={styles.mrDetail}>
-                {/* Player stats */}
-                <Text style={styles.mrDetailTitle}>Player Stats</Text>
-                {(g.game_player_stats || []).length === 0 && (
-                  <Text style={styles.mrNoStats}>No stats recorded</Text>
-                )}
-                {(g.game_player_stats || []).map((s, i) => {
-                  const name = playerName(s.players);
-                  const won = s.won;
-                  return (
-                    <View key={i} style={styles.mrStatRow}>
-                      <View style={[styles.mrWonDot, { backgroundColor: won ? colors.success : '#e05555' }]} />
-                      <Text style={styles.mrStatName} numberOfLines={1}>{name}</Text>
-                      {s.is_goalkeeper && <Text style={styles.mrGKBadge}>GK</Text>}
-                      <Text style={styles.mrStatGoals}>⚽ {s.goals || 0}</Text>
-                      {s.yellow_cards > 0 && <Text style={styles.mrStatCard}>🟡{s.yellow_cards}</Text>}
-                      {s.red_cards > 0 && <Text style={styles.mrStatCard}>🔴{s.red_cards}</Text>}
-                    </View>
-                  );
-                })}
 
-                {/* Goal scorers summary */}
+                {/* Teams side-by-side */}
+                <View style={styles.mrTeamsRow}>
+                  {/* Dark */}
+                  <View style={styles.mrTeamCol}>
+                    <Text style={styles.mrTeamHeader}>🖤 Dark</Text>
+                    {darkStats.length === 0
+                      ? <Text style={styles.mrNoStats}>No data</Text>
+                      : darkStats.map((s, i) => (
+                        <View key={i} style={styles.mrPlayerLine}>
+                          <Text style={styles.mrPlayerName} numberOfLines={1}>{shortName(s.players)}</Text>
+                          <View style={styles.mrPlayerIcons}>
+                            {(s.goals || 0) > 0 && <Text style={styles.mrIcon}>⚽{s.goals}</Text>}
+                            {(s.yellow_cards || 0) > 0 && <Text style={styles.mrIcon}>🟡</Text>}
+                            {(s.red_cards || 0) > 0 && <Text style={styles.mrIcon}>🔴</Text>}
+                            {s.is_goalkeeper && <Text style={styles.mrGKBadge}>GK</Text>}
+                          </View>
+                        </View>
+                      ))
+                    }
+                  </View>
+
+                  <View style={styles.mrTeamDivider} />
+
+                  {/* White */}
+                  <View style={[styles.mrTeamCol, { alignItems: 'flex-end' }]}>
+                    <Text style={[styles.mrTeamHeader, { textAlign: 'right' }]}>White 🤍</Text>
+                    {whiteStats.length === 0
+                      ? <Text style={[styles.mrNoStats, { textAlign: 'right' }]}>No data</Text>
+                      : whiteStats.map((s, i) => (
+                        <View key={i} style={[styles.mrPlayerLine, { flexDirection: 'row-reverse' }]}>
+                          <Text style={[styles.mrPlayerName, { textAlign: 'right' }]} numberOfLines={1}>{shortName(s.players)}</Text>
+                          <View style={[styles.mrPlayerIcons, { marginRight: 4, marginLeft: 0 }]}>
+                            {(s.goals || 0) > 0 && <Text style={styles.mrIcon}>⚽{s.goals}</Text>}
+                            {(s.yellow_cards || 0) > 0 && <Text style={styles.mrIcon}>🟡</Text>}
+                            {(s.red_cards || 0) > 0 && <Text style={styles.mrIcon}>🔴</Text>}
+                            {s.is_goalkeeper && <Text style={styles.mrGKBadge}>GK</Text>}
+                          </View>
+                        </View>
+                      ))
+                    }
+                  </View>
+                </View>
+
+                {/* Goal scorers */}
                 {scorers.length > 0 && (
                   <View style={styles.mrScorerBox}>
                     <Text style={styles.mrDetailTitle}>⚽ Goal Scorers</Text>
                     {scorers.map((s, i) => (
-                      <Text key={i} style={styles.mrScorerName}>
-                        {playerName(s.players)} — {s.goals} goal{s.goals !== 1 ? 's' : ''}
-                      </Text>
+                      <View key={i} style={styles.mrScorerRow}>
+                        <Text style={[styles.mrScorerTeamDot,
+                          { color: s.team === 'A' ? colors.white : colors.gray }]}>●</Text>
+                        <Text style={styles.mrScorerName}>{pName(s.players)}</Text>
+                        <Text style={styles.mrScorerGoals}>
+                          {s.goals} goal{s.goals !== 1 ? 's' : ''}
+                        </Text>
+                      </View>
                     ))}
+                  </View>
+                )}
+
+                {/* Points awarded */}
+                {stats.length > 0 && (
+                  <View style={styles.mrPointsBox}>
+                    <Text style={styles.mrDetailTitle}>🏅 Points Awarded</Text>
+                    {/* Table header */}
+                    <View style={styles.mrPointsHeader}>
+                      <Text style={[styles.mrPointsCell, { flex: 2 }]}>Player</Text>
+                      <Text style={styles.mrPointsCell}>Win</Text>
+                      <Text style={styles.mrPointsCell}>Goals</Text>
+                      <Text style={styles.mrPointsCell}>GK</Text>
+                      <Text style={styles.mrPointsCell}>Cards</Text>
+                      <Text style={[styles.mrPointsCell, { color: colors.gold }]}>Total</Text>
+                    </View>
+                    {stats.map((s, i) => {
+                      const winPts   = s.won ? 3 : 0;
+                      const goalPts  = s.goals || 0;
+                      const gkPts    = s.is_goalkeeper
+                        ? ((s.goals_conceded || 0) === 0 ? 3 : (s.goals_conceded || 0) < 2 ? 1 : 0)
+                        : 0;
+                      const cardPts  = -((s.yellow_cards || 0) + (s.red_cards || 0) * 3);
+                      const total    = Math.max(0, winPts + goalPts + gkPts + cardPts);
+                      return (
+                        <View key={i} style={[styles.mrPointsRow, i % 2 === 0 && styles.mrPointsRowAlt]}>
+                          <Text style={[styles.mrPointsCell, { flex: 2 }]} numberOfLines={1}>
+                            {shortName(s.players)}
+                          </Text>
+                          <Text style={styles.mrPointsCell}>{winPts > 0 ? `+${winPts}` : '–'}</Text>
+                          <Text style={styles.mrPointsCell}>{goalPts > 0 ? `+${goalPts}` : '–'}</Text>
+                          <Text style={styles.mrPointsCell}>{gkPts > 0 ? `+${gkPts}` : '–'}</Text>
+                          <Text style={styles.mrPointsCell}>{cardPts < 0 ? cardPts : '–'}</Text>
+                          <Text style={[styles.mrPointsCell, { color: colors.gold, fontWeight: '800' }]}>
+                            {total}
+                          </Text>
+                        </View>
+                      );
+                    })}
                   </View>
                 )}
 
@@ -1274,7 +1373,6 @@ function MatchReportsPanel() {
                   </View>
                 )}
 
-                {/* Game ID */}
                 <Text selectable style={styles.mrGameId}>ID: {g.id}</Text>
               </View>
             )}
@@ -2140,4 +2238,25 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   mrNotesText: { color: colors.grayLight, fontSize: 13, lineHeight: 19 },
+  mrResultLabel: { fontSize: 11, fontWeight: '700', marginRight: 6 },
+  mrTeamsRow: { flexDirection: 'row', marginBottom: spacing.sm },
+  mrTeamCol: { flex: 1 },
+  mrTeamDivider: { width: 1, backgroundColor: colors.darkBorder, marginHorizontal: 8 },
+  mrTeamHeader: { color: colors.gold, fontSize: 11, fontWeight: '800', letterSpacing: 0.6, marginBottom: 6 },
+  mrPlayerLine: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  mrPlayerName: { color: colors.white, fontSize: 12, flex: 1 },
+  mrPlayerIcons: { flexDirection: 'row', gap: 3, marginLeft: 4 },
+  mrIcon: { fontSize: 11 },
+  mrScorerRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 3, gap: 6 },
+  mrScorerTeamDot: { fontSize: 10 },
+  mrScorerGoals: { color: colors.gold, fontSize: 12, fontWeight: '700', marginLeft: 'auto' },
+  mrPointsBox: { marginTop: spacing.sm },
+  mrPointsHeader: {
+    flexDirection: 'row', paddingVertical: 4,
+    borderBottomWidth: 1, borderColor: colors.darkBorder,
+    marginBottom: 2,
+  },
+  mrPointsRow: { flexDirection: 'row', paddingVertical: 5 },
+  mrPointsRowAlt: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 4 },
+  mrPointsCell: { flex: 1, color: colors.grayLight, fontSize: 11, textAlign: 'center' },
 });

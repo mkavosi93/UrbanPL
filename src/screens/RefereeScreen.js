@@ -1055,6 +1055,7 @@ function MatchModal({ game, visible, onClose, onSaved, initialPresent }) {
         const c = cards[gp.player_id] || { yellow: 0, red: 0 };
         return {
           game_id: game.id, player_id: gp.player_id,
+          team,                                         // Dark=A / White=B
           goals: goals[gp.player_id] || 0, won, is_goalkeeper: isGK,
           goals_conceded: isGK ? conceded : 0,
           yellow_cards: c.yellow, red_cards: c.red,
@@ -1069,7 +1070,8 @@ function MatchModal({ game, visible, onClose, onSaved, initialPresent }) {
         const { error: rpcError } = await supabase.rpc('update_player_stats_after_game', {
           p_game_id: game.id,
         });
-        if (rpcError) throw rpcError;
+        // Log but don't block — admin can re-run manually if function is missing
+        if (rpcError) console.warn('update_player_stats_after_game failed:', rpcError.message);
       }
 
       await supabase.from('games').update({
