@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser)",
+      "Bash(npx expo *)",
+      "Bash(python3 -c ' *)",
+      "PowerShell(Copy-Item \"C:\\\\Users\\\\mamad\\\\OneDrive\\\\UrbanPL\\\\UrbanPL Code\\\\assets\\\\logo.png\" \"C:\\\\Users\\\\mamad\\\\OneDrive\\\\UrbanPL\\\\UrbanPL Code\\\\docs\\\\logo.png\")",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(npm list *)",
+      "Bash(findstr expo *)",
+      "Bash(npm install *)",
+      "Bash(findstr \"view-shot\\\\|sharing\")"
+    ]
+  }
+}

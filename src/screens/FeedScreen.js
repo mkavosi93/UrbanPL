@@ -15,6 +15,9 @@ import { useLanguage } from '../context/LanguageContext';
 import { scheduleGameReminders } from '../lib/notifications';
 import GameMap from '../components/GameMap';
 import GameChat from '../components/GameChat';
+import ViewShot from 'react-native-view-shot';
+import * as Sharing from 'expo-sharing';
+import * as ImagePicker from 'expo-image-picker';
 
 const SUPABASE_FUNCTIONS_URL = 'https://zprtghdcmiavtoaltlld.supabase.co/functions/v1';
 import { colors, spacing, radius } from '../theme';
@@ -684,6 +687,268 @@ function calcPoints(stat, scoreA, scoreB) {
 }
 
 // ─── Match Report Modal ───────────────────────────────────────────────────────
+// ─── Match Share Card (Strava-style) ─────────────────────────────────────────
+function MatchShareCardModal({ visible, onClose, game, myStats, allStats, playerName: myName }) {
+  const cardRef = useRef(null);
+  const [bgPhoto, setBgPhoto] = useState(null);
+  const [sharing, setSharing] = useState(false);
+
+  const scoreA = game?.score_a ?? 0;
+  const scoreB = game?.score_b ?? 0;
+  const won  = myStats?.team === 'A' ? scoreA > scoreB : scoreB > scoreA;
+  const draw = scoreA === scoreB;
+  const result = draw ? 'DRAW' : won ? 'WIN' : 'LOSS';
+  const resultColor = draw ? '#888' : won ? '#4caf50' : '#f44336';
+  const myGoals = myStats?.goals ?? 0;
+  const myYellow = myStats?.yellow_cards ?? 0;
+  const myRed = myStats?.red_cards ?? 0;
+  const myPts = myStats ? calcPoints(myStats, scoreA, scoreB) : 0;
+
+  const scorers = allStats.filter(s => (s.goals ?? 0) > 0);
+  const date = game?.kickoff_time
+    ? new Date(game.kickoff_time).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+    : '';
+
+  function pName(s) {
+    const p = s.players;
+    return [p?.first_name, p?.last_name].filter(Boolean).join(' ') || p?.name || 'Player';
+  }
+
+  async function pickPhoto() {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+    });
+    if (!result.canceled) setBgPhoto(result.assets[0].uri);
+  }
+
+  async function takePhoto() {
+    const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
+    if (!result.canceled) setBgPhoto(result.assets[0].uri);
+  }
+
+  async function handleShare() {
+    if (!cardRef.current) return;
+    setSharing(true);
+    try {
+      const uri = await cardRef.current.capture();
+      await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: 'Share Match Card' });
+    } catch (e) {
+      Alert.alert('Error', 'Could not share. Please try again.');
+    } finally {
+      setSharing(false);
+    }
+  }
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <View style={shareCardStyles.container}>
+        {/* Header */}
+        <View style={shareCardStyles.header}>
+          <TouchableOpacity onPress={onClose} style={shareCardStyles.closeBtn}>
+            <Text style={shareCardStyles.closeTxt}>✕</Text>
+          </TouchableOpacity>
+          <Text style={shareCardStyles.headerTitle}>Share Card</Text>
+          <TouchableOpacity onPress={handleShare} disabled={sharing} style={shareCardStyles.shareBtn}>
+            {sharing
+              ? <ActivityIndicator color="#000" size="small" />
+              : <Text style={shareCardStyles.shareTxt}>Share ↑</Text>}
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView contentContainerStyle={shareCardStyles.scroll} showsVerticalScrollIndicator={false}>
+          {/* THE CARD — captured by ViewShot */}
+          <ViewShot ref={cardRef} options={{ format: 'png', quality: 1 }} style={shareCardStyles.card}>
+            {/* Background photo with overlay */}
+            {bgPhoto
+              ? <Image source={{ uri: bgPhoto }} style={shareCardStyles.cardBg} />
+              : null}
+            <View style={[shareCardStyles.cardOverlay, !bgPhoto && shareCardStyles.cardOverlayDark]} />
+
+            {/* Top branding */}
+            <View style={shareCardStyles.cardTop}>
+              <Image source={require('../../assets/logo.png')} style={shareCardStyles.cardLogo} />
+              <Text style={shareCardStyles.cardBrand}>URBAN PL</Text>
+            </View>
+
+            {/* Result badge */}
+            <View style={[shareCardStyles.resultBadge, { backgroundColor: resultColor }]}>
+              <Text style={shareCardStyles.resultText}>{result}</Text>
+            </View>
+
+            {/* Score */}
+            <View style={shareCardStyles.scoreRow}>
+              <Text style={shareCardStyles.teamLabel}>TEAM A</Text>
+              <Text style={shareCardStyles.scoreText}>{scoreA} — {scoreB}</Text>
+              <Text style={shareCardStyles.teamLabel}>TEAM B</Text>
+            </View>
+
+            {/* Player name + stats */}
+            <View style={shareCardStyles.playerSection}>
+              <Text style={shareCardStyles.playerName}>{myName}</Text>
+              <View style={shareCardStyles.statsRow}>
+                <View style={shareCardStyles.statBox}>
+                  <Text style={shareCardStyles.statVal}>{myGoals}</Text>
+                  <Text style={shareCardStyles.statLbl}>⚽ Goals</Text>
+                </View>
+                <View style={shareCardStyles.statBox}>
+                  <Text style={shareCardStyles.statVal}>+{myPts}</Text>
+                  <Text style={shareCardStyles.statLbl}>★ Points</Text>
+                </View>
+                <View style={shareCardStyles.statBox}>
+                  <Text style={shareCardStyles.statVal}>
+                    {myYellow > 0 ? `${myYellow}🟡` : myRed > 0 ? `${myRed}🔴` : '—'}
+                  </Text>
+                  <Text style={shareCardStyles.statLbl}>Cards</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Scorers */}
+            {scorers.length > 0 && (
+              <View style={shareCardStyles.scorerSection}>
+                {scorers.slice(0, 4).map((s, i) => (
+                  <Text key={i} style={shareCardStyles.scorerLine}>
+                    ⚽ {pName(s)}{s.goals > 1 ? ` ×${s.goals}` : ''}
+                  </Text>
+                ))}
+              </View>
+            )}
+
+            {/* Venue + date */}
+            <View style={shareCardStyles.cardBottom}>
+              <Text style={shareCardStyles.cardVenue} numberOfLines={1}>
+                📍 {game?.location?.split(',')[0]} · {game?.format}
+              </Text>
+              <Text style={shareCardStyles.cardDate}>{date}</Text>
+              <Text style={shareCardStyles.cardWatermark}>theurbanpl.com</Text>
+            </View>
+          </ViewShot>
+
+          {/* Photo buttons below card */}
+          <View style={shareCardStyles.photoRow}>
+            <TouchableOpacity style={shareCardStyles.photoBtn} onPress={takePhoto}>
+              <Text style={shareCardStyles.photoBtnIcon}>📷</Text>
+              <Text style={shareCardStyles.photoBtnTxt}>Take Photo</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={shareCardStyles.photoBtn} onPress={pickPhoto}>
+              <Text style={shareCardStyles.photoBtnIcon}>🖼️</Text>
+              <Text style={shareCardStyles.photoBtnTxt}>Choose Photo</Text>
+            </TouchableOpacity>
+            {bgPhoto && (
+              <TouchableOpacity style={shareCardStyles.photoBtn} onPress={() => setBgPhoto(null)}>
+                <Text style={shareCardStyles.photoBtnIcon}>✕</Text>
+                <Text style={shareCardStyles.photoBtnTxt}>Remove</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+}
+
+const shareCardStyles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#111' },
+  header: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingTop: RNPlatform.OS === 'ios' ? 54 : 16,
+    paddingBottom: 12, paddingHorizontal: 16,
+    backgroundColor: '#1a1a1a',
+    borderBottomWidth: 1, borderBottomColor: '#2a2a2a',
+  },
+  closeBtn: { padding: 8 },
+  closeTxt: { color: '#888', fontSize: 16 },
+  headerTitle: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  shareBtn: {
+    backgroundColor: colors.gold, paddingVertical: 8, paddingHorizontal: 16,
+    borderRadius: 20,
+  },
+  shareTxt: { color: '#000', fontWeight: '700', fontSize: 14 },
+
+  scroll: { alignItems: 'center', paddingVertical: 24, paddingHorizontal: 16 },
+
+  // The card itself
+  card: {
+    width: 340, borderRadius: 20, overflow: 'hidden',
+    backgroundColor: '#0d0d0d',
+    minHeight: 480,
+  },
+  cardBg: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    width: '100%', height: '100%',
+  },
+  cardOverlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.72)',
+  },
+  cardOverlayDark: { backgroundColor: 'rgba(13,13,13,0.98)' },
+
+  cardTop: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    padding: 20, paddingBottom: 8,
+  },
+  cardLogo: { width: 32, height: 32, borderRadius: 8 },
+  cardBrand: {
+    color: colors.gold, fontWeight: '900', fontSize: 16, letterSpacing: 2,
+  },
+
+  resultBadge: {
+    alignSelf: 'center', marginTop: 16,
+    paddingHorizontal: 28, paddingVertical: 8,
+    borderRadius: 100,
+  },
+  resultText: { color: '#fff', fontWeight: '900', fontSize: 22, letterSpacing: 3 },
+
+  scoreRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 12, marginTop: 16,
+  },
+  teamLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: '600', letterSpacing: 1 },
+  scoreText: { color: '#fff', fontSize: 42, fontWeight: '900', letterSpacing: -1 },
+
+  playerSection: {
+    marginTop: 20, paddingHorizontal: 20,
+    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)',
+    paddingTop: 16,
+  },
+  playerName: { color: colors.gold, fontWeight: '700', fontSize: 16, marginBottom: 12, textAlign: 'center' },
+  statsRow: { flexDirection: 'row', justifyContent: 'space-around' },
+  statBox: { alignItems: 'center', gap: 4 },
+  statVal: { color: '#fff', fontSize: 22, fontWeight: '800' },
+  statLbl: { color: 'rgba(255,255,255,0.5)', fontSize: 11 },
+
+  scorerSection: {
+    marginTop: 16, paddingHorizontal: 20,
+    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)',
+    paddingTop: 12,
+  },
+  scorerLine: { color: 'rgba(255,255,255,0.7)', fontSize: 13, marginBottom: 4 },
+
+  cardBottom: {
+    marginTop: 20, padding: 20, paddingTop: 12,
+    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)',
+  },
+  cardVenue: { color: 'rgba(255,255,255,0.6)', fontSize: 12 },
+  cardDate: { color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 2 },
+  cardWatermark: {
+    color: colors.gold, fontSize: 11, fontWeight: '700',
+    marginTop: 8, letterSpacing: 1,
+  },
+
+  // Photo buttons
+  photoRow: { flexDirection: 'row', gap: 12, marginTop: 20, flexWrap: 'wrap', justifyContent: 'center' },
+  photoBtn: {
+    alignItems: 'center', gap: 6,
+    backgroundColor: '#1a1a1a',
+    borderWidth: 1, borderColor: '#2a2a2a',
+    borderRadius: 12, paddingVertical: 12, paddingHorizontal: 20,
+    minWidth: 100,
+  },
+  photoBtnIcon: { fontSize: 24 },
+  photoBtnTxt: { color: '#aaa', fontSize: 12 },
+});
+
 function MatchReportModal({ report, playerId, visible, onClose, onVerified }) {
   const game = report?.games;
   const myStats = report; // the game_player_stats row for this player
@@ -693,6 +958,7 @@ function MatchReportModal({ report, playerId, visible, onClose, onVerified }) {
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [shareCardVisible, setShareCardVisible] = useState(false);
 
   React.useEffect(() => {
     if (!visible || !game?.id) return;
@@ -783,9 +1049,14 @@ function MatchReportModal({ report, playerId, visible, onClose, onVerified }) {
             <Text style={styles.reportCloseTxt}>✕</Text>
           </TouchableOpacity>
           <Text style={styles.reportHeaderTitle}>📊 Match Report</Text>
-          <TouchableOpacity onPress={handleShare} style={styles.reportShareBtn}>
-            <Text style={styles.reportShareTxt}>📤 Share</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity onPress={() => setShareCardVisible(true)} style={[styles.reportShareBtn, { backgroundColor: colors.gold }]}>
+              <Text style={[styles.reportShareTxt, { color: colors.dark }]}>🖼️ Card</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleShare} style={styles.reportShareBtn}>
+              <Text style={styles.reportShareTxt}>📤 Text</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {loading ? <ActivityIndicator color={colors.gold} style={{ marginTop: 40 }} /> : (
@@ -916,6 +1187,20 @@ function MatchReportModal({ report, playerId, visible, onClose, onVerified }) {
           </ScrollView>
         )}
       </View>
+
+      {/* Share Card Modal */}
+      <MatchShareCardModal
+        visible={shareCardVisible}
+        onClose={() => setShareCardVisible(false)}
+        game={game}
+        myStats={myStats}
+        allStats={allStats}
+        playerName={
+          myStats?.players
+            ? [myStats.players.first_name, myStats.players.last_name].filter(Boolean).join(' ') || myStats.players.name
+            : ''
+        }
+      />
     </Modal>
   );
 }
