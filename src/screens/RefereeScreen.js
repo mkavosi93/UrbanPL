@@ -1026,6 +1026,16 @@ function MatchModal({ game, visible, onClose, onSaved, initialPresent }) {
       ]);
     } else if (phase === 'second_half') {
       setRunning(false);
+      // Auto-calculate score from recorded goals
+      const presentPl = players.filter(gp => present[gp.player_id]);
+      const calcA = presentPl
+        .filter(gp => teams[gp.player_id] === 'A')
+        .reduce((sum, gp) => sum + (goals[gp.player_id] || 0), 0);
+      const calcB = presentPl
+        .filter(gp => teams[gp.player_id] === 'B')
+        .reduce((sum, gp) => sum + (goals[gp.player_id] || 0), 0);
+      setScoreA(String(calcA));
+      setScoreB(String(calcB));
       setPhase('final');
     }
   }
@@ -1221,7 +1231,8 @@ function MatchModal({ game, visible, onClose, onSaved, initialPresent }) {
         {/* ── FINAL PHASE ── */}
         {phase === 'final' && (
           <ScrollView contentContainerStyle={{ padding: spacing.md, paddingBottom: 120 }}>
-            <Text style={styles.phaseTitle}>🏁 Full Time — Enter Score</Text>
+            <Text style={styles.phaseTitle}>🏁 Full Time</Text>
+            <Text style={styles.phaseSubtitle}>Score calculated from recorded goals. Adjust if needed (e.g. own goals), then confirm.</Text>
             <View style={styles.finalScoreRow}>
               <View style={styles.finalScoreBox}>
                 <Text style={styles.finalScoreLabel}>🖤 Dark</Text>
@@ -1284,7 +1295,7 @@ function MatchModal({ game, visible, onClose, onSaved, initialPresent }) {
             >
               {submitting
                 ? <ActivityIndicator color={colors.dark} />
-                : <Text style={styles.matchStartBtnText}>✓ Save Stats & Close Game</Text>
+                : <Text style={styles.matchStartBtnText}>✓ Confirm & Close Game</Text>
               }
             </TouchableOpacity>
           </View>
@@ -2092,6 +2103,7 @@ const styles = StyleSheet.create({
   matchHeaderTitle: { color: colors.white, fontSize: 16, fontWeight: 'bold' },
   matchHeaderMeta: { color: colors.gray, fontSize: 12, marginTop: 2 },
   phaseTitle: { color: colors.gold, fontSize: 17, fontWeight: 'bold', padding: spacing.md, paddingBottom: spacing.xs },
+  phaseSubtitle: { color: colors.gray, fontSize: 12, paddingHorizontal: spacing.md, marginBottom: spacing.sm, lineHeight: 17 },
   phaseHint: { color: colors.gray, fontSize: 12, paddingHorizontal: spacing.md, marginBottom: spacing.sm },
 
   // Attendance
