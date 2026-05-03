@@ -1208,13 +1208,13 @@ function MatchReportsPanel() {
             {/* Score badge */}
             <View style={styles.mrScoreRow}>
               <View style={styles.mrScoreBox}>
-                <Text style={styles.mrScoreTeam}>⚪ Team A</Text>
+                <Text style={styles.mrScoreTeam}>🖤 Dark</Text>
                 <Text style={styles.mrScoreNum}>{scoreA}</Text>
               </View>
               <Text style={styles.mrScoreDash}>—</Text>
               <View style={styles.mrScoreBox}>
                 <Text style={styles.mrScoreNum}>{scoreB}</Text>
-                <Text style={styles.mrScoreTeam}>Team B ⚫</Text>
+                <Text style={styles.mrScoreTeam}>White 🤍</Text>
               </View>
             </View>
 

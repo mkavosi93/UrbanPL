@@ -264,13 +264,13 @@ function StatsModal({ game, visible, onClose, onSubmitted }) {
               <Text style={styles.sectionTitle}>TEAM BALANCE</Text>
               <View style={styles.teamStrengthRow}>
                 <View style={styles.teamStrengthBox}>
-                  <Text style={styles.teamStrengthLabel}>⚪ Team A</Text>
+                  <Text style={styles.teamStrengthLabel}>🖤 Dark</Text>
                   <Text style={styles.teamStrengthRating}>⭐ {teamAvgRating(teamA.map(g => g.player_id), players)}</Text>
                   <Text style={styles.teamStrengthCount}>{teamA.length} players</Text>
                 </View>
                 <View style={styles.teamStrengthDivider} />
                 <View style={styles.teamStrengthBox}>
-                  <Text style={styles.teamStrengthLabel}>⚫ Team B</Text>
+                  <Text style={styles.teamStrengthLabel}>🤍 White</Text>
                   <Text style={styles.teamStrengthRating}>⭐ {teamAvgRating(teamB.map(g => g.player_id), players)}</Text>
                   <Text style={styles.teamStrengthCount}>{teamB.length} players</Text>
                 </View>
@@ -308,12 +308,12 @@ function StatsModal({ game, visible, onClose, onSubmitted }) {
               <Text style={styles.sectionTitle}>FINAL SCORE</Text>
               <View style={styles.scoreRow}>
                 <View style={styles.scoreBox}>
-                  <Text style={styles.scoreTeamLabel}>⚪ Team A</Text>
+                  <Text style={styles.scoreTeamLabel}>🖤 Dark</Text>
                   <TextInput style={styles.scoreInput} value={scoreA} onChangeText={setScoreA} keyboardType="number-pad" maxLength={2} placeholder="0" placeholderTextColor={colors.gray} />
                 </View>
                 <Text style={styles.scoreDash}>—</Text>
                 <View style={styles.scoreBox}>
-                  <Text style={styles.scoreTeamLabel}>⚫ Team B</Text>
+                  <Text style={styles.scoreTeamLabel}>🤍 White</Text>
                   <TextInput style={styles.scoreInput} value={scoreB} onChangeText={setScoreB} keyboardType="number-pad" maxLength={2} placeholder="0" placeholderTextColor={colors.gray} />
                 </View>
               </View>
@@ -324,8 +324,8 @@ function StatsModal({ game, visible, onClose, onSubmitted }) {
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>PLAYER STATS</Text>
               <Text style={styles.sectionHint}>Goals · 🟡 Yellow (-1pt) · 🔴 Red (-3pts)</Text>
-              {teamA.length > 0 && (<><Text style={styles.teamDivider}>⚪ Team A</Text>{teamA.map(gp => <GoalRow key={gp.player_id} gp={gp} goals={goals} cards={cards} onAdjustGoals={adjustGoals} onAdjustCards={adjustCards} />)}</>)}
-              {teamB.length > 0 && (<><Text style={styles.teamDivider}>⚫ Team B</Text>{teamB.map(gp => <GoalRow key={gp.player_id} gp={gp} goals={goals} cards={cards} onAdjustGoals={adjustGoals} onAdjustCards={adjustCards} />)}</>)}
+              {teamA.length > 0 && (<><Text style={styles.teamDivider}>🖤 Dark</Text>{teamA.map(gp => <GoalRow key={gp.player_id} gp={gp} goals={goals} cards={cards} onAdjustGoals={adjustGoals} onAdjustCards={adjustCards} />)}</>)}
+              {teamB.length > 0 && (<><Text style={styles.teamDivider}>🤍 White</Text>{teamB.map(gp => <GoalRow key={gp.player_id} gp={gp} goals={goals} cards={cards} onAdjustGoals={adjustGoals} onAdjustCards={adjustCards} />)}</>)}
             </View>
           )}
 
@@ -1113,7 +1113,7 @@ function MatchModal({ game, visible, onClose, onSaved, initialPresent }) {
               <ScrollView contentContainerStyle={{ padding: spacing.md, paddingBottom: 20 }}>
                 {teamA.length > 0 && (
                   <>
-                    <Text style={styles.liveTeamHeader}>⚪ Team A</Text>
+                    <Text style={styles.liveTeamHeader}>🖤 Dark</Text>
                     {teamA.map(gp => (
                       <PlayerLiveCard key={gp.player_id} gp={gp} goals={goals} cards={cards}
                         onAdjustGoals={adjustGoals} onAdjustCards={adjustCards} team="A" />
@@ -1122,7 +1122,7 @@ function MatchModal({ game, visible, onClose, onSaved, initialPresent }) {
                 )}
                 {teamB.length > 0 && (
                   <>
-                    <Text style={[styles.liveTeamHeader, { color: '#4A90D9' }]}>⚫ Team B</Text>
+                    <Text style={[styles.liveTeamHeader, { color: '#4A90D9' }]}>🤍 White</Text>
                     {teamB.map(gp => (
                       <PlayerLiveCard key={gp.player_id} gp={gp} goals={goals} cards={cards}
                         onAdjustGoals={adjustGoals} onAdjustCards={adjustCards} team="B" />
@@ -1146,13 +1146,13 @@ function MatchModal({ game, visible, onClose, onSaved, initialPresent }) {
             <Text style={styles.phaseTitle}>🏁 Full Time — Enter Score</Text>
             <View style={styles.finalScoreRow}>
               <View style={styles.finalScoreBox}>
-                <Text style={styles.finalScoreLabel}>⚪ Team A</Text>
+                <Text style={styles.finalScoreLabel}>🖤 Dark</Text>
                 <TextInput style={styles.finalScoreInput} value={scoreA} onChangeText={setScoreA}
                   keyboardType="number-pad" maxLength={2} placeholder="0" placeholderTextColor={colors.gray} />
               </View>
               <Text style={styles.finalScoreDash}>—</Text>
               <View style={styles.finalScoreBox}>
-                <Text style={styles.finalScoreLabel}>⚫ Team B</Text>
+                <Text style={styles.finalScoreLabel}>🤍 White</Text>
                 <TextInput style={styles.finalScoreInput} value={scoreB} onChangeText={setScoreB}
                   keyboardType="number-pad" maxLength={2} placeholder="0" placeholderTextColor={colors.gray} />
               </View>
@@ -1308,7 +1308,7 @@ function FixtureDetailModal({ game, visible, onClose, onStartMatch }) {
             <View style={styles.fdTeamsRow}>
               {/* Team A */}
               <View style={styles.fdTeamCol}>
-                <Text style={styles.fdTeamDark}>🖤 Team Dark</Text>
+                <Text style={styles.fdTeamDark}>🖤 Dark</Text>
                 {teamA.length === 0
                   ? <Text style={styles.fdNoTeam}>TBC</Text>
                   : teamA.map(gp => {
@@ -1334,7 +1334,7 @@ function FixtureDetailModal({ game, visible, onClose, onStartMatch }) {
 
               {/* Team B */}
               <View style={[styles.fdTeamCol, { alignItems: 'flex-end' }]}>
-                <Text style={styles.fdTeamBright}>Team Bright 🌟</Text>
+                <Text style={styles.fdTeamBright}>White 🤍</Text>
                 {teamB.length === 0
                   ? <Text style={styles.fdNoTeam}>TBC</Text>
                   : teamB.map(gp => {
@@ -1379,7 +1379,7 @@ function FixtureDetailModal({ game, visible, onClose, onStartMatch }) {
                     <View style={{ flex: 1 }}>
                       <Text style={styles.fdAttName}>{pName(gp)}</Text>
                       <Text style={styles.fdAttRole}>
-                        {p?.role || 'Outfield'} · {gp.team ? `Team ${gp.team === 'A' ? 'Dark' : 'Bright'}` : 'Unassigned'}
+                        {p?.role || 'Outfield'} · {gp.team ? (gp.team === 'A' ? 'Dark' : 'White') : 'Unassigned'}
                       </Text>
                     </View>
                     <Text style={{ fontSize: 22 }}>{isPresent ? '✅' : '❌'}</Text>

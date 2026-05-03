@@ -283,7 +283,7 @@ function FixtureDetailModal({ fixture, visible, onClose, onWithdraw, onCheckIn, 
               <View style={styles.teamsRow}>
                 {/* Team Dark */}
                 <View style={[styles.teamColumn, myTeam === 'A' && styles.teamColumnHighlight]}>
-                  <Text style={styles.teamDarkHeader}>🖤 Team Dark</Text>
+                  <Text style={styles.teamDarkHeader}>🖤 Dark</Text>
                   {teamDark.map(gp => {
                     const p = gp.players;
                     const name = [p?.first_name, p?.last_name].filter(Boolean).join(' ') || p?.name || 'Player';
@@ -301,7 +301,7 @@ function FixtureDetailModal({ fixture, visible, onClose, onWithdraw, onCheckIn, 
                 </View>
                 {/* Team Bright */}
                 <View style={[styles.teamColumn, styles.teamColumnRight, myTeam === 'B' && styles.teamColumnHighlight]}>
-                  <Text style={styles.teamBrightHeader}>🌟 Team Bright</Text>
+                  <Text style={styles.teamBrightHeader}>🤍 White</Text>
                   {teamBright.map(gp => {
                     const p = gp.players;
                     const name = [p?.first_name, p?.last_name].filter(Boolean).join(' ') || p?.name || 'Player';
@@ -319,7 +319,7 @@ function FixtureDetailModal({ fixture, visible, onClose, onWithdraw, onCheckIn, 
               {myTeam && (
                 <View style={[styles.myTeamBanner, myTeam === 'A' ? styles.myTeamBannerA : styles.myTeamBannerB]}>
                   <Text style={styles.myTeamBannerText}>
-                    You are on {myTeam === 'A' ? '🖤 Team Dark' : '🌟 Team Bright'}
+                    You are on {myTeam === 'A' ? '🖤 Dark' : '🤍 White'}
                   </Text>
                 </View>
               )}
@@ -458,7 +458,7 @@ function FixtureCard({ fixture, onPress, t }) {
         <View style={styles.fcTeamsRow}>
           {/* Team Dark */}
           <View style={styles.fcTeamCol}>
-            <Text style={styles.fcTeamDarkLabel}>🖤 Team Dark</Text>
+            <Text style={styles.fcTeamDarkLabel}>🖤 Dark</Text>
             {teamDark.map(gp => {
               const p = gp.players;
               const name = [p?.first_name, p?.last_name].filter(Boolean).join(' ') || p?.name || 'Player';
@@ -478,7 +478,7 @@ function FixtureCard({ fixture, onPress, t }) {
 
           {/* Team Bright */}
           <View style={[styles.fcTeamCol, { alignItems: 'flex-end' }]}>
-            <Text style={styles.fcTeamBrightLabel}>Team Bright 🌟</Text>
+            <Text style={styles.fcTeamBrightLabel}>White 🤍</Text>
             {teamBright.map(gp => {
               const p = gp.players;
               const name = [p?.first_name, p?.last_name].filter(Boolean).join(' ') || p?.name || 'Player';
@@ -497,7 +497,7 @@ function FixtureCard({ fixture, onPress, t }) {
         {myTeam && (
           <View style={[styles.fcMyTeamBanner, myTeam === 'A' ? styles.fcMyTeamDark : styles.fcMyTeamBright]}>
             <Text style={styles.fcMyTeamText}>
-              You are on {myTeam === 'A' ? '🖤 Team Dark' : '🌟 Team Bright'}
+              You are on {myTeam === 'A' ? '🖤 Dark' : '🤍 White'}
             </Text>
           </View>
         )}
@@ -526,7 +526,7 @@ function FixtureCard({ fixture, onPress, t }) {
         {myTeam && (
           <View style={[styles.teamPill, myTeam === 'A' ? styles.teamPillA : styles.teamPillB]}>
             <Text style={styles.teamPillText}>
-              {myTeam === 'A' ? '🖤 Team Dark' : '🌟 Team Bright'}
+              {myTeam === 'A' ? '🖤 Dark' : '🤍 White'}
             </Text>
           </View>
         )}
