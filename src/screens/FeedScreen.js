@@ -1373,6 +1373,9 @@ export default function FeedScreen() {
       const { error: initError } = await initPaymentSheet({
         merchantDisplayName: 'Urban PL',
         paymentIntentClientSecret: json.clientSecret,
+        applePay: {
+          merchantCountryCode: 'US',
+        },
         defaultBillingDetails: {
           name: `${player.first_name ?? ''} ${player.last_name ?? ''}`.trim(),
           email: player.email ?? '',
