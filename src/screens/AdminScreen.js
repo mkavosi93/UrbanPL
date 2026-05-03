@@ -224,6 +224,12 @@ function EditGameModal({ game, visible, onClose, onSaved }) {
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <ScrollView contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
 
+            {/* Game ID */}
+            <View style={styles.gameIdBox}>
+              <Text style={styles.gameIdBoxLabel}>GAME ID</Text>
+              <Text selectable style={styles.gameIdBoxValue}>{game?.id}</Text>
+            </View>
+
             <Text style={styles.formLabel}>Location / Venue</Text>
             <TextInput
               style={styles.input}
@@ -1267,6 +1273,9 @@ function MatchReportsPanel() {
                     <Text style={styles.mrNotesText}>{g.referee_notes}</Text>
                   </View>
                 )}
+
+                {/* Game ID */}
+                <Text selectable style={styles.mrGameId}>ID: {g.id}</Text>
               </View>
             )}
           </TouchableOpacity>
@@ -1313,7 +1322,16 @@ function Dashboard({ games, cups, onEditGame, onEditCup }) {
         return (
           <TouchableOpacity key={g.id} style={styles.dashRow} onPress={() => onEditGame(g)} activeOpacity={0.7}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.dashRowTitle} numberOfLines={1}>{g.location?.split(',')[0]}</Text>
+              <View style={styles.dashRowTitleRow}>
+                <Text style={styles.dashRowTitle} numberOfLines={1}>{g.location?.split(',')[0]}</Text>
+                <TouchableOpacity
+                  style={styles.gameIdChip}
+                  onPress={e => { e.stopPropagation?.(); Alert.alert('Game ID', g.id, [{ text: 'OK' }]); }}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={styles.gameIdChipText}>#{g.id.slice(0, 8)}</Text>
+                </TouchableOpacity>
+              </View>
               <Text style={styles.dashRowMeta}>
                 {g.format} · {new Date(g.kickoff_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
               </Text>
@@ -2002,6 +2020,35 @@ const styles = StyleSheet.create({
     borderRadius: radius.md, backgroundColor: colors.gold, alignItems: 'center',
   },
   generateBracketBtnText: { color: colors.dark, fontWeight: 'bold', fontSize: 15 },
+
+  // Game ID
+  dashRowTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 1 },
+  gameIdChip: {
+    backgroundColor: colors.dark,
+    borderWidth: 1, borderColor: colors.darkBorder,
+    borderRadius: 4,
+    paddingHorizontal: 5, paddingVertical: 1,
+  },
+  gameIdChipText: { color: colors.gray, fontSize: 9, fontFamily: 'monospace' },
+  gameIdBox: {
+    backgroundColor: colors.dark,
+    borderWidth: 1, borderColor: colors.darkBorder,
+    borderRadius: 8, padding: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  gameIdBoxLabel: {
+    color: colors.gray, fontSize: 9, fontWeight: '700',
+    letterSpacing: 1.2, marginBottom: 3,
+  },
+  gameIdBoxValue: {
+    color: colors.gold, fontSize: 12,
+    fontFamily: 'monospace', letterSpacing: 0.3,
+  },
+  mrGameId: {
+    color: colors.darkBorder, fontSize: 9,
+    fontFamily: 'monospace', marginTop: spacing.sm,
+    letterSpacing: 0.3,
+  },
 
   // ── Match Reports ────────────────────────────────────────────────────────────
   mrHeading: {
