@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, Alert, ScrollView, TextInput, Modal, Image,
@@ -9,7 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { colors, spacing, radius } from '../theme';
 
-const SECTIONS = ['Feed', 'Bookings', 'Rankings', 'Profile'];
+const SECTIONS = ['Feed', 'Fixtures', 'Rankings', 'Profile'];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function formatDate(iso) {
@@ -854,12 +854,14 @@ function formatTime(secs) {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-function MatchModal({ game, visible, onClose, onSaved }) {
+function MatchModal({ game, visible, onClose, onSaved, initialPresent }) {
   const players = game?.game_players || [];
 
   // Phase: 'attendance' | 'first_half' | 'break' | 'second_half' | 'final'
-  const [phase, setPhase]       = useState('attendance');
+  // If initialPresent passed, skip attendance and go straight to first_half
+  const [phase, setPhase]       = useState(initialPresent ? 'first_half' : 'attendance');
   const [present, setPresent]   = useState(() => {
+    if (initialPresent) return initialPresent;
     const m = {};
     players.forEach(gp => { m[gp.player_id] = true; });
     return m;
@@ -882,12 +884,16 @@ function MatchModal({ game, visible, onClose, onSaved }) {
   // Re-init when game changes
   useEffect(() => {
     if (!visible) return;
-    setPhase('attendance');
+    setPhase(initialPresent ? 'first_half' : 'attendance');
     setGoals({}); setCards({}); setScoreA(''); setScoreB('');
-    setTimeLeft(FIRST_HALF_SECS); setRunning(false);
-    const m = {};
-    players.forEach(gp => { m[gp.player_id] = true; });
-    setPresent(m);
+    setTimeLeft(FIRST_HALF_SECS); setRunning(initialPresent ? true : false);
+    if (initialPresent) {
+      setPresent(initialPresent);
+    } else {
+      const m = {};
+      players.forEach(gp => { m[gp.player_id] = true; });
+      setPresent(m);
+    }
     const t = {};
     players.forEach(gp => { if (gp.team) t[gp.player_id] = gp.team; });
     setTeams(t);
@@ -1184,11 +1190,214 @@ function MatchModal({ game, visible, onClose, onSaved }) {
   );
 }
 
-// ─── Bookings Tab ─────────────────────────────────────────────────────────────
+// ─── Fixture Detail Modal ─────────────────────────────────────────────────────
+function FixtureDetailModal({ game, visible, onClose, onStartMatch }) {
+  const players = game?.game_players || [];
+  const teamA = players.filter(gp => gp.team === 'A');
+  const teamB = players.filter(gp => gp.team === 'B');
+
+  // Countdown
+  const [timeUntil, setTimeUntil] = useState(null);
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    if (!visible || !game?.kickoff_time) return;
+    function tick() {
+      const diff = new Date(game.kickoff_time) - new Date();
+      setTimeUntil(diff);
+    }
+    tick();
+    timerRef.current = setInterval(tick, 1000);
+    return () => clearInterval(timerRef.current);
+  }, [visible, game?.kickoff_time]);
+
+  // Attendance state (active within 15 min)
+  const minsUntil = timeUntil != null ? timeUntil / 60000 : 999;
+  const showAttendance = minsUntil <= 15;
+  const [present, setPresent] = useState(() => {
+    const m = {};
+    players.forEach(gp => { m[gp.player_id] = true; });
+    return m;
+  });
+
+  useEffect(() => {
+    if (visible) {
+      const m = {};
+      players.forEach(gp => { m[gp.player_id] = true; });
+      setPresent(m);
+    }
+  }, [visible, game?.id]);
+
+  function togglePresent(pid) {
+    setPresent(p => ({ ...p, [pid]: !p[pid] }));
+  }
+
+  function pName(gp) {
+    const p = gp.players;
+    return [p?.first_name, p?.last_name].filter(Boolean).join(' ') || p?.name || 'Player';
+  }
+
+  function formatCountdown(ms) {
+    if (ms <= 0) return 'KICK OFF!';
+    const totalSecs = Math.floor(ms / 1000);
+    const h = Math.floor(totalSecs / 3600);
+    const m = Math.floor((totalSecs % 3600) / 60);
+    const s = totalSecs % 60;
+    if (h > 0) return `${h}h ${m}m`;
+    if (m > 0) return `${m}m ${String(s).padStart(2, '0')}s`;
+    return `${s}s`;
+  }
+
+  const presentCount = Object.values(present).filter(Boolean).length;
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <View style={styles.fdContainer}>
+        {/* Header */}
+        <View style={styles.fdHeader}>
+          <TouchableOpacity onPress={onClose} style={styles.modalBack}>
+            <Text style={styles.modalBackText}>✕</Text>
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.fdTitle} numberOfLines={1}>{game?.location?.split(',')[0]}</Text>
+            <Text style={styles.fdMeta}>{game?.format} · {game && formatDate(game.kickoff_time)}</Text>
+          </View>
+        </View>
+
+        <ScrollView contentContainerStyle={styles.fdScroll}>
+          {/* Countdown */}
+          <View style={styles.fdCountdownBox}>
+            <Text style={styles.fdCountdownLabel}>
+              {minsUntil <= 0 ? 'Game Time' : minsUntil <= 15 ? '⚠️ Starting Soon' : 'Kickoff In'}
+            </Text>
+            <Text style={[styles.fdCountdown, minsUntil <= 15 && { color: '#f44336' }]}>
+              {timeUntil != null ? formatCountdown(timeUntil) : '—'}
+            </Text>
+            <Text style={styles.fdPlayerCount}>👥 {players.length} players registered</Text>
+          </View>
+
+          {/* Lineup */}
+          <View style={styles.fdSection}>
+            <Text style={styles.fdSectionTitle}>📋 LINE-UP</Text>
+            <View style={styles.fdTeamsRow}>
+              {/* Team A */}
+              <View style={styles.fdTeamCol}>
+                <Text style={styles.fdTeamDark}>🖤 Team Dark</Text>
+                {teamA.length === 0
+                  ? <Text style={styles.fdNoTeam}>TBC</Text>
+                  : teamA.map(gp => {
+                    const p = gp.players;
+                    const rating = p?.rating != null ? p.rating.toFixed(1) : null;
+                    return (
+                      <View key={gp.player_id} style={styles.fdPlayerRow}>
+                        <Text style={styles.fdPlayerName} numberOfLines={1}>{pName(gp)}</Text>
+                        {rating && <Text style={styles.fdPlayerRating}>★{rating}</Text>}
+                      </View>
+                    );
+                  })}
+                {teamA.length > 0 && (
+                  <Text style={styles.fdTeamAvg}>
+                    Avg ★{teamAvgRating(teamA.map(g => g.player_id), players)}
+                  </Text>
+                )}
+              </View>
+
+              <View style={styles.fdVsDivider}>
+                <Text style={styles.fdVs}>VS</Text>
+              </View>
+
+              {/* Team B */}
+              <View style={[styles.fdTeamCol, { alignItems: 'flex-end' }]}>
+                <Text style={styles.fdTeamBright}>Team Bright 🌟</Text>
+                {teamB.length === 0
+                  ? <Text style={styles.fdNoTeam}>TBC</Text>
+                  : teamB.map(gp => {
+                    const p = gp.players;
+                    const rating = p?.rating != null ? p.rating.toFixed(1) : null;
+                    return (
+                      <View key={gp.player_id} style={[styles.fdPlayerRow, { flexDirection: 'row-reverse' }]}>
+                        <Text style={[styles.fdPlayerName, { textAlign: 'right' }]} numberOfLines={1}>{pName(gp)}</Text>
+                        {rating && <Text style={styles.fdPlayerRating}>★{rating}</Text>}
+                      </View>
+                    );
+                  })}
+                {teamB.length > 0 && (
+                  <Text style={[styles.fdTeamAvg, { textAlign: 'right' }]}>
+                    Avg ★{teamAvgRating(teamB.map(g => g.player_id), players)}
+                  </Text>
+                )}
+              </View>
+            </View>
+          </View>
+
+          {/* Attendance — only within 15 min of kickoff */}
+          {showAttendance && (
+            <View style={styles.fdSection}>
+              <Text style={styles.fdSectionTitle}>✅ ATTENDANCE ({presentCount}/{players.length})</Text>
+              <Text style={styles.fdSectionHint}>Tap to mark absent. Present by default.</Text>
+              {players.map(gp => {
+                const p = gp.players;
+                const isPresent = present[gp.player_id] !== false;
+                const initials = [p?.first_name?.[0], p?.last_name?.[0]].filter(Boolean).join('').toUpperCase() || '?';
+                return (
+                  <TouchableOpacity
+                    key={gp.player_id}
+                    style={[styles.fdAttRow, !isPresent && { opacity: 0.45 }]}
+                    onPress={() => togglePresent(gp.player_id)}
+                    activeOpacity={0.7}
+                  >
+                    {p?.avatar_url
+                      ? <Image source={{ uri: p.avatar_url }} style={styles.fdAttAvatar} />
+                      : <View style={styles.fdAttAvatarFallback}><Text style={styles.fdAttInitials}>{initials}</Text></View>
+                    }
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.fdAttName}>{pName(gp)}</Text>
+                      <Text style={styles.fdAttRole}>
+                        {p?.role || 'Outfield'} · {gp.team ? `Team ${gp.team === 'A' ? 'Dark' : 'Bright'}` : 'Unassigned'}
+                      </Text>
+                    </View>
+                    <Text style={{ fontSize: 22 }}>{isPresent ? '✅' : '❌'}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+
+          {!showAttendance && (
+            <View style={styles.fdInfoBox}>
+              <Text style={styles.fdInfoIcon}>⏱️</Text>
+              <Text style={styles.fdInfoText}>
+                Attendance opens 15 minutes before kickoff.
+              </Text>
+            </View>
+          )}
+        </ScrollView>
+
+        {/* Start Match button */}
+        <View style={styles.fdFooter}>
+          <TouchableOpacity
+            style={[styles.fdStartBtn, !showAttendance && styles.fdStartBtnDisabled]}
+            onPress={() => onStartMatch(present)}
+            disabled={!showAttendance}
+          >
+            <Text style={styles.fdStartBtnText}>
+              {showAttendance ? '▶ Hit Start Match' : `Available ${minsUntil > 60 ? 'at kickoff' : `in ${Math.ceil(minsUntil)} min`}`}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+// ─── Upcoming Fixtures Tab ────────────────────────────────────────────────────
 function BookingsTab({ refereeId }) {
   const queryClient = useQueryClient();
   const { t } = useLanguage();
   const [selectedGame, setSelectedGame] = useState(null);
+  const [detailGame, setDetailGame] = useState(null);
+  const [matchGame, setMatchGame] = useState(null);
+  const [initialPresent, setInitialPresent] = useState({});
 
   const { data: fixtures = [], isLoading, refetch } = useQuery({
     queryKey: ['refFixturesScore', refereeId],
@@ -1238,7 +1447,7 @@ function BookingsTab({ refereeId }) {
                 <View key={item.id} style={[styles.gameCard, { borderColor: colors.gold, flexDirection: 'column' }]}>
                   <TouchableOpacity
                     style={styles.gameCardInner}
-                    onPress={() => setSelectedGame(item)}
+                    onPress={() => setDetailGame(item)}
                     activeOpacity={0.85}
                   >
                     <View style={styles.gameCardLeft}>
@@ -1300,6 +1509,36 @@ function BookingsTab({ refereeId }) {
         )}
       </ScrollView>
 
+      {/* Fixture Detail Modal */}
+      {detailGame && (
+        <FixtureDetailModal
+          game={detailGame}
+          visible={!!detailGame}
+          onClose={() => setDetailGame(null)}
+          onStartMatch={(present) => {
+            setInitialPresent(present);
+            setMatchGame(detailGame);
+            setDetailGame(null);
+          }}
+        />
+      )}
+
+      {/* Match Dashboard Modal */}
+      {matchGame && (
+        <MatchModal
+          game={matchGame}
+          visible={!!matchGame}
+          initialPresent={initialPresent}
+          onClose={() => setMatchGame(null)}
+          onSaved={() => {
+            queryClient.invalidateQueries(['refFixturesScore', refereeId]);
+            queryClient.invalidateQueries(['refereeGames']);
+            setMatchGame(null);
+          }}
+        />
+      )}
+
+      {/* Other games — still open directly to MatchModal */}
       {selectedGame && (
         <MatchModal
           game={selectedGame}
@@ -1324,7 +1563,7 @@ export default function RefereeScreen() {
 
   const TAB_LABELS = {
     Feed:     t('referee.tabFeed'),
-    Bookings: t('referee.tabBookings'),
+    Fixtures: 'Fixtures',
     Rankings: t('referee.tabRankings'),
     Profile:  t('referee.tabProfile'),
   };
@@ -1347,7 +1586,7 @@ export default function RefereeScreen() {
       </View>
 
       {activeSection === 'Feed'     && <FeedTab refereeId={player?.id} />}
-      {activeSection === 'Bookings' && <BookingsTab refereeId={player?.id} />}
+      {activeSection === 'Fixtures' && <BookingsTab refereeId={player?.id} />}
       {activeSection === 'Rankings' && <RefereeRankingsTab currentRefereeId={player?.id} />}
       {activeSection === 'Profile'  && <ProfileTab player={player} />}
     </View>
@@ -1443,6 +1682,79 @@ const styles = StyleSheet.create({
   gameCardInner: { flexDirection: 'row', alignItems: 'center' },
 
   // Check-in
+  // ── Fixture Detail Modal ──
+  fdContainer: { flex: 1, backgroundColor: colors.dark },
+  fdHeader: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    backgroundColor: colors.darkCard,
+    borderBottomWidth: 1, borderBottomColor: colors.darkBorder,
+    paddingTop: 54, paddingBottom: spacing.md, paddingHorizontal: spacing.md,
+  },
+  fdTitle: { color: colors.white, fontWeight: '800', fontSize: 16 },
+  fdMeta: { color: colors.gray, fontSize: 12, marginTop: 2 },
+  fdScroll: { padding: spacing.md, paddingBottom: 120 },
+  fdCountdownBox: {
+    backgroundColor: colors.darkCard,
+    borderRadius: radius.lg, borderWidth: 1, borderColor: colors.darkBorder,
+    padding: spacing.lg, alignItems: 'center', marginBottom: spacing.md,
+  },
+  fdCountdownLabel: { color: colors.gray, fontSize: 12, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 },
+  fdCountdown: { color: colors.gold, fontSize: 48, fontWeight: '900', letterSpacing: -1 },
+  fdPlayerCount: { color: colors.gray, fontSize: 12, marginTop: 6 },
+  fdSection: {
+    backgroundColor: colors.darkCard,
+    borderRadius: radius.lg, borderWidth: 1, borderColor: colors.darkBorder,
+    padding: spacing.md, marginBottom: spacing.md,
+  },
+  fdSectionTitle: {
+    color: colors.gold, fontSize: 11, fontWeight: '800',
+    letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: spacing.sm,
+  },
+  fdSectionHint: { color: colors.gray, fontSize: 12, marginBottom: spacing.sm },
+  fdTeamsRow: { flexDirection: 'row', gap: 8 },
+  fdTeamCol: { flex: 1 },
+  fdTeamDark: { color: colors.white, fontWeight: '700', fontSize: 13, marginBottom: 8 },
+  fdTeamBright: { color: colors.gold, fontWeight: '700', fontSize: 13, marginBottom: 8, textAlign: 'right' },
+  fdNoTeam: { color: colors.gray, fontSize: 12, fontStyle: 'italic' },
+  fdPlayerRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 },
+  fdPlayerName: { color: colors.grayLight, fontSize: 12, flex: 1 },
+  fdPlayerRating: { color: colors.gold, fontSize: 10, fontWeight: '700' },
+  fdTeamAvg: { color: colors.gray, fontSize: 11, marginTop: 6 },
+  fdVsDivider: { width: 28, alignItems: 'center', justifyContent: 'center' },
+  fdVs: { color: colors.gray, fontWeight: '800', fontSize: 12 },
+  fdAttRow: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.darkBorder,
+  },
+  fdAttAvatar: { width: 36, height: 36, borderRadius: 18 },
+  fdAttAvatarFallback: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: colors.dark, alignItems: 'center', justifyContent: 'center',
+  },
+  fdAttInitials: { color: colors.gold, fontWeight: '700', fontSize: 13 },
+  fdAttName: { color: colors.white, fontWeight: '600', fontSize: 13 },
+  fdAttRole: { color: colors.gray, fontSize: 11, marginTop: 1 },
+  fdInfoBox: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    backgroundColor: colors.darkCard,
+    borderRadius: radius.lg, borderWidth: 1, borderColor: colors.darkBorder,
+    padding: spacing.md, marginBottom: spacing.md,
+  },
+  fdInfoIcon: { fontSize: 24 },
+  fdInfoText: { color: colors.gray, fontSize: 13, flex: 1, lineHeight: 18 },
+  fdFooter: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    backgroundColor: colors.darkCard,
+    borderTopWidth: 1, borderTopColor: colors.darkBorder,
+    padding: spacing.md, paddingBottom: 32,
+  },
+  fdStartBtn: {
+    backgroundColor: colors.gold, borderRadius: radius.lg,
+    paddingVertical: 16, alignItems: 'center',
+  },
+  fdStartBtnDisabled: { backgroundColor: colors.darkBorder },
+  fdStartBtnText: { color: colors.dark, fontWeight: '800', fontSize: 16 },
+
   checkInRow: {
     borderTopWidth: 1,
     borderTopColor: colors.darkBorder,
