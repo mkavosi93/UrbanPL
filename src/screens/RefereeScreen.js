@@ -111,28 +111,64 @@ async function fetchRefereeRankings() {
 }
 
 // ─── Team balancer ────────────────────────────────────────────────────────────
+// Optimal size-constrained balancer:
+// 1. One GK per team (best GK → A, second → B)
+// 2. Remaining players sorted by rating DESC; each assigned to whichever team
+//    produces the smallest projected average difference, respecting hard size caps
+//    (Dark = floor(n/2), White = ceil(n/2)).
 function balanceTeams(gamePlayers) {
   const assignment = {};
-  const withRole = gamePlayers.map(gp => ({
+  const n = gamePlayers.length;
+  const capA = Math.floor(n / 2);   // Dark (smaller or equal)
+  const capB = Math.ceil(n / 2);    // White (larger or equal)
+
+  const mapped = gamePlayers.map(gp => ({
     player_id: gp.player_id,
     role: gp.players?.role || 'Outfield',
     rating: gp.players?.rating ?? 2.5,
   }));
-  const gkPool = withRole.filter(p => p.role === 'Goalkeeper' || p.role === 'Versatile')
+
+  // Separate GKs: best goes to A, second to B
+  const gks = mapped
+    .filter(p => p.role === 'Goalkeeper' || p.role === 'Versatile')
     .sort((a, b) => b.rating - a.rating);
-  const outfield = withRole.filter(p => p.role !== 'Goalkeeper' && p.role !== 'Versatile')
+  const outfield = mapped
+    .filter(p => p.role !== 'Goalkeeper' && p.role !== 'Versatile')
     .sort((a, b) => b.rating - a.rating);
-  const gkForA = gkPool[0]; const gkForB = gkPool[1];
-  if (gkForA) assignment[gkForA.player_id] = 'A';
-  if (gkForB) assignment[gkForB.player_id] = 'B';
-  const remaining = [...gkPool.slice(2), ...outfield].sort((a, b) => b.rating - a.rating);
-  let totalA = gkForA ? gkForA.rating : 0, totalB = gkForB ? gkForB.rating : 0;
-  let countA = gkForA ? 1 : 0, countB = gkForB ? 1 : 0;
-  remaining.forEach(p => {
-    const team = (countA > 0 ? totalA / countA : 0) <= (countB > 0 ? totalB / countB : 0) ? 'A' : 'B';
-    assignment[p.player_id] = team;
-    if (team === 'A') { totalA += p.rating; countA++; } else { totalB += p.rating; countB++; }
-  });
+
+  let sumA = 0, sumB = 0, cA = 0, cB = 0;
+
+  if (gks[0]) { assignment[gks[0].player_id] = 'A'; sumA += gks[0].rating; cA++; }
+  if (gks[1]) { assignment[gks[1].player_id] = 'B'; sumB += gks[1].rating; cB++; }
+
+  const remaining = [...gks.slice(2), ...outfield].sort((a, b) => b.rating - a.rating);
+
+  for (const p of remaining) {
+    let pick;
+    if (cA >= capA) {
+      pick = 'B'; // A is full
+    } else if (cB >= capB) {
+      pick = 'A'; // B is full
+    } else if (cA === 0 && cB === 0) {
+      pick = 'A'; // first assignment always Dark
+    } else {
+      // Project avg if we add this player to each team
+      const avgA_if = (sumA + p.rating) / (cA + 1);
+      const avgB_now = cB > 0 ? sumB / cB : avgA_if;
+      const diffIfA = Math.abs(avgA_if - avgB_now);
+
+      const avgB_if = (sumB + p.rating) / (cB + 1);
+      const avgA_now = cA > 0 ? sumA / cA : avgB_if;
+      const diffIfB = Math.abs(avgA_now - avgB_if);
+
+      pick = diffIfA <= diffIfB ? 'A' : 'B';
+    }
+
+    assignment[p.player_id] = pick;
+    if (pick === 'A') { sumA += p.rating; cA++; }
+    else              { sumB += p.rating; cB++; }
+  }
+
   return assignment;
 }
 
