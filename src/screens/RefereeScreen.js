@@ -991,6 +991,10 @@ function MatchModal({ game, visible, onClose, onSaved, initialPresent }) {
       const { error } = await supabase.from('game_player_stats')
         .upsert(stats, { onConflict: 'game_id,player_id' });
       if (error) throw error;
+      const { error: rpcError } = await supabase.rpc('update_player_stats_after_game', {
+        p_game_id: game.id,
+      });
+      if (rpcError) throw rpcError;
       await supabase.from('games').update({
         status: 'completed',
         score_a: a,
