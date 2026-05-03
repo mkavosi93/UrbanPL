@@ -287,10 +287,12 @@ function FixtureDetailModal({ fixture, visible, onClose, onWithdraw, onCheckIn, 
                   {teamDark.map(gp => {
                     const p = gp.players;
                     const name = [p?.first_name, p?.last_name].filter(Boolean).join(' ') || p?.name || 'Player';
+                    const rating = p?.rating != null ? p.rating.toFixed(1) : null;
                     return (
-                      <Text key={gp.player_id} style={styles.teamPlayerName} numberOfLines={1}>
-                        {name}
-                      </Text>
+                      <View key={gp.player_id} style={styles.lineupPlayerRow}>
+                        <Text style={styles.teamPlayerName} numberOfLines={1}>{name}</Text>
+                        {rating && <Text style={styles.lineupRating}>★ {rating}</Text>}
+                      </View>
                     );
                   })}
                 </View>
@@ -303,10 +305,12 @@ function FixtureDetailModal({ fixture, visible, onClose, onWithdraw, onCheckIn, 
                   {teamBright.map(gp => {
                     const p = gp.players;
                     const name = [p?.first_name, p?.last_name].filter(Boolean).join(' ') || p?.name || 'Player';
+                    const rating = p?.rating != null ? p.rating.toFixed(1) : null;
                     return (
-                      <Text key={gp.player_id} style={[styles.teamPlayerName, { textAlign: 'right' }]} numberOfLines={1}>
-                        {name}
-                      </Text>
+                      <View key={gp.player_id} style={[styles.lineupPlayerRow, { flexDirection: 'row-reverse' }]}>
+                        <Text style={[styles.teamPlayerName, { textAlign: 'right' }]} numberOfLines={1}>{name}</Text>
+                        {rating && <Text style={styles.lineupRating}>★ {rating}</Text>}
+                      </View>
                     );
                   })}
                 </View>
@@ -458,8 +462,12 @@ function FixtureCard({ fixture, onPress, t }) {
             {teamDark.map(gp => {
               const p = gp.players;
               const name = [p?.first_name, p?.last_name].filter(Boolean).join(' ') || p?.name || 'Player';
+              const rating = p?.rating != null ? p.rating.toFixed(1) : null;
               return (
-                <Text key={gp.player_id} style={styles.fcPlayerName} numberOfLines={1}>{name}</Text>
+                <View key={gp.player_id} style={styles.fcPlayerRow}>
+                  <Text style={styles.fcPlayerName} numberOfLines={1}>{name}</Text>
+                  {rating && <Text style={styles.fcPlayerRating}>★ {rating}</Text>}
+                </View>
               );
             })}
           </View>
@@ -474,8 +482,12 @@ function FixtureCard({ fixture, onPress, t }) {
             {teamBright.map(gp => {
               const p = gp.players;
               const name = [p?.first_name, p?.last_name].filter(Boolean).join(' ') || p?.name || 'Player';
+              const rating = p?.rating != null ? p.rating.toFixed(1) : null;
               return (
-                <Text key={gp.player_id} style={[styles.fcPlayerName, { textAlign: 'right' }]} numberOfLines={1}>{name}</Text>
+                <View key={gp.player_id} style={[styles.fcPlayerRow, { flexDirection: 'row-reverse' }]}>
+                  <Text style={[styles.fcPlayerName, { textAlign: 'right' }]} numberOfLines={1}>{name}</Text>
+                  {rating && <Text style={styles.fcPlayerRating}>★ {rating}</Text>}
+                </View>
               );
             })}
           </View>
@@ -2032,6 +2044,18 @@ const styles = StyleSheet.create({
     color: colors.grayLight,
     fontSize: 11,
     marginBottom: 2,
+    flex: 1,
+  },
+  fcPlayerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 2,
+  },
+  fcPlayerRating: {
+    color: colors.gold,
+    fontSize: 10,
+    fontWeight: '700',
   },
   fcMyTeamBanner: {
     marginTop: spacing.sm,
@@ -2362,7 +2386,14 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     textAlign: 'right',
   },
-  teamPlayerName: { color: colors.white, fontSize: 13, marginBottom: 4 },
+  teamPlayerName: { color: colors.white, fontSize: 13, flex: 1 },
+  lineupPlayerRow: {
+    flexDirection: 'row', alignItems: 'center',
+    gap: 6, marginBottom: 4,
+  },
+  lineupRating: {
+    color: colors.gold, fontSize: 11, fontWeight: '700',
+  },
   teamsMiddle: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xs, paddingTop: 20 },
   teamsVs: { color: colors.gray, fontWeight: 'bold', fontSize: 14 },
   refRow: {
