@@ -976,6 +976,11 @@ function MatchModal({ game, visible, onClose, onSaved, initialPresent }) {
     const presentPlayers = players.filter(gp => present[gp.player_id]);
     setSubmitting(true);
     try {
+      // Check if already completed to avoid double-counting stats
+      const { data: currentGame } = await supabase
+        .from('games').select('status').eq('id', game.id).single();
+      const alreadyCompleted = currentGame?.status === 'completed';
+
       const stats = presentPlayers.map(gp => {
         const p = gp.players; const team = teams[gp.player_id];
         const won = team === 'A' ? a > b : b > a;
@@ -992,10 +997,15 @@ function MatchModal({ game, visible, onClose, onSaved, initialPresent }) {
       const { error } = await supabase.from('game_player_stats')
         .upsert(stats, { onConflict: 'game_id,player_id' });
       if (error) throw error;
-      const { error: rpcError } = await supabase.rpc('update_player_stats_after_game', {
-        p_game_id: game.id,
-      });
-      if (rpcError) throw rpcError;
+
+      // Only increment player stats once — skip if game was already completed
+      if (!alreadyCompleted) {
+        const { error: rpcError } = await supabase.rpc('update_player_stats_after_game', {
+          p_game_id: game.id,
+        });
+        if (rpcError) throw rpcError;
+      }
+
       await supabase.from('games').update({
         status: 'completed',
         score_a: a,

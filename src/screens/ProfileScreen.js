@@ -6,10 +6,115 @@ import {
 
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { supabase } from '../lib/supabase';
 import { colors, spacing, radius } from '../theme';
+
+async function fetchPlayerHistory(playerId) {
+  const { data, error } = await supabase
+    .from('game_player_stats')
+    .select(`
+      goals, won, yellow_cards, red_cards, is_goalkeeper, goals_conceded,
+      games(id, location, format, kickoff_time, score_a, score_b, completed_at)
+    `)
+    .eq('player_id', playerId);
+  if (error) throw error;
+  // Sort by completed_at descending client-side
+  return (data || []).sort((a, b) => {
+    const da = new Date(a.games?.completed_at || a.games?.kickoff_time || 0);
+    const db = new Date(b.games?.completed_at || b.games?.kickoff_time || 0);
+    return db - da;
+  });
+}
+
+function GameHistoryList({ playerId }) {
+  const { data: history = [], isLoading } = useQuery({
+    queryKey: ['playerHistory', playerId],
+    queryFn: () => fetchPlayerHistory(playerId),
+    enabled: !!playerId,
+  });
+
+  if (isLoading) return <ActivityIndicator color={colors.gold} style={{ marginTop: 40 }} />;
+
+  if (history.length === 0) {
+    return (
+      <View style={styles.emptyState}>
+        <Text style={styles.emptyIcon}>📋</Text>
+        <Text style={styles.emptyText}>No games yet</Text>
+        <Text style={styles.emptySubText}>Your completed game history will appear here.</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View>
+      {history.map((s, i) => {
+        const g = s.games;
+        if (!g) return null;
+        const venue = g.location?.split(',')[0] || 'Unknown venue';
+        const date = g.completed_at || g.kickoff_time;
+        const dateStr = date
+          ? new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+          : '';
+        const scoreA = g.score_a ?? '–';
+        const scoreB = g.score_b ?? '–';
+        const resultColor = s.won ? colors.success : '#e05555';
+        const resultLabel = s.won ? 'WIN' : (g.score_a === g.score_b ? 'DRAW' : 'LOSS');
+        const resultBg = s.won ? '#1a3a1a' : (g.score_a === g.score_b ? '#2a2a1a' : '#3a1a1a');
+
+        return (
+          <View key={i} style={styles.historyCard}>
+            {/* Result badge + venue */}
+            <View style={styles.historyCardHeader}>
+              <View style={[styles.historyResultBadge, { backgroundColor: resultBg, borderColor: resultColor }]}>
+                <Text style={[styles.historyResultText, { color: resultColor }]}>{resultLabel}</Text>
+              </View>
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={styles.historyVenue} numberOfLines={1}>{venue}</Text>
+                <Text style={styles.historyMeta}>{g.format} · {dateStr}</Text>
+              </View>
+            </View>
+
+            {/* Score row */}
+            <View style={styles.historyScoreRow}>
+              <Text style={styles.historyScoreLabel}>🖤 Dark</Text>
+              <Text style={styles.historyScore}>{scoreA} — {scoreB}</Text>
+              <Text style={styles.historyScoreLabel}>White 🤍</Text>
+            </View>
+
+            {/* My stats */}
+            <View style={styles.historyStatsRow}>
+              <View style={styles.historyStatItem}>
+                <Text style={styles.historyStatVal}>{s.goals || 0}</Text>
+                <Text style={styles.historyStatLbl}>⚽ Goals</Text>
+              </View>
+              {s.is_goalkeeper && (
+                <View style={styles.historyStatItem}>
+                  <Text style={styles.historyStatVal}>{s.goals_conceded || 0}</Text>
+                  <Text style={styles.historyStatLbl}>🧤 Conceded</Text>
+                </View>
+              )}
+              {s.yellow_cards > 0 && (
+                <View style={styles.historyStatItem}>
+                  <Text style={styles.historyStatVal}>{s.yellow_cards}</Text>
+                  <Text style={styles.historyStatLbl}>🟡 Yellow</Text>
+                </View>
+              )}
+              {s.red_cards > 0 && (
+                <View style={styles.historyStatItem}>
+                  <Text style={styles.historyStatVal}>{s.red_cards}</Text>
+                  <Text style={styles.historyStatLbl}>🔴 Red</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const SLOTS = ['AM', 'PM', 'EVE'];
@@ -417,11 +522,7 @@ export default function ProfileScreen() {
       {/* History Tab */}
       {activeTab === t('profile.history') && (
         <View style={styles.tabContent}>
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>📋</Text>
-            <Text style={styles.emptyText}>{t('profile.noGames')}</Text>
-            <Text style={styles.emptySubText}>{t('profile.historySubtext')}</Text>
-          </View>
+          <GameHistoryList playerId={player?.id} />
         </View>
       )}
 
@@ -724,4 +825,52 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 15,
   },
+
+  // ── Game History ──────────────────────────────────────────────────────────
+  historyCard: {
+    backgroundColor: colors.darkCard,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.darkBorder,
+    marginBottom: spacing.sm,
+    overflow: 'hidden',
+  },
+  historyCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.sm,
+    paddingBottom: 6,
+  },
+  historyResultBadge: {
+    borderRadius: 6,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    minWidth: 46,
+    alignItems: 'center',
+  },
+  historyResultText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
+  historyVenue: { color: colors.white, fontSize: 13, fontWeight: '600' },
+  historyMeta: { color: colors.gray, fontSize: 11, marginTop: 1 },
+  historyScoreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: colors.darkBorder,
+  },
+  historyScore: { color: colors.gold, fontSize: 18, fontWeight: '900' },
+  historyScoreLabel: { color: colors.gray, fontSize: 11 },
+  historyStatsRow: {
+    flexDirection: 'row',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 8,
+    gap: spacing.md,
+  },
+  historyStatItem: { alignItems: 'center', minWidth: 44 },
+  historyStatVal: { color: colors.white, fontSize: 16, fontWeight: '700' },
+  historyStatLbl: { color: colors.gray, fontSize: 10, marginTop: 1 },
 });
