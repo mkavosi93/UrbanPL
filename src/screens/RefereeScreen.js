@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, Alert, ScrollView, TextInput, Modal, Image,
+  AppState,
 } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
@@ -916,7 +917,9 @@ function MatchModal({ game, visible, onClose, onSaved, initialPresent }) {
   const [timeLeft, setTimeLeft] = useState(FIRST_HALF_SECS);
   const [running, setRunning]   = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const intervalRef = useRef(null);
+  const intervalRef   = useRef(null);
+  const endTimeRef    = useRef(null);  // absolute ms timestamp when current phase ends
+  const appStateRef   = useRef(AppState.currentState);
 
   // Re-init when game changes
   useEffect(() => {
@@ -936,24 +939,51 @@ function MatchModal({ game, visible, onClose, onSaved, initialPresent }) {
     setTeams(t);
   }, [game?.id, visible]);
 
-  // Timer
+  // ── Wall-clock timer ─────────────────────────────────────────────────────────
+  // Instead of decrementing every second (pauses in background), we record the
+  // absolute end timestamp and derive remaining time from Date.now() on each tick.
+  // The interval only drives UI repaints; the actual time comes from the system clock.
   useEffect(() => {
     if (running) {
+      // Set end timestamp only on a fresh start (not on re-render)
+      if (!endTimeRef.current) {
+        endTimeRef.current = Date.now() + timeLeft * 1000;
+      }
       intervalRef.current = setInterval(() => {
-        setTimeLeft(prev => {
-          if (prev <= 1) {
-            clearInterval(intervalRef.current);
-            setRunning(false);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+        const remaining = Math.max(0, Math.round((endTimeRef.current - Date.now()) / 1000));
+        setTimeLeft(remaining);
+        if (remaining <= 0) {
+          clearInterval(intervalRef.current);
+          endTimeRef.current = null;
+          setRunning(false);
+        }
+      }, 500); // 500 ms for snappy UI; actual time is wall-clock accurate
     } else {
       clearInterval(intervalRef.current);
+      endTimeRef.current = null;
     }
     return () => clearInterval(intervalRef.current);
   }, [running]);
+
+  // ── AppState listener — snap timer when app returns to foreground ─────────────
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', nextState => {
+      const prev = appStateRef.current;
+      appStateRef.current = nextState;
+      if ((prev === 'background' || prev === 'inactive') && nextState === 'active') {
+        // App just came back — recalculate immediately without waiting for next tick
+        if (endTimeRef.current) {
+          const remaining = Math.max(0, Math.round((endTimeRef.current - Date.now()) / 1000));
+          setTimeLeft(remaining);
+          if (remaining <= 0) {
+            endTimeRef.current = null;
+            setRunning(false);
+          }
+        }
+      }
+    });
+    return () => sub.remove();
+  }, []);
 
   function togglePresent(pid) {
     setPresent(p => ({ ...p, [pid]: !p[pid] }));
