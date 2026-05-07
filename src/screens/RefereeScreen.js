@@ -84,7 +84,7 @@ async function fetchRefereeHistory(refereeId) {
 async function fetchMyFixtures(refereeId) {
   const { data, error } = await supabase
     .from('game_referees')
-    .select('game_id, checked_in, games(*, game_players(player_id, team, players(id, first_name, last_name, name, role, rating, avatar_url)))')
+    .select('game_id, checked_in, games(*, game_players(player_id, team, players(id, first_name, last_name, name, role, rating, avatar_url, phone, sms_consent)))')
     .eq('referee_id', refereeId)
     .eq('status', 'accepted');
   if (error) return [];
@@ -891,6 +891,23 @@ function formatTime(secs) {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
+// ─── SMS helper ───────────────────────────────────────────────────────────────
+const SMS_URL = 'https://zprtghdcmiavtoaltlld.supabase.co/functions/v1/send-sms';
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpwcnRnaGRjbWlhdnRvYWx0bGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMxMTA5NTMsImV4cCI6MjA1ODY4Njk1M30.yRiHVGfHTOSECsXGBQbsLVIJiZHnOHFHFKonOLsXrCE';
+
+async function sendSMSToPlayers(gamePlayers, type, payload) {
+  const eligible = (gamePlayers || []).filter(gp => gp.players?.phone && gp.players?.sms_consent);
+  await Promise.allSettled(
+    eligible.map(gp =>
+      fetch(SMS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}` },
+        body: JSON.stringify({ to: gp.players.phone, type, payload }),
+      })
+    )
+  );
+}
+
 function MatchModal({ game, visible, onClose, onSaved, initialPresent }) {
   const players = game?.game_players || [];
 
@@ -1012,6 +1029,8 @@ function MatchModal({ game, visible, onClose, onSaved, initialPresent }) {
     setPhase('first_half');
     setTimeLeft(FIRST_HALF_SECS);
     setRunning(true);
+    // Notify all consenting players that the match has started
+    sendSMSToPlayers(players, 'match_started', { title: game?.location?.split(',')[0] || 'Urban PL Game' });
   }
 
   function handleEndHalf() {
@@ -1091,6 +1110,12 @@ function MatchModal({ game, visible, onClose, onSaved, initialPresent }) {
         completed_at: new Date().toISOString(),
         referee_notes: matchNotes.trim() || null,
       }).eq('id', game.id);
+      // Notify all consenting players of the final result
+      sendSMSToPlayers(players, 'match_result', {
+        title: game?.location?.split(',')[0] || 'Urban PL Game',
+        scoreA: String(a),
+        scoreB: String(b),
+      });
       Alert.alert('✅ Match Complete!', 'Stats saved and game closed.', [
         { text: 'Done', onPress: () => { onSaved?.(); onClose(); } },
       ]);

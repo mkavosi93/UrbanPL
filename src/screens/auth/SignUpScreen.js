@@ -57,6 +57,7 @@ export default function SignUpScreen({ navigation }) {
 
   // Step 3
   const [otp, setOtp] = useState('');
+  const [generatedOtp, setGeneratedOtp] = useState('');
 
   // Step 4
   const [skill, setSkill] = useState('');
@@ -141,9 +142,36 @@ export default function SignUpScreen({ navigation }) {
     return true;
   }
 
+  async function sendOtp() {
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    setGeneratedOtp(code);
+    try {
+      await fetch('https://zprtghdcmiavtoaltlld.supabase.co/functions/v1/send-sms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpwcnRnaGRjbWlhdnRvYWx0bGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMxMTA5NTMsImV4cCI6MjA1ODY4Njk1M30.yRiHVGfHTOSECsXGBQbsLVIJiZHnOHFHFKonOLsXrCE',
+        },
+        body: JSON.stringify({
+          to: phone.startsWith('+') ? phone : `+1${phone.replace(/\D/g, '')}`,
+          message: `Your Urban PL verification code is: ${code}. Valid for 10 minutes.`,
+        }),
+      });
+    } catch (err) {
+      console.warn('OTP send failed:', err.message);
+    }
+  }
+
   async function handleNext() {
     if (step === 1 && !validateStep1()) return;
     if (step === 2 && !validateStep2()) return;
+    if (step === 2) { setStep(3); await sendOtp(); return; }
+    if (step === 3) {
+      if (otp.trim() !== generatedOtp) {
+        Alert.alert('Invalid code', 'The code you entered is incorrect. Please try again.');
+        return;
+      }
+    }
     if (step === 4 && !validateStep4()) return;
     if (step < TOTAL_STEPS) { setStep(step + 1); return; }
     await handleSubmit();
@@ -394,7 +422,9 @@ export default function SignUpScreen({ navigation }) {
               keyboardType="number-pad"
               maxLength={6}
             />
-            <Text style={styles.hint}>Didn't receive it? Check your number and try again.</Text>
+            <TouchableOpacity onPress={sendOtp} style={{ marginTop: spacing.md, alignItems: 'center' }}>
+              <Text style={[styles.hint, { color: colors.gold }]}>Didn't receive it? Tap to resend</Text>
+            </TouchableOpacity>
           </View>
         )}
 
