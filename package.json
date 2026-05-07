@@ -6,7 +6,8 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "test": "jest"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
@@ -39,7 +40,12 @@
   },
   "private": true,
   "devDependencies": {
+    "@testing-library/jest-native": "^5.4.3",
+    "@testing-library/react-native": "^13.3.3",
     "@types/react": "~19.1.10",
+    "babel-jest": "^30.3.0",
+    "docx": "^9.6.1",
+    "jest": "^30.3.0",
     "typescript": "~5.9.2"
   }
 }
