@@ -13,9 +13,9 @@
  *   - "custom"          → free-form message field required
  */
 
-const TWILIO_ACCOUNT_SID = Deno.env.get('TWILIO_ACCOUNT_SID')!;
-const TWILIO_AUTH_TOKEN   = Deno.env.get('TWILIO_AUTH_TOKEN')!;
-const TWILIO_PHONE_NUMBER = Deno.env.get('TWILIO_PHONE_NUMBER')!;
+const TWILIO_ACCOUNT_SID      = Deno.env.get('TWILIO_ACCOUNT_SID')!;
+const TWILIO_AUTH_TOKEN       = Deno.env.get('TWILIO_AUTH_TOKEN')!;
+const TWILIO_MESSAGING_SID    = Deno.env.get('TWILIO_MESSAGING_SID')!;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,9 +26,9 @@ async function sendSMS(to: string, body: string): Promise<{ sid: string }> {
   const url = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`;
 
   const params = new URLSearchParams();
-  params.append('To',   to);
-  params.append('From', TWILIO_PHONE_NUMBER);
-  params.append('Body', body);
+  params.append('To',              to);
+  params.append('MessagingServiceSid', TWILIO_MESSAGING_SID);
+  params.append('Body',            body);
 
   const credentials = btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`);
 
