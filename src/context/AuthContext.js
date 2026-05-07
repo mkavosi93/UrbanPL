@@ -28,7 +28,7 @@ export function AuthProvider({ children }) {
       setSession(session);
       if (session) {
         fetchPlayer(session.user.id);
-        registerForNotifications();
+        registerForNotifications(session.user.id);
       } else {
         setPlayer(null);
         setPlayerError(false);
