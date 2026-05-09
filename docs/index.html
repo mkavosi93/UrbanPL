@@ -264,6 +264,159 @@
 
     .step-desc { font-size: 14px; color: var(--gray-light); line-height: 1.7; }
 
+    /* ── SCREENSHOTS ─────────────────────────────────────────────────── */
+    #screenshots { background: var(--dark); overflow: hidden; }
+
+    .screens-scroll {
+      display: flex;
+      gap: 24px;
+      margin-top: 56px;
+      overflow-x: auto;
+      padding-bottom: 24px;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      scroll-snap-type: x mandatory;
+    }
+    .screens-scroll::-webkit-scrollbar { display: none; }
+
+    .phone-wrap {
+      flex-shrink: 0;
+      scroll-snap-align: start;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .phone-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .phone {
+      width: 220px;
+      height: 460px;
+      background: #111;
+      border-radius: 36px;
+      border: 2px solid #333;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.6), inset 0 0 0 1px #222;
+      overflow: hidden;
+      position: relative;
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* Notch */
+    .phone::before {
+      content: '';
+      position: absolute;
+      top: 10px; left: 50%;
+      transform: translateX(-50%);
+      width: 80px; height: 22px;
+      background: #111;
+      border-radius: 12px;
+      z-index: 10;
+    }
+
+    .phone-screen {
+      width: 100%; height: 100%;
+      background: #0d0d0d;
+      overflow: hidden;
+      padding-top: 42px;
+    }
+
+    /* ── Screen: Feed ── */
+    .s-header {
+      padding: 8px 14px 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .s-header-title { font-size: 15px; font-weight: 800; color: #fff; }
+    .s-header-sub { font-size: 9px; color: #888; }
+    .s-filters {
+      display: flex; gap: 6px; padding: 0 14px 8px;
+    }
+    .s-filter {
+      font-size: 9px; font-weight: 600;
+      padding: 3px 8px; border-radius: 20px;
+      border: 1px solid #2a2a2a; color: #888;
+    }
+    .s-filter.active { background: #c9a84c22; border-color: #c9a84c; color: #c9a84c; }
+    .s-game-card {
+      margin: 0 14px 10px;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .s-map { height: 60px; background: linear-gradient(135deg, #1a2a1a 0%, #0d1a0d 100%); position: relative; }
+    .s-map-dot { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      width: 10px; height: 10px; background: #c9a84c; border-radius: 50%;
+      box-shadow: 0 0 8px #c9a84c88; }
+    .s-card-body { padding: 8px 10px; }
+    .s-card-title { font-size: 10px; font-weight: 700; color: #fff; margin-bottom: 3px; }
+    .s-card-meta { font-size: 8px; color: #888; margin-bottom: 6px; }
+    .s-card-row { display: flex; justify-content: space-between; align-items: center; }
+    .s-badge { font-size: 8px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+    .s-badge-free { background: #4caf5022; color: #4caf50; }
+    .s-badge-paid { background: #c9a84c22; color: #c9a84c; }
+    .s-join-btn { font-size: 8px; font-weight: 700; background: #c9a84c; color: #000;
+      padding: 3px 8px; border-radius: 4px; }
+
+    /* ── Screen: Live Match ── */
+    .s-phase { text-align: center; padding: 10px 14px 6px; }
+    .s-phase-label { font-size: 9px; font-weight: 700; color: #c9a84c; text-transform: uppercase; letter-spacing: 1px; }
+    .s-timer { font-size: 32px; font-weight: 900; color: #fff; letter-spacing: -1px; line-height: 1; }
+    .s-score-row { display: flex; justify-content: center; align-items: center; gap: 10px; padding: 8px 14px; }
+    .s-team-score { text-align: center; }
+    .s-team-name { font-size: 8px; color: #888; }
+    .s-score { font-size: 28px; font-weight: 900; color: #fff; }
+    .s-score-divider { font-size: 18px; color: #333; font-weight: 300; }
+    .s-player-list { padding: 0 14px; }
+    .s-player-row { display: flex; justify-content: space-between; align-items: center;
+      padding: 5px 0; border-bottom: 1px solid #1a1a1a; }
+    .s-player-name { font-size: 9px; color: #ccc; }
+    .s-player-actions { display: flex; gap: 4px; }
+    .s-action-btn { font-size: 8px; background: #1a1a1a; border: 1px solid #2a2a2a;
+      color: #888; padding: 2px 5px; border-radius: 3px; }
+
+    /* ── Screen: Rankings ── */
+    .s-tabs { display: flex; border-bottom: 1px solid #2a2a2a; margin: 0 14px 8px; }
+    .s-tab { font-size: 8px; font-weight: 600; color: #888;
+      padding: 5px 8px; border-bottom: 2px solid transparent; }
+    .s-tab.active { color: #c9a84c; border-bottom-color: #c9a84c; }
+    .s-podium { display: flex; justify-content: center; align-items: flex-end;
+      gap: 8px; padding: 8px 14px; }
+    .s-podium-item { text-align: center; }
+    .s-podium-avatar { border-radius: 50%; margin: 0 auto 4px; background: #2a2a2a;
+      border: 2px solid #2a2a2a; }
+    .s-podium-avatar.gold { border-color: #c9a84c; }
+    .s-podium-name { font-size: 7px; color: #ccc; }
+    .s-podium-val { font-size: 9px; font-weight: 800; color: #c9a84c; }
+    .s-rank-row { display: flex; align-items: center; gap: 8px;
+      padding: 5px 14px; border-bottom: 1px solid #1a1a1a; }
+    .s-rank-num { font-size: 9px; color: #555; width: 12px; }
+    .s-rank-avatar { width: 22px; height: 22px; border-radius: 50%; background: #2a2a2a; flex-shrink: 0; }
+    .s-rank-name { font-size: 9px; color: #ccc; flex: 1; }
+    .s-rank-val { font-size: 9px; font-weight: 700; color: #fff; }
+
+    /* ── Screen: Match Report ── */
+    .s-result-header { background: #1a1a1a; padding: 10px 14px; text-align: center; }
+    .s-result-score { font-size: 24px; font-weight: 900; color: #fff; letter-spacing: -1px; }
+    .s-result-label { font-size: 8px; color: #c9a84c; font-weight: 700; margin-top: 2px; }
+    .s-teams-row { display: flex; padding: 8px 14px; gap: 8px; }
+    .s-team-col { flex: 1; }
+    .s-team-header { font-size: 8px; font-weight: 700; color: #c9a84c; margin-bottom: 5px; }
+    .s-team-player { font-size: 8px; color: #aaa; padding: 3px 0;
+      border-bottom: 1px solid #1a1a1a; display: flex; justify-content: space-between; }
+    .s-team-divider { width: 1px; background: #2a2a2a; }
+    .s-scorers { padding: 6px 14px; }
+    .s-scorers-title { font-size: 8px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+    .s-scorer { font-size: 8px; color: #aaa; padding: 2px 0; }
+
     /* ── FEATURES ────────────────────────────────────────────────────── */
     #features { background: var(--dark-card); }
 
@@ -441,6 +594,244 @@
           <p class="step-desc">After every game your goals, cards, and rating update automatically. Climb the city rankings and prove yourself.</p>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- SCREENSHOTS -->
+  <section id="screenshots">
+    <div class="section-inner">
+      <span class="section-tag">The App</span>
+      <h2 class="section-title">Built for the pitch.<br />Designed for your pocket.</h2>
+      <p class="section-sub">Every screen designed around what players and referees actually need on game day.</p>
+    </div>
+
+    <div class="screens-scroll" style="padding: 0 max(24px, calc(50vw - 540px)) 24px;">
+
+      <!-- Screen 1: Feed -->
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="s-header">
+              <div>
+                <div class="s-header-title">Urban PL</div>
+                <div class="s-header-sub">3 games near you</div>
+              </div>
+              <div style="font-size:16px;">🔔</div>
+            </div>
+            <div class="s-filters">
+              <div class="s-filter active">All</div>
+              <div class="s-filter">Free</div>
+              <div class="s-filter">5v5</div>
+              <div class="s-filter">Today</div>
+            </div>
+            <div class="s-game-card">
+              <div class="s-map"><div class="s-map-dot"></div></div>
+              <div class="s-card-body">
+                <div class="s-card-title">Miramar Regional Park</div>
+                <div class="s-card-meta">5-a-side · Fri 7:00 PM · 8/10 players</div>
+                <div class="s-card-row">
+                  <span class="s-badge s-badge-free">FREE</span>
+                  <span class="s-join-btn">Join Game</span>
+                </div>
+              </div>
+            </div>
+            <div class="s-game-card">
+              <div class="s-map" style="background:linear-gradient(135deg,#1a1a2a,#0d0d1a)"><div class="s-map-dot"></div></div>
+              <div class="s-card-body">
+                <div class="s-card-title">Morley Field Soccer Complex</div>
+                <div class="s-card-meta">7-a-side · Sat 6:00 PM · 11/14 players</div>
+                <div class="s-card-row">
+                  <span class="s-badge s-badge-paid">$10</span>
+                  <span class="s-join-btn">Join Game</span>
+                </div>
+              </div>
+            </div>
+            <div class="s-game-card">
+              <div class="s-map" style="background:linear-gradient(135deg,#1a1a1a,#111)"><div class="s-map-dot"></div></div>
+              <div class="s-card-body">
+                <div class="s-card-title">Balboa Park Fields</div>
+                <div class="s-card-meta">11-a-side · Sun 10:00 AM · 18/22 players</div>
+                <div class="s-card-row">
+                  <span class="s-badge s-badge-paid">$15</span>
+                  <span class="s-join-btn">Join Game</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="phone-label">Game Feed</div>
+      </div>
+
+      <!-- Screen 2: Live Match -->
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="s-phase">
+              <div class="s-phase-label">2nd Half — Live</div>
+              <div class="s-timer">18:42</div>
+            </div>
+            <div class="s-score-row">
+              <div class="s-team-score">
+                <div class="s-team-name">🖤 Dark</div>
+                <div class="s-score">2</div>
+              </div>
+              <div class="s-score-divider">—</div>
+              <div class="s-team-score">
+                <div class="s-team-name">🤍 White</div>
+                <div class="s-score">1</div>
+              </div>
+            </div>
+            <div style="padding: 0 14px 6px; font-size:8px; font-weight:700; color:#555; text-transform:uppercase; letter-spacing:1px;">Players</div>
+            <div class="s-player-list">
+              <div class="s-player-row">
+                <div class="s-player-name">⚽ M. Kavosi (2)</div>
+                <div class="s-player-actions">
+                  <div class="s-action-btn">⚽</div>
+                  <div class="s-action-btn">🟡</div>
+                </div>
+              </div>
+              <div class="s-player-row">
+                <div class="s-player-name">J. Rodriguez</div>
+                <div class="s-player-actions">
+                  <div class="s-action-btn">⚽</div>
+                  <div class="s-action-btn">🟡</div>
+                </div>
+              </div>
+              <div class="s-player-row">
+                <div class="s-player-name">A. Smith</div>
+                <div class="s-player-actions">
+                  <div class="s-action-btn">⚽</div>
+                  <div class="s-action-btn">🟡</div>
+                </div>
+              </div>
+              <div class="s-player-row">
+                <div class="s-player-name">🧤 K. Torres (GK)</div>
+                <div class="s-player-actions">
+                  <div class="s-action-btn">⚽</div>
+                  <div class="s-action-btn">🟡</div>
+                </div>
+              </div>
+              <div class="s-player-row">
+                <div class="s-player-name">D. Okonkwo</div>
+                <div class="s-player-actions">
+                  <div class="s-action-btn">⚽</div>
+                  <div class="s-action-btn">🟡</div>
+                </div>
+              </div>
+            </div>
+            <div style="margin:10px 14px 0; background:#c9a84c; border-radius:8px; padding:8px; text-align:center; font-size:9px; font-weight:800; color:#000;">
+              ⏸ Pause Timer
+            </div>
+          </div>
+        </div>
+        <div class="phone-label">Live Match</div>
+      </div>
+
+      <!-- Screen 3: Rankings -->
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="s-header">
+              <div class="s-header-title">Rankings</div>
+            </div>
+            <div class="s-tabs">
+              <div class="s-tab active">Points</div>
+              <div class="s-tab">Goals</div>
+              <div class="s-tab">Wins</div>
+              <div class="s-tab">Played</div>
+            </div>
+            <div class="s-podium">
+              <div class="s-podium-item">
+                <div class="s-podium-avatar" style="width:30px;height:30px;background:#c0c0c022;border-color:#c0c0c0;"></div>
+                <div class="s-podium-name">J. Rodriguez</div>
+                <div class="s-podium-val">87</div>
+                <div style="height:28px;background:#1a1a1a;width:50px;border-radius:4px 4px 0 0;margin-top:4px;"></div>
+              </div>
+              <div class="s-podium-item">
+                <div style="font-size:14px;margin-bottom:2px;">👑</div>
+                <div class="s-podium-avatar gold" style="width:36px;height:36px;"></div>
+                <div class="s-podium-name">M. Kavosi</div>
+                <div class="s-podium-val" style="color:#c9a84c;">112</div>
+                <div style="height:40px;background:#c9a84c22;border:1px solid #c9a84c44;width:50px;border-radius:4px 4px 0 0;margin-top:4px;"></div>
+              </div>
+              <div class="s-podium-item">
+                <div class="s-podium-avatar" style="width:28px;height:28px;background:#cd7f3222;border-color:#cd7f32;"></div>
+                <div class="s-podium-name">A. Smith</div>
+                <div class="s-podium-val">74</div>
+                <div style="height:22px;background:#1a1a1a;width:50px;border-radius:4px 4px 0 0;margin-top:4px;"></div>
+              </div>
+            </div>
+            <div class="s-rank-row">
+              <div class="s-rank-num">4</div>
+              <div class="s-rank-avatar"></div>
+              <div class="s-rank-name">D. Okonkwo</div>
+              <div class="s-rank-val">68 pts</div>
+            </div>
+            <div class="s-rank-row">
+              <div class="s-rank-num">5</div>
+              <div class="s-rank-avatar"></div>
+              <div class="s-rank-name">K. Torres</div>
+              <div class="s-rank-val">61 pts</div>
+            </div>
+            <div class="s-rank-row">
+              <div class="s-rank-num">6</div>
+              <div class="s-rank-avatar"></div>
+              <div class="s-rank-name">L. Mendez</div>
+              <div class="s-rank-val">58 pts</div>
+            </div>
+            <div class="s-rank-row">
+              <div class="s-rank-num">7</div>
+              <div class="s-rank-avatar"></div>
+              <div class="s-rank-name">P. Williams</div>
+              <div class="s-rank-val">52 pts</div>
+            </div>
+          </div>
+        </div>
+        <div class="phone-label">Rankings</div>
+      </div>
+
+      <!-- Screen 4: Match Report -->
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="s-header">
+              <div class="s-header-title">Match Report</div>
+              <div style="font-size:8px;color:#555;">Miramar Park · Fri</div>
+            </div>
+            <div class="s-result-header">
+              <div style="font-size:9px;color:#888;margin-bottom:4px;">🖤 Dark &nbsp;&nbsp; — &nbsp;&nbsp; 🤍 White</div>
+              <div class="s-result-score">2 — 1</div>
+              <div class="s-result-label">🖤 DARK WIN</div>
+            </div>
+            <div class="s-teams-row">
+              <div class="s-team-col">
+                <div class="s-team-header">🖤 Dark</div>
+                <div class="s-team-player"><span>M. Kavosi</span><span>⚽⚽</span></div>
+                <div class="s-team-player"><span>J. Rodriguez</span><span></span></div>
+                <div class="s-team-player"><span>A. Smith</span><span></span></div>
+                <div class="s-team-player"><span>D. Okonkwo</span><span>🟡</span></div>
+                <div class="s-team-player"><span>K. Torres 🧤</span><span></span></div>
+              </div>
+              <div class="s-team-divider"></div>
+              <div class="s-team-col" style="padding-left:8px;">
+                <div class="s-team-header">🤍 White</div>
+                <div class="s-team-player"><span>L. Mendez</span><span>⚽</span></div>
+                <div class="s-team-player"><span>P. Williams</span><span></span></div>
+                <div class="s-team-player"><span>C. Johnson</span><span></span></div>
+                <div class="s-team-player"><span>B. Garcia</span><span>🟡</span></div>
+                <div class="s-team-player"><span>T. Brown 🧤</span><span></span></div>
+              </div>
+            </div>
+            <div class="s-scorers">
+              <div class="s-scorers-title">⚽ Goal Scorers</div>
+              <div class="s-scorer">🖤 M. Kavosi × 2 — 23', 41'</div>
+              <div class="s-scorer">🤍 L. Mendez × 1 — 35'</div>
+            </div>
+          </div>
+        </div>
+        <div class="phone-label">Match Report</div>
+      </div>
+
     </div>
   </section>
 
