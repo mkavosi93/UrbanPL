@@ -385,7 +385,7 @@
     </p>
     <div class="hero-buttons">
       <a href="#download" class="btn-primary">
-        🍎 Download on iOS
+        🍎 Get Early Access
       </a>
       <a href="#how-it-works" class="btn-secondary">
         See How It Works
@@ -469,13 +469,13 @@
         </div>
         <div class="feature-item">
           <span class="feature-icon">💬</span>
-          <h4 class="feature-title">Game Chat</h4>
-          <p class="feature-desc">Every game has its own live chat. Coordinate with teammates, hype each other up, trash talk — respectfully.</p>
+          <h4 class="feature-title">SMS Notifications</h4>
+          <p class="feature-desc">Get texts for team assignments, game reminders, and match results. Never miss a kickoff or wonder what team you're on.</p>
         </div>
         <div class="feature-item">
           <span class="feature-icon">📈</span>
           <h4 class="feature-title">City Rankings</h4>
-          <p class="feature-desc">A live leaderboard ranks every player by performance. Goals, assists, cards — your reputation follows you.</p>
+          <p class="feature-desc">A live leaderboard ranks every player by points, goals, wins, and games played. Your reputation follows you everywhere.</p>
         </div>
         <div class="feature-item">
           <span class="feature-icon">🔔</span>
@@ -560,18 +560,58 @@
   <!-- DOWNLOAD -->
   <section id="download" style="text-align:center; background:var(--dark-card); border-top:1px solid var(--dark-border);">
     <div class="section-inner">
-      <span class="section-tag">Download</span>
-      <h2 class="section-title">Ready to play?</h2>
+      <span class="section-tag">Coming Soon</span>
+      <h2 class="section-title">Launching on the<br /><span style="color:var(--gold)">App Store soon.</span></h2>
       <p class="section-sub" style="margin: 0 auto 40px;">
-        Download Urban PL and find your first game today. Free to join, easy to play, impossible to stop.
+        Urban PL is finishing up and heading to the App Store. Drop your email and we'll let you know the moment it's live.
       </p>
-      <div class="hero-buttons">
-        <a href="#" class="btn-primary">🍎 Download on the App Store</a>
-        <a href="#" class="btn-secondary">🤖 Android — Coming Soon</a>
-      </div>
-      <p class="hero-note" style="margin-top:16px;">Free · No subscription required to play</p>
+
+      <form id="notify-form" style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap; max-width:480px; margin:0 auto 16px;">
+        <input
+          type="email"
+          id="notify-email"
+          placeholder="your@email.com"
+          required
+          style="
+            flex:1; min-width:220px;
+            background:var(--dark); border:1px solid var(--dark-border);
+            color:var(--white); border-radius:var(--radius);
+            padding:14px 18px; font-size:15px; font-family:inherit;
+            outline:none; transition:border-color 0.2s;
+          "
+          onfocus="this.style.borderColor='var(--gold)'"
+          onblur="this.style.borderColor='var(--dark-border)'"
+        />
+        <button type="submit" class="btn-primary" style="border:none; cursor:pointer; white-space:nowrap;">
+          Notify Me
+        </button>
+      </form>
+      <p id="notify-success" style="display:none; color:var(--gold); font-size:14px; margin-top:8px;">
+        ✓ You're on the list! We'll email you when Urban PL goes live.
+      </p>
+      <p class="hero-note" style="margin-top:12px;">Free to join · iOS first · Android coming later</p>
     </div>
   </section>
+
+  <script>
+    document.getElementById('notify-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const email = document.getElementById('notify-email').value;
+      // Store in Supabase via a simple fetch
+      fetch('https://zprtghdcmiavtoaltlld.supabase.co/rest/v1/waitlist', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpwcnRnaGRjbWlhdnRvYWx0bGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMxMTA5NTMsImV4cCI6MjA1ODY4Njk1M30.yRiHVGfHTOSECsXGBQbsLVIJiZHnOHFHFKonOLsXrCE',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpwcnRnaGRjbWlhdnRvYWx0bGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMxMTA5NTMsImV4cCI6MjA1ODY4Njk1M30.yRiHVGfHTOSECsXGBQbsLVIJiZHnOHFHFKonOLsXrCE',
+          'Prefer': 'return=minimal',
+        },
+        body: JSON.stringify({ email }),
+      }).catch(() => {}); // silently fail if table doesn't exist yet
+      document.getElementById('notify-form').style.display = 'none';
+      document.getElementById('notify-success').style.display = 'block';
+    });
+  </script>
 
   <!-- FOOTER -->
   <footer>
