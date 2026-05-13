@@ -1,0 +1,39 @@
+=====================================
+  URBAN PL — APP STORE NOTES
+=====================================
+
+PRIVACY POLICY
+--------------
+Netlify URL:  https://resilient-fenglisu-9c6e4e.netlify.app/privacy-policy.html
+Local file:   docs/privacy-policy.html
+Last updated: April 2025
+Contact:      urbanpl.app@gmail.com
+
+WHERE TO USE THE PRIVACY POLICY URL
+-------------------------------------
+- App Store Connect  → App Information → "Privacy Policy URL"
+- Google Play Console → Store listing → "Privacy policy"
+
+APP IDENTIFIERS
+---------------
+Bundle ID:   com.urbanpl.app
+EAS Project: 6a6f69d9-82bf-4834-9704-0b3a087502fe
+GitHub Repo: https://github.com/mkavosi93/UrbanPL
+
+APP STORE SUBMISSION CHECKLIST
+--------------------------------
+[x] Privacy Policy URL
+[x] App Bundle ID set
+[x] EAS configured
+[ ] Apple Developer Program enrolled ($99/yr) — developer.apple.com
+[ ] iOS production build (eas build --platform ios --profile production)
+[ ] App Store screenshots (iPhone)
+[ ] App description and keywords
+[ ] App Store Connect listing filled out
+
+USEFUL COMMANDS
+---------------
+Start app locally:   npx expo start --lan
+Push to GitHub:      git add . && git commit -m "message" && git push origin master
+iOS build (EAS):     eas build --platform ios --profile production
+=====================================
