@@ -456,6 +456,12 @@ export default function ProfileScreen() {
             >
               <Text style={[styles.langBtnText, language === 'es' && styles.langBtnTextActive]}>ES</Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.langBtn, language === 'pt' && styles.langBtnActive]}
+              onPress={() => setLanguage('pt')}
+            >
+              <Text style={[styles.langBtnText, language === 'pt' && styles.langBtnTextActive]}>PT</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </View>

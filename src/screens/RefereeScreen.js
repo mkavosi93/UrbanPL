@@ -819,6 +819,12 @@ function ProfileTab({ player }) {
           >
             <Text style={[styles.langBtnText, language === 'es' && styles.langBtnTextActive]}>🇪🇸 Español</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.langBtn, language === 'pt' && styles.langBtnActive]}
+            onPress={() => setLanguage('pt')}
+          >
+            <Text style={[styles.langBtnText, language === 'pt' && styles.langBtnTextActive]}>🇧🇷 Português</Text>
+          </TouchableOpacity>
         </View>
       </View>
 

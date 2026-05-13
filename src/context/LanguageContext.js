@@ -12,7 +12,7 @@ export function LanguageProvider({ children }) {
   useEffect(() => {
     // Load saved language on startup
     SecureStore.getItemAsync(LANG_KEY).then(saved => {
-      if (saved === 'en' || saved === 'es') setLanguageState(saved);
+      if (saved === 'en' || saved === 'es' || saved === 'pt') setLanguageState(saved);
     });
   }, []);
 

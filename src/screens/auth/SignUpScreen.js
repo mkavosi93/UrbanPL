@@ -378,7 +378,7 @@ export default function SignUpScreen({ navigation }) {
             {/* Legal / TCPA */}
             <View style={styles.legalBox}>
               <Text style={styles.legalText}>
-                By providing your phone number, you agree that Urban PL may send you text messages using an automatic telephone dialing system. Message and data rates may apply. Message frequency varies.
+                By providing your phone number, you agree that Urban PL may send you SMS notifications including game confirmations, team assignments, lineup notifications, and match reminders. Message frequency varies. Msg & data rates may apply. Reply STOP to opt out at any time. Reply HELP for assistance. Privacy Policy: theurbanpl.com/privacy-policy.html
               </Text>
             </View>
 
@@ -389,7 +389,7 @@ export default function SignUpScreen({ navigation }) {
               </View>
               <Text style={styles.checkLabel}>
                 <Text style={styles.checkRequired}>* </Text>
-                I agree to receive game confirmations and reminders via SMS from Urban PL.
+                I agree to receive SMS notifications from Urban PL, including game confirmations, team assignments, lineup notifications, and match reminders. Message frequency varies. Msg & data rates may apply. Reply STOP to opt out. Reply HELP for help.
               </Text>
             </TouchableOpacity>
 

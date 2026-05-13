@@ -472,6 +472,84 @@
       .referee-section { grid-template-columns: 1fr; gap: 32px; }
     }
 
+    /* ── LAUNCH CITIES ──────────────────────────────────────────────── */
+    #cities { background: var(--dark); border-top: 1px solid var(--dark-border); }
+
+    .cities-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 56px;
+    }
+
+    @media (max-width: 900px) {
+      .cities-grid { grid-template-columns: 1fr 1fr !important; }
+    }
+    @media (max-width: 560px) {
+      .cities-grid { grid-template-columns: 1fr !important; }
+    }
+
+    .city-card {
+      background: var(--dark-card);
+      border: 1px solid var(--dark-border);
+      border-radius: 20px;
+      padding: 36px 32px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s, transform 0.2s;
+    }
+    .city-card:hover {
+      border-color: var(--gold);
+      transform: translateY(-4px);
+    }
+    .city-card::before {
+      content: '';
+      position: absolute;
+      top: -60px; right: -60px;
+      width: 180px; height: 180px;
+      background: radial-gradient(circle, rgba(201,168,76,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .city-order {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(201,168,76,0.12);
+      border: 1px solid rgba(201,168,76,0.3);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 11px; font-weight: 700;
+      color: var(--gold);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .city-name {
+      font-size: 28px; font-weight: 900;
+      color: var(--white);
+      line-height: 1.1;
+      margin-bottom: 8px;
+    }
+    .city-state {
+      font-size: 13px; font-weight: 600;
+      color: var(--gray);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 20px;
+    }
+    .city-detail {
+      font-size: 14px; color: var(--gray-light); line-height: 1.6;
+      border-top: 1px solid var(--dark-border);
+      padding-top: 18px;
+    }
+    .city-detail strong { color: var(--gold); }
+
+    .cities-note {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 13px;
+      color: var(--gray);
+    }
+    .cities-note strong { color: var(--gold-light); }
+
     /* ── FOOTER ──────────────────────────────────────────────────────── */
     footer {
       background: var(--dark-card);
@@ -509,6 +587,20 @@
       padding-top: 24px;
       border-top: 1px solid var(--dark-border);
     }
+
+    /* ── LANGUAGE SWITCHER ───────────────────────────────────────────── */
+    .lang-switcher {
+      display: flex; align-items: center; gap: 4px;
+      margin-left: 16px;
+    }
+    .lang-btn {
+      background: none; border: 1px solid var(--dark-border);
+      border-radius: 6px; padding: 4px 8px;
+      font-size: 12px; font-weight: 600; color: var(--gray);
+      cursor: pointer; transition: all 0.2s; font-family: inherit;
+    }
+    .lang-btn:hover { border-color: var(--gold); color: var(--gold); }
+    .lang-btn.active { border-color: var(--gold); color: var(--gold); background: rgba(201,168,76,0.1); }
   </style>
 </head>
 <body>
@@ -520,78 +612,86 @@
       <span class="nav-logo-text">Urban PL</span>
     </div>
     <ul class="nav-links">
-      <li><a href="#how-it-works">How It Works</a></li>
-      <li><a href="#features">Features</a></li>
-      <li><a href="#referees">Referees</a></li>
+      <li><a href="#how-it-works" data-i18n="nav_how">How It Works</a></li>
+      <li><a href="#features" data-i18n="nav_features">Features</a></li>
+      <li><a href="#cities" data-i18n="nav_cities">Launch Cities</a></li>
+      <li><a href="#referees" data-i18n="nav_referees">Referees</a></li>
     </ul>
-    <a href="#download" class="nav-cta">Download App</a>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="lang-switcher">
+        <button class="lang-btn active" onclick="setLang('en')">EN</button>
+        <button class="lang-btn" onclick="setLang('es')">ES</button>
+        <button class="lang-btn" onclick="setLang('pt')">PT</button>
+      </div>
+      <a href="#download" class="nav-cta" data-i18n="nav_cta">Download App</a>
+    </div>
   </nav>
 
   <!-- HERO -->
   <section class="hero" id="home">
     <div class="hero-logo"><img src="logo.png" alt="Urban PL Logo" /></div>
-    <div class="hero-badge">⚽ Pickup Soccer — Organized</div>
-    <h1>Your City.<br /><span>Your League.</span></h1>
-    <p class="hero-sub">
+    <div class="hero-badge" data-i18n="hero_badge">⚽ Pickup Soccer — Organized</div>
+    <h1><span data-i18n="hero_h1a">Your City.</span><br /><span data-i18n="hero_h1b">Your League.</span></h1>
+    <p class="hero-sub" data-i18n="hero_sub">
       Urban PL turns pickup soccer into a real league experience —
       refereed games, live stats, team balancing, and rankings. All in your pocket.
     </p>
     <div class="hero-buttons">
-      <a href="#download" class="btn-primary">
+      <a href="#download" class="btn-primary" data-i18n="hero_btn1">
         🍎 Get Early Access
       </a>
-      <a href="#how-it-works" class="btn-secondary">
+      <a href="#how-it-works" class="btn-secondary" data-i18n="hero_btn2">
         See How It Works
       </a>
     </div>
-    <p class="hero-note">Free to join · iOS · Coming soon to Android</p>
+    <p class="hero-note" data-i18n="hero_note">Free to join · iOS · Launching South Florida · Summer 2026</p>
   </section>
 
   <!-- STATS BAR -->
   <div class="stats-bar">
     <div class="stat-item">
       <span class="stat-value">5v5</span>
-      <span class="stat-label">to 11v11 formats</span>
+      <span class="stat-label" data-i18n="stat1">to 11v11 formats</span>
     </div>
     <div class="stat-item">
       <span class="stat-value">Live</span>
-      <span class="stat-label">match management</span>
+      <span class="stat-label" data-i18n="stat2">match management</span>
     </div>
     <div class="stat-item">
       <span class="stat-value">Real</span>
-      <span class="stat-label">verified referees</span>
+      <span class="stat-label" data-i18n="stat3">verified referees</span>
     </div>
     <div class="stat-item">
       <span class="stat-value">Free</span>
-      <span class="stat-label">to get started</span>
+      <span class="stat-label" data-i18n="stat4">to get started</span>
     </div>
   </div>
 
   <!-- HOW IT WORKS -->
   <section id="how-it-works">
     <div class="section-inner">
-      <span class="section-tag">How It Works</span>
-      <h2 class="section-title">From sign-up to kick-off<br />in minutes</h2>
-      <p class="section-sub">No group chats. No confusion. Urban PL handles everything so you just show up and play.</p>
+      <span class="section-tag" data-i18n="hiw_tag">How It Works</span>
+      <h2 class="section-title" data-i18n="hiw_title">From sign-up to kick-off<br />in minutes</h2>
+      <p class="section-sub" data-i18n="hiw_sub">No group chats. No confusion. Urban PL handles everything so you just show up and play.</p>
 
       <div class="steps">
         <div class="step-card">
           <div class="step-num">01</div>
           <span class="step-icon">📲</span>
-          <h3 class="step-title">Browse & Join a Game</h3>
-          <p class="step-desc">Open the app and see all upcoming games near you. Filter by format, date, or free entry. Tap to join — that's it.</p>
+          <h3 class="step-title" data-i18n="step1_title">Browse & Join a Game</h3>
+          <p class="step-desc" data-i18n="step1_desc">Open the app and see all upcoming games near you. Filter by format, date, or free entry. Tap to join — that's it.</p>
         </div>
         <div class="step-card">
           <div class="step-num">02</div>
           <span class="step-icon"><span class="yellow-card"></span></span>
-          <h3 class="step-title">Referee Runs the Match</h3>
-          <p class="step-desc">A verified referee manages attendance, runs the clock, and logs goals and cards in real time from the sideline.</p>
+          <h3 class="step-title" data-i18n="step2_title">Referee Runs the Match</h3>
+          <p class="step-desc" data-i18n="step2_desc">A verified referee manages attendance, runs the clock, and logs goals and cards in real time from the sideline.</p>
         </div>
         <div class="step-card">
           <div class="step-num">03</div>
           <span class="step-icon">📊</span>
-          <h3 class="step-title">Track Your Stats</h3>
-          <p class="step-desc">After every game your goals, cards, and rating update automatically. Climb the city rankings and prove yourself.</p>
+          <h3 class="step-title" data-i18n="step3_title">Track Your Stats</h3>
+          <p class="step-desc" data-i18n="step3_desc">After every game your goals, cards, and rating update automatically. Climb the city rankings and prove yourself.</p>
         </div>
       </div>
     </div>
@@ -600,9 +700,9 @@
   <!-- SCREENSHOTS -->
   <section id="screenshots">
     <div class="section-inner">
-      <span class="section-tag">The App</span>
-      <h2 class="section-title">Built for the pitch.<br />Designed for your pocket.</h2>
-      <p class="section-sub">Every screen designed around what players and referees actually need on game day.</p>
+      <span class="section-tag" data-i18n="app_tag">The App</span>
+      <h2 class="section-title" data-i18n="app_title">Built for the pitch.<br />Designed for your pocket.</h2>
+      <p class="section-sub" data-i18n="app_sub">Every screen designed around what players and referees actually need on game day.</p>
     </div>
 
     <div class="screens-scroll" style="padding: 0 max(24px, calc(50vw - 540px)) 24px;">
@@ -659,7 +759,7 @@
             </div>
           </div>
         </div>
-        <div class="phone-label">Game Feed</div>
+        <div class="phone-label" data-i18n="label_feed">Game Feed</div>
       </div>
 
       <!-- Screen 2: Live Match -->
@@ -684,35 +784,35 @@
             <div style="padding: 0 14px 6px; font-size:8px; font-weight:700; color:#555; text-transform:uppercase; letter-spacing:1px;">Players</div>
             <div class="s-player-list">
               <div class="s-player-row">
-                <div class="s-player-name">⚽ M. Kavosi (2)</div>
+                <div class="s-player-name">⚽ C. Walker (2)</div>
                 <div class="s-player-actions">
                   <div class="s-action-btn">⚽</div>
                   <div class="s-action-btn">🟡</div>
                 </div>
               </div>
               <div class="s-player-row">
-                <div class="s-player-name">J. Rodriguez</div>
+                <div class="s-player-name">T. Osei</div>
                 <div class="s-player-actions">
                   <div class="s-action-btn">⚽</div>
                   <div class="s-action-btn">🟡</div>
                 </div>
               </div>
               <div class="s-player-row">
-                <div class="s-player-name">A. Smith</div>
+                <div class="s-player-name">R. Patel</div>
                 <div class="s-player-actions">
                   <div class="s-action-btn">⚽</div>
                   <div class="s-action-btn">🟡</div>
                 </div>
               </div>
               <div class="s-player-row">
-                <div class="s-player-name">🧤 K. Torres (GK)</div>
+                <div class="s-player-name">🧤 N. Brooks (GK)</div>
                 <div class="s-player-actions">
                   <div class="s-action-btn">⚽</div>
                   <div class="s-action-btn">🟡</div>
                 </div>
               </div>
               <div class="s-player-row">
-                <div class="s-player-name">D. Okonkwo</div>
+                <div class="s-player-name">S. Fleming</div>
                 <div class="s-player-actions">
                   <div class="s-action-btn">⚽</div>
                   <div class="s-action-btn">🟡</div>
@@ -724,7 +824,7 @@
             </div>
           </div>
         </div>
-        <div class="phone-label">Live Match</div>
+        <div class="phone-label" data-i18n="label_live">Live Match</div>
       </div>
 
       <!-- Screen 3: Rankings -->
@@ -743,20 +843,20 @@
             <div class="s-podium">
               <div class="s-podium-item">
                 <div class="s-podium-avatar" style="width:30px;height:30px;background:#c0c0c022;border-color:#c0c0c0;"></div>
-                <div class="s-podium-name">J. Rodriguez</div>
+                <div class="s-podium-name">T. Osei</div>
                 <div class="s-podium-val">87</div>
                 <div style="height:28px;background:#1a1a1a;width:50px;border-radius:4px 4px 0 0;margin-top:4px;"></div>
               </div>
               <div class="s-podium-item">
                 <div style="font-size:14px;margin-bottom:2px;">👑</div>
                 <div class="s-podium-avatar gold" style="width:36px;height:36px;"></div>
-                <div class="s-podium-name">M. Kavosi</div>
+                <div class="s-podium-name">C. Walker</div>
                 <div class="s-podium-val" style="color:#c9a84c;">112</div>
                 <div style="height:40px;background:#c9a84c22;border:1px solid #c9a84c44;width:50px;border-radius:4px 4px 0 0;margin-top:4px;"></div>
               </div>
               <div class="s-podium-item">
                 <div class="s-podium-avatar" style="width:28px;height:28px;background:#cd7f3222;border-color:#cd7f32;"></div>
-                <div class="s-podium-name">A. Smith</div>
+                <div class="s-podium-name">R. Patel</div>
                 <div class="s-podium-val">74</div>
                 <div style="height:22px;background:#1a1a1a;width:50px;border-radius:4px 4px 0 0;margin-top:4px;"></div>
               </div>
@@ -764,30 +864,30 @@
             <div class="s-rank-row">
               <div class="s-rank-num">4</div>
               <div class="s-rank-avatar"></div>
-              <div class="s-rank-name">D. Okonkwo</div>
+              <div class="s-rank-name">S. Fleming</div>
               <div class="s-rank-val">68 pts</div>
             </div>
             <div class="s-rank-row">
               <div class="s-rank-num">5</div>
               <div class="s-rank-avatar"></div>
-              <div class="s-rank-name">K. Torres</div>
+              <div class="s-rank-name">N. Brooks</div>
               <div class="s-rank-val">61 pts</div>
             </div>
             <div class="s-rank-row">
               <div class="s-rank-num">6</div>
               <div class="s-rank-avatar"></div>
-              <div class="s-rank-name">L. Mendez</div>
+              <div class="s-rank-name">A. Diallo</div>
               <div class="s-rank-val">58 pts</div>
             </div>
             <div class="s-rank-row">
               <div class="s-rank-num">7</div>
               <div class="s-rank-avatar"></div>
-              <div class="s-rank-name">P. Williams</div>
+              <div class="s-rank-name">J. Costa</div>
               <div class="s-rank-val">52 pts</div>
             </div>
           </div>
         </div>
-        <div class="phone-label">Rankings</div>
+        <div class="phone-label" data-i18n="label_rankings">Rankings</div>
       </div>
 
       <!-- Screen 4: Match Report -->
@@ -806,30 +906,30 @@
             <div class="s-teams-row">
               <div class="s-team-col">
                 <div class="s-team-header">🖤 Dark</div>
-                <div class="s-team-player"><span>M. Kavosi</span><span>⚽⚽</span></div>
-                <div class="s-team-player"><span>J. Rodriguez</span><span></span></div>
-                <div class="s-team-player"><span>A. Smith</span><span></span></div>
-                <div class="s-team-player"><span>D. Okonkwo</span><span>🟡</span></div>
-                <div class="s-team-player"><span>K. Torres 🧤</span><span></span></div>
+                <div class="s-team-player"><span>C. Walker</span><span>⚽⚽</span></div>
+                <div class="s-team-player"><span>T. Osei</span><span></span></div>
+                <div class="s-team-player"><span>R. Patel</span><span></span></div>
+                <div class="s-team-player"><span>S. Fleming</span><span>🟡</span></div>
+                <div class="s-team-player"><span>N. Brooks 🧤</span><span></span></div>
               </div>
               <div class="s-team-divider"></div>
               <div class="s-team-col" style="padding-left:8px;">
                 <div class="s-team-header">🤍 White</div>
-                <div class="s-team-player"><span>L. Mendez</span><span>⚽</span></div>
-                <div class="s-team-player"><span>P. Williams</span><span></span></div>
-                <div class="s-team-player"><span>C. Johnson</span><span></span></div>
-                <div class="s-team-player"><span>B. Garcia</span><span>🟡</span></div>
-                <div class="s-team-player"><span>T. Brown 🧤</span><span></span></div>
+                <div class="s-team-player"><span>A. Diallo</span><span>⚽</span></div>
+                <div class="s-team-player"><span>J. Costa</span><span></span></div>
+                <div class="s-team-player"><span>M. Laurent</span><span></span></div>
+                <div class="s-team-player"><span>D. Nkosi</span><span>🟡</span></div>
+                <div class="s-team-player"><span>K. Reyes 🧤</span><span></span></div>
               </div>
             </div>
             <div class="s-scorers">
               <div class="s-scorers-title">⚽ Goal Scorers</div>
-              <div class="s-scorer">🖤 M. Kavosi × 2 — 23', 41'</div>
-              <div class="s-scorer">🤍 L. Mendez × 1 — 35'</div>
+              <div class="s-scorer">🖤 C. Walker × 2 — 23', 41'</div>
+              <div class="s-scorer">🤍 A. Diallo × 1 — 35'</div>
             </div>
           </div>
         </div>
-        <div class="phone-label">Match Report</div>
+        <div class="phone-label" data-i18n="label_report">Match Report</div>
       </div>
 
     </div>
@@ -838,55 +938,55 @@
   <!-- FEATURES -->
   <section id="features">
     <div class="section-inner">
-      <span class="section-tag">Features</span>
-      <h2 class="section-title">Everything a league needs.<br />Nothing it doesn't.</h2>
-      <p class="section-sub">Built for players who are serious about their game, without the serious overhead.</p>
+      <span class="section-tag" data-i18n="feat_tag">Features</span>
+      <h2 class="section-title" data-i18n="feat_title">Everything a league needs.<br />Nothing it doesn't.</h2>
+      <p class="section-sub" data-i18n="feat_sub">Built for players who are serious about their game, without the serious overhead.</p>
 
       <div class="features-grid">
         <div class="feature-item">
           <span class="feature-icon">⚖️</span>
-          <h4 class="feature-title">Smart Team Balancing</h4>
-          <p class="feature-desc">Teams are automatically balanced by player rating 2 hours before kickoff. Fair games, every time.</p>
+          <h4 class="feature-title" data-i18n="f1_title">Smart Team Balancing</h4>
+          <p class="feature-desc" data-i18n="f1_desc">Teams are automatically balanced by player rating 2 hours before kickoff. Fair games, every time.</p>
         </div>
         <div class="feature-item">
           <span class="feature-icon">🏆</span>
-          <h4 class="feature-title">Cups & Tournaments</h4>
-          <p class="feature-desc">Enter team tournaments, compete for the cup, and take bragging rights back to your city.</p>
+          <h4 class="feature-title" data-i18n="f2_title">Cups & Tournaments</h4>
+          <p class="feature-desc" data-i18n="f2_desc">Enter team tournaments, compete for the cup, and take bragging rights back to your city.</p>
         </div>
         <div class="feature-item">
           <span class="feature-icon">📍</span>
-          <h4 class="feature-title">Real Maps & Directions</h4>
-          <p class="feature-desc">Every game shows the exact location on a map. One tap gets you directions in Apple or Google Maps.</p>
+          <h4 class="feature-title" data-i18n="f3_title">Real Maps & Directions</h4>
+          <p class="feature-desc" data-i18n="f3_desc">Every game shows the exact location on a map. One tap gets you directions in Apple or Google Maps.</p>
         </div>
         <div class="feature-item">
           <span class="feature-icon">💬</span>
-          <h4 class="feature-title">SMS Notifications</h4>
-          <p class="feature-desc">Get texts for team assignments, game reminders, and match results. Never miss a kickoff or wonder what team you're on.</p>
+          <h4 class="feature-title" data-i18n="f4_title">SMS Notifications</h4>
+          <p class="feature-desc" data-i18n="f4_desc">Get texts for team assignments, game reminders, and match results. Never miss a kickoff or wonder what team you're on.</p>
         </div>
         <div class="feature-item">
           <span class="feature-icon">📈</span>
-          <h4 class="feature-title">City Rankings</h4>
-          <p class="feature-desc">A live leaderboard ranks every player by points, goals, wins, and games played. Your reputation follows you everywhere.</p>
+          <h4 class="feature-title" data-i18n="f5_title">City Rankings</h4>
+          <p class="feature-desc" data-i18n="f5_desc">A live leaderboard ranks every player by points, goals, wins, and games played. Your reputation follows you everywhere.</p>
         </div>
         <div class="feature-item">
           <span class="feature-icon">🔔</span>
-          <h4 class="feature-title">Game Reminders</h4>
-          <p class="feature-desc">Push notifications remind you before kickoff so you never miss a game you signed up for.</p>
+          <h4 class="feature-title" data-i18n="f6_title">Game Reminders</h4>
+          <p class="feature-desc" data-i18n="f6_desc">Push notifications remind you before kickoff so you never miss a game you signed up for.</p>
         </div>
         <div class="feature-item">
           <span class="feature-icon">💳</span>
-          <h4 class="feature-title">Secure Payments</h4>
-          <p class="feature-desc">Pay entry fees securely through Stripe. Free games join instantly. Paid games are one tap.</p>
+          <h4 class="feature-title" data-i18n="f7_title">Secure Payments</h4>
+          <p class="feature-desc" data-i18n="f7_desc">Pay entry fees securely through Stripe. Free games join instantly. Paid games are one tap.</p>
         </div>
         <div class="feature-item">
           <span class="feature-icon">🌎</span>
-          <h4 class="feature-title">English & Spanish</h4>
-          <p class="feature-desc">The app speaks your language. Switch between English and Spanish in one tap from your profile.</p>
+          <h4 class="feature-title" data-i18n="f8_title">3 Languages</h4>
+          <p class="feature-desc" data-i18n="f8_desc">The app speaks your language. Switch between English, Spanish, and Portuguese in one tap.</p>
         </div>
         <div class="feature-item">
           <span class="feature-icon">🎬</span>
-          <h4 class="feature-title">Highlights — Coming Soon</h4>
-          <p class="feature-desc">AI-powered personal highlight clips from every game. Your best moments, automatically cut and ready to share.</p>
+          <h4 class="feature-title" data-i18n="f9_title">Highlights — Coming Soon</h4>
+          <p class="feature-desc" data-i18n="f9_desc">AI-powered personal highlight clips from every game. Your best moments, automatically cut and ready to share.</p>
         </div>
       </div>
     </div>
@@ -895,9 +995,9 @@
   <!-- REFEREES -->
   <section id="referees">
     <div class="section-inner">
-      <span class="section-tag">For Referees</span>
-      <h2 class="section-title">Run the game.<br />Get paid.</h2>
-      <p class="section-sub">Urban PL has a dedicated referee platform. Manage fixtures, run live matches, and earn per game.</p>
+      <span class="section-tag" data-i18n="ref_tag">For Referees</span>
+      <h2 class="section-title" data-i18n="ref_title">Run the game.<br />Get paid.</h2>
+      <p class="section-sub" data-i18n="ref_sub">Urban PL has a dedicated referee platform. Manage fixtures, run live matches, and earn per game.</p>
 
       <div class="referee-section">
         <div>
@@ -905,29 +1005,29 @@
             <li>
               <span><span class="yellow-card" style="width:18px;height:24px;border-radius:3px;"></span></span>
               <div>
-                <strong>Dedicated Referee App</strong><br />
-                A full match management panel — attendance, live timer, goals, cards — all from your phone.
+                <strong data-i18n="ref_p1_title">Dedicated Referee App</strong><br />
+                <span data-i18n="ref_p1_desc">A full match management panel — attendance, live timer, goals, cards — all from your phone.</span>
               </div>
             </li>
             <li>
               <span>💰</span>
               <div>
-                <strong>Earn Per Game</strong><br />
-                Get paid for every match you officiate. Bonus earned after 5 completed games.
+                <strong data-i18n="ref_p2_title">Earn Per Game</strong><br />
+                <span data-i18n="ref_p2_desc">Get paid for every match you officiate. Bonus earned after 5 completed games.</span>
               </div>
             </li>
             <li>
               <span>📅</span>
               <div>
-                <strong>Set Your Availability</strong><br />
-                Mark when you're free and the admin assigns you to games that fit your schedule.
+                <strong data-i18n="ref_p3_title">Set Your Availability</strong><br />
+                <span data-i18n="ref_p3_desc">Mark when you're free and the admin assigns you to games that fit your schedule.</span>
               </div>
             </li>
             <li>
               <span>✅</span>
               <div>
-                <strong>Verified Identity</strong><br />
-                All referees go through ID verification. Players know they're getting a real official.
+                <strong data-i18n="ref_p4_title">Verified Identity</strong><br />
+                <span data-i18n="ref_p4_desc">All referees go through ID verification. Players know they're getting a real official.</span>
               </div>
             </li>
           </ul>
@@ -936,11 +1036,11 @@
           <div style="display:flex; justify-content:center; margin-bottom:20px;">
             <span class="yellow-card" style="width:40px; height:52px; border-radius:6px; box-shadow:4px 4px 12px rgba(0,0,0,0.5);"></span>
           </div>
-          <h3 style="font-size:22px; font-weight:800; text-align:center; margin-bottom:8px;">Become a Referee</h3>
-          <p style="font-size:14px; color:var(--gray-light); text-align:center; margin-bottom:28px; line-height:1.7;">
+          <h3 style="font-size:22px; font-weight:800; text-align:center; margin-bottom:8px;" data-i18n="ref_card_title">Become a Referee</h3>
+          <p style="font-size:14px; color:var(--gray-light); text-align:center; margin-bottom:28px; line-height:1.7;" data-i18n="ref_card_desc">
             Apply through the app. Submit your credentials and ID. Start officiating once approved.
           </p>
-          <a href="#download" class="btn-primary" style="width:100%; justify-content:center;">
+          <a href="#download" class="btn-primary" style="width:100%; justify-content:center;" data-i18n="ref_card_btn">
             Apply in the App
           </a>
         </div>
@@ -948,13 +1048,61 @@
     </div>
   </section>
 
+  <!-- LAUNCH CITIES -->
+  <section id="cities">
+    <div class="section-inner">
+      <span class="section-tag" data-i18n="city_tag">Where We're Launching</span>
+      <h2 class="section-title" data-i18n="city_title">South Florida.<br /><span style="color:var(--gold)">Summer 2026.</span></h2>
+      <p class="section-sub" data-i18n="city_sub">Urban PL is kicking off with three inaugural tournaments across South Florida. Be part of the first season.</p>
+
+      <div class="cities-grid" style="grid-template-columns: repeat(3, 1fr);">
+
+        <!-- City 1: Boca Raton -->
+        <div class="city-card">
+          <div class="city-order">🏆 Tournament #1</div>
+          <div class="city-name">Boca Raton</div>
+          <div class="city-state">Florida · South Florida</div>
+          <div class="city-detail">
+            The inaugural Urban PL tournament tips off in Boca Raton.
+            <strong>Summer 2026.</strong> Sign up to be first in line when registration opens.
+          </div>
+        </div>
+
+        <!-- City 2: Fort Lauderdale -->
+        <div class="city-card">
+          <div class="city-order">🏆 Tournament #2</div>
+          <div class="city-name">Fort Lauderdale</div>
+          <div class="city-state">Florida · South Florida</div>
+          <div class="city-detail">
+            The second Urban PL tournament heads to Fort Lauderdale.
+            <strong>Summer 2026.</strong> More pitches, more players, bigger stakes.
+          </div>
+        </div>
+
+        <!-- City 3: West Palm Beach -->
+        <div class="city-card">
+          <div class="city-order">🏆 Tournament #3</div>
+          <div class="city-name">West Palm Beach</div>
+          <div class="city-state">Florida · South Florida</div>
+          <div class="city-detail">
+            Urban PL wraps its South Florida debut in West Palm Beach.
+            <strong>Summer 2026.</strong> Three cities. One league. One standard.
+          </div>
+        </div>
+
+      </div>
+
+      <p class="cities-note" data-i18n="city_note">More cities coming in 2027. <strong>Want Urban PL in your city?</strong> Drop your email below ↓</p>
+    </div>
+  </section>
+
   <!-- DOWNLOAD -->
   <section id="download" style="text-align:center; background:var(--dark-card); border-top:1px solid var(--dark-border);">
     <div class="section-inner">
-      <span class="section-tag">Coming Soon</span>
-      <h2 class="section-title">Launching on the<br /><span style="color:var(--gold)">App Store soon.</span></h2>
-      <p class="section-sub" style="margin: 0 auto 40px;">
-        Urban PL is finishing up and heading to the App Store. Drop your email and we'll let you know the moment it's live.
+      <span class="section-tag" data-i18n="dl_tag">Coming Soon</span>
+      <h2 class="section-title" data-i18n="dl_title">Get in before<br /><span style="color:var(--gold)">the first whistle.</span></h2>
+      <p class="section-sub" style="margin: 0 auto 40px;" data-i18n="dl_sub">
+        Urban PL launches in Boca Raton, Fort Lauderdale &amp; West Palm Beach this summer. Drop your email and be the first to know when registration opens.
       </p>
 
       <form id="notify-form" style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap; max-width:480px; margin:0 auto 16px;">
@@ -973,18 +1121,175 @@
           onfocus="this.style.borderColor='var(--gold)'"
           onblur="this.style.borderColor='var(--dark-border)'"
         />
-        <button type="submit" class="btn-primary" style="border:none; cursor:pointer; white-space:nowrap;">
+        <button type="submit" class="btn-primary" style="border:none; cursor:pointer; white-space:nowrap;" data-i18n="dl_btn">
           Notify Me
         </button>
       </form>
-      <p id="notify-success" style="display:none; color:var(--gold); font-size:14px; margin-top:8px;">
+      <p id="notify-success" style="display:none; color:var(--gold); font-size:14px; margin-top:8px;" data-i18n="dl_success">
         ✓ You're on the list! We'll email you when Urban PL goes live.
       </p>
-      <p class="hero-note" style="margin-top:12px;">Free to join · iOS first · Android coming later</p>
+      <p class="hero-note" style="margin-top:12px;" data-i18n="dl_note">Free to join · iOS first · Android coming later</p>
     </div>
   </section>
 
   <script>
+    // ── TRANSLATIONS ──────────────────────────────────────────────────────────
+    const T = {
+      en: {
+        nav_how: 'How It Works', nav_features: 'Features', nav_cities: 'Launch Cities',
+        nav_referees: 'Referees', nav_cta: 'Download App',
+        hero_badge: '⚽ Pickup Soccer — Organized',
+        hero_h1a: 'Your City.', hero_h1b: 'Your League.',
+        hero_sub: 'Urban PL turns pickup soccer into a real league experience — refereed games, live stats, team balancing, and rankings. All in your pocket.',
+        hero_btn1: '🍎 Get Early Access', hero_btn2: 'See How It Works',
+        hero_note: 'Free to join · iOS · Launching South Florida · Summer 2026',
+        stat1: 'to 11v11 formats', stat2: 'match management', stat3: 'verified referees', stat4: 'to get started',
+        hiw_tag: 'How It Works', hiw_title: 'From sign-up to kick-off<br />in minutes',
+        hiw_sub: 'No group chats. No confusion. Urban PL handles everything so you just show up and play.',
+        step1_title: 'Browse & Join a Game', step1_desc: 'Open the app and see all upcoming games near you. Filter by format, date, or free entry. Tap to join — that\'s it.',
+        step2_title: 'Referee Runs the Match', step2_desc: 'A verified referee manages attendance, runs the clock, and logs goals and cards in real time from the sideline.',
+        step3_title: 'Track Your Stats', step3_desc: 'After every game your goals, cards, and rating update automatically. Climb the city rankings and prove yourself.',
+        app_tag: 'The App', app_title: 'Built for the pitch.<br />Designed for your pocket.',
+        app_sub: 'Every screen designed around what players and referees actually need on game day.',
+        label_feed: 'Game Feed', label_live: 'Live Match', label_rankings: 'Rankings', label_report: 'Match Report',
+        feat_tag: 'Features', feat_title: 'Everything a league needs.<br />Nothing it doesn\'t.',
+        feat_sub: 'Built for players who are serious about their game, without the serious overhead.',
+        f1_title: 'Smart Team Balancing', f1_desc: 'Teams are automatically balanced by player rating 2 hours before kickoff. Fair games, every time.',
+        f2_title: 'Cups & Tournaments', f2_desc: 'Enter team tournaments, compete for the cup, and take bragging rights back to your city.',
+        f3_title: 'Real Maps & Directions', f3_desc: 'Every game shows the exact location on a map. One tap gets you directions in Apple or Google Maps.',
+        f4_title: 'SMS Notifications', f4_desc: 'Get texts for team assignments, game reminders, and match results. Never miss a kickoff or wonder what team you\'re on.',
+        f5_title: 'City Rankings', f5_desc: 'A live leaderboard ranks every player by points, goals, wins, and games played. Your reputation follows you everywhere.',
+        f6_title: 'Game Reminders', f6_desc: 'Push notifications remind you before kickoff so you never miss a game you signed up for.',
+        f7_title: 'Secure Payments', f7_desc: 'Pay entry fees securely through Stripe. Free games join instantly. Paid games are one tap.',
+        f8_title: '3 Languages', f8_desc: 'The app speaks your language. Switch between English, Spanish, and Portuguese in one tap.',
+        f9_title: 'Highlights — Coming Soon', f9_desc: 'AI-powered personal highlight clips from every game. Your best moments, automatically cut and ready to share.',
+        ref_tag: 'For Referees', ref_title: 'Run the game.<br />Get paid.',
+        ref_sub: 'Urban PL has a dedicated referee platform. Manage fixtures, run live matches, and earn per game.',
+        ref_p1_title: 'Dedicated Referee App', ref_p1_desc: 'A full match management panel — attendance, live timer, goals, cards — all from your phone.',
+        ref_p2_title: 'Earn Per Game', ref_p2_desc: 'Get paid for every match you officiate. Bonus earned after 5 completed games.',
+        ref_p3_title: 'Set Your Availability', ref_p3_desc: 'Mark when you\'re free and the admin assigns you to games that fit your schedule.',
+        ref_p4_title: 'Verified Identity', ref_p4_desc: 'All referees go through ID verification. Players know they\'re getting a real official.',
+        ref_card_title: 'Become a Referee', ref_card_desc: 'Apply through the app. Submit your credentials and ID. Start officiating once approved.',
+        ref_card_btn: 'Apply in the App',
+        city_tag: 'Where We\'re Launching', city_title: 'South Florida.<br /><span style="color:var(--gold)">Summer 2026.</span>',
+        city_sub: 'Urban PL is kicking off with three inaugural tournaments across South Florida. Be part of the first season.',
+        city_note: 'More cities coming in 2027. <strong>Want Urban PL in your city?</strong> Drop your email below ↓',
+        dl_tag: 'Coming Soon', dl_title: 'Get in before<br /><span style="color:var(--gold)">the first whistle.</span>',
+        dl_sub: 'Urban PL launches in Boca Raton, Fort Lauderdale &amp; West Palm Beach this summer. Drop your email and be the first to know when registration opens.',
+        dl_btn: 'Notify Me', dl_success: '✓ You\'re on the list! We\'ll email you when Urban PL goes live.',
+        dl_note: 'Free to join · iOS first · Android coming later',
+        footer_privacy: 'Privacy Policy', footer_contact: 'Contact',
+      },
+      es: {
+        nav_how: 'Cómo Funciona', nav_features: 'Características', nav_cities: 'Ciudades',
+        nav_referees: 'Árbitros', nav_cta: 'Descargar App',
+        hero_badge: '⚽ Fútbol Organizado — En Serio',
+        hero_h1a: 'Tu Ciudad.', hero_h1b: 'Tu Liga.',
+        hero_sub: 'Urban PL convierte el fútbol informal en una experiencia de liga real — partidos arbitrados, estadísticas en vivo, equipos balanceados y clasificaciones. Todo en tu bolsillo.',
+        hero_btn1: '🍎 Acceso Anticipado', hero_btn2: 'Cómo Funciona',
+        hero_note: 'Gratis para unirse · iOS · Lanzamiento en Sur de Florida · Verano 2026',
+        stat1: 'formatos hasta 11 vs 11', stat2: 'gestión de partidos', stat3: 'árbitros verificados', stat4: 'para comenzar',
+        hiw_tag: 'Cómo Funciona', hiw_title: 'Del registro al pitazo inicial<br />en minutos',
+        hiw_sub: 'Sin grupos de WhatsApp. Sin confusión. Urban PL se encarga de todo para que solo tengas que aparecer y jugar.',
+        step1_title: 'Explora y Únete a un Partido', step1_desc: 'Abre la app y ve todos los partidos próximos cerca de ti. Filtra por formato, fecha o entrada gratis. Toca para unirte — eso es todo.',
+        step2_title: 'El Árbitro Dirige el Partido', step2_desc: 'Un árbitro verificado gestiona la asistencia, controla el reloj y registra goles y tarjetas en tiempo real desde la banda.',
+        step3_title: 'Sigue Tus Estadísticas', step3_desc: 'Después de cada partido, tus goles, tarjetas y valoración se actualizan automáticamente. Sube en la clasificación de la ciudad.',
+        app_tag: 'La App', app_title: 'Construida para el campo.<br />Diseñada para tu bolsillo.',
+        app_sub: 'Cada pantalla diseñada para lo que jugadores y árbitros realmente necesitan el día del partido.',
+        label_feed: 'Partidos', label_live: 'En Vivo', label_rankings: 'Clasificación', label_report: 'Informe del Partido',
+        feat_tag: 'Características', feat_title: 'Todo lo que una liga necesita.<br />Nada más.',
+        feat_sub: 'Creado para jugadores serios, sin la complejidad seria.',
+        f1_title: 'Equipos Balanceados', f1_desc: 'Los equipos se balancean automáticamente según la valoración del jugador 2 horas antes del inicio. Juegos justos, siempre.',
+        f2_title: 'Copas y Torneos', f2_desc: 'Inscríbete en torneos por equipos, compite por la copa y lleva los derechos de alarde a tu ciudad.',
+        f3_title: 'Mapas y Direcciones Reales', f3_desc: 'Cada partido muestra la ubicación exacta en un mapa. Un toque te da indicaciones en Apple o Google Maps.',
+        f4_title: 'Notificaciones SMS', f4_desc: 'Recibe mensajes para asignaciones de equipo, recordatorios de partido y resultados. Nunca pierdas un inicio.',
+        f5_title: 'Clasificación de Ciudad', f5_desc: 'Un marcador en vivo clasifica a cada jugador por puntos, goles, victorias y partidos jugados.',
+        f6_title: 'Recordatorios de Partido', f6_desc: 'Las notificaciones push te recuerdan antes del inicio para que nunca pierdas un partido.',
+        f7_title: 'Pagos Seguros', f7_desc: 'Paga cuotas de entrada de forma segura a través de Stripe. Los juegos gratuitos se unen al instante.',
+        f8_title: '3 Idiomas', f8_desc: 'La app habla tu idioma. Cambia entre inglés, español y portugués con un toque.',
+        f9_title: 'Highlights — Próximamente', f9_desc: 'Clips de tus mejores jugadas generados por IA después de cada partido. Listos para compartir.',
+        ref_tag: 'Para Árbitros', ref_title: 'Dirige el partido.<br />Cobra.',
+        ref_sub: 'Urban PL tiene una plataforma dedicada para árbitros. Gestiona partidos, dirígelos en vivo y cobra por cada juego.',
+        ref_p1_title: 'App Exclusiva para Árbitros', ref_p1_desc: 'Panel completo de gestión de partidos — asistencia, temporizador, goles, tarjetas — todo desde tu teléfono.',
+        ref_p2_title: 'Gana por Partido', ref_p2_desc: 'Cobra por cada partido que arbitres. Bono después de 5 partidos completados.',
+        ref_p3_title: 'Define Tu Disponibilidad', ref_p3_desc: 'Marca cuándo estás libre y el administrador te asigna partidos que se adaptan a tu horario.',
+        ref_p4_title: 'Identidad Verificada', ref_p4_desc: 'Todos los árbitros pasan por verificación de identidad. Los jugadores saben que tienen un árbitro real.',
+        ref_card_title: 'Conviértete en Árbitro', ref_card_desc: 'Solicita a través de la app. Envía tus credenciales e identificación. Empieza a arbitrar una vez aprobado.',
+        ref_card_btn: 'Aplicar en la App',
+        city_tag: 'Dónde Lanzamos', city_title: 'Sur de Florida.<br /><span style="color:var(--gold)">Verano 2026.</span>',
+        city_sub: 'Urban PL arranca con tres torneos inaugurales en el sur de Florida. Sé parte de la primera temporada.',
+        city_note: 'Más ciudades en 2027. <strong>¿Quieres Urban PL en tu ciudad?</strong> Deja tu email abajo ↓',
+        dl_tag: 'Próximamente', dl_title: 'Entra antes<br /><span style="color:var(--gold)">del primer pitazo.</span>',
+        dl_sub: 'Urban PL se lanza en Boca Raton, Fort Lauderdale y West Palm Beach este verano. Deja tu email y te avisamos cuando abra el registro.',
+        dl_btn: 'Notificarme', dl_success: '✓ ¡Estás en la lista! Te avisaremos cuando Urban PL esté disponible.',
+        dl_note: 'Gratis para unirse · Primero iOS · Android próximamente',
+        footer_privacy: 'Política de Privacidad', footer_contact: 'Contacto',
+      },
+      pt: {
+        nav_how: 'Como Funciona', nav_features: 'Recursos', nav_cities: 'Cidades',
+        nav_referees: 'Árbitros', nav_cta: 'Baixar App',
+        hero_badge: '⚽ Futebol Organizado — De Verdade',
+        hero_h1a: 'Sua Cidade.', hero_h1b: 'Sua Liga.',
+        hero_sub: 'O Urban PL transforma o futebol informal em uma experiência de liga real — partidas arbitradas, estatísticas ao vivo, equipes balanceadas e classificações. Tudo no seu bolso.',
+        hero_btn1: '🍎 Acesso Antecipado', hero_btn2: 'Como Funciona',
+        hero_note: 'Grátis para entrar · iOS · Lançamento no Sul da Flórida · Verão 2026',
+        stat1: 'formatos até 11 vs 11', stat2: 'gestão de partidas', stat3: 'árbitros verificados', stat4: 'para começar',
+        hiw_tag: 'Como Funciona', hiw_title: 'Do cadastro ao apito inicial<br />em minutos',
+        hiw_sub: 'Sem grupos no WhatsApp. Sem confusão. O Urban PL cuida de tudo para você só aparecer e jogar.',
+        step1_title: 'Explore e Entre em uma Partida', step1_desc: 'Abra o app e veja todas as partidas próximas perto de você. Filtre por formato, data ou entrada grátis. Toque para entrar — simples assim.',
+        step2_title: 'O Árbitro Comanda a Partida', step2_desc: 'Um árbitro verificado gerencia a presença, controla o cronômetro e registra gols e cartões em tempo real.',
+        step3_title: 'Acompanhe Suas Estatísticas', step3_desc: 'Após cada partida, seus gols, cartões e avaliação são atualizados automaticamente. Suba na classificação da cidade.',
+        app_tag: 'O App', app_title: 'Feito para o campo.<br />Projetado para o seu bolso.',
+        app_sub: 'Cada tela projetada para o que jogadores e árbitros realmente precisam no dia de jogo.',
+        label_feed: 'Partidas', label_live: 'Ao Vivo', label_rankings: 'Classificação', label_report: 'Relatório da Partida',
+        feat_tag: 'Recursos', feat_title: 'Tudo o que uma liga precisa.<br />Nada a mais.',
+        feat_sub: 'Criado para jogadores sérios, sem a complexidade desnecessária.',
+        f1_title: 'Equipes Balanceadas', f1_desc: 'As equipes são balanceadas automaticamente pela avaliação do jogador 2 horas antes do início. Jogos justos, sempre.',
+        f2_title: 'Copas e Torneios', f2_desc: 'Inscreva-se em torneios por equipe, dispute a copa e leve os direitos de se gabar para sua cidade.',
+        f3_title: 'Mapas e Rotas Reais', f3_desc: 'Cada partida mostra a localização exata no mapa. Um toque te dá rotas no Apple ou Google Maps.',
+        f4_title: 'Notificações SMS', f4_desc: 'Receba mensagens para atribuições de equipe, lembretes de partida e resultados. Nunca perca um início.',
+        f5_title: 'Classificação da Cidade', f5_desc: 'Um placar ao vivo classifica cada jogador por pontos, gols, vitórias e partidas jogadas.',
+        f6_title: 'Lembretes de Partida', f6_desc: 'Notificações push te lembram antes do início para que você nunca perca uma partida.',
+        f7_title: 'Pagamentos Seguros', f7_desc: 'Pague taxas de entrada com segurança pelo Stripe. Jogos gratuitos entram na hora. Jogos pagos são um toque.',
+        f8_title: '3 Idiomas', f8_desc: 'O app fala o seu idioma. Alterne entre inglês, espanhol e português com um toque.',
+        f9_title: 'Destaques — Em Breve', f9_desc: 'Clipes dos seus melhores momentos gerados por IA após cada partida. Prontos para compartilhar.',
+        ref_tag: 'Para Árbitros', ref_title: 'Comande a partida.<br />Ganhe por isso.',
+        ref_sub: 'O Urban PL tem uma plataforma dedicada para árbitros. Gerencie partidas, comande ao vivo e ganhe por jogo.',
+        ref_p1_title: 'App Exclusivo para Árbitros', ref_p1_desc: 'Painel completo de gestão — presença, cronômetro, gols, cartões — tudo pelo celular.',
+        ref_p2_title: 'Ganhe por Partida', ref_p2_desc: 'Receba por cada partida que apitar. Bônus após 5 partidas concluídas.',
+        ref_p3_title: 'Defina Sua Disponibilidade', ref_p3_desc: 'Marque quando você está livre e o administrador te atribui às partidas que combinam com sua agenda.',
+        ref_p4_title: 'Identidade Verificada', ref_p4_desc: 'Todos os árbitros passam por verificação de identidade. Os jogadores sabem que têm um árbitro de verdade.',
+        ref_card_title: 'Torne-se Árbitro', ref_card_desc: 'Candidate-se pelo app. Envie suas credenciais e identidade. Comece a apitar após aprovação.',
+        ref_card_btn: 'Candidatar pelo App',
+        city_tag: 'Onde Estamos Lançando', city_title: 'Sul da Flórida.<br /><span style="color:var(--gold)">Verão 2026.</span>',
+        city_sub: 'O Urban PL começa com três torneios inaugurais no Sul da Flórida. Faça parte da primeira temporada.',
+        city_note: 'Mais cidades em 2027. <strong>Quer o Urban PL na sua cidade?</strong> Deixe seu email abaixo ↓',
+        dl_tag: 'Em Breve', dl_title: 'Entre antes<br /><span style="color:var(--gold)">do primeiro apito.</span>',
+        dl_sub: 'O Urban PL lança em Boca Raton, Fort Lauderdale e West Palm Beach neste verão. Deixe seu email e seja o primeiro a saber quando as inscrições abrirem.',
+        dl_btn: 'Me Notificar', dl_success: '✓ Você está na lista! Enviaremos um email quando o Urban PL estiver disponível.',
+        dl_note: 'Grátis para entrar · iOS primeiro · Android em breve',
+        footer_privacy: 'Política de Privacidade', footer_contact: 'Contato',
+      }
+    };
+
+    let currentLang = 'en';
+
+    function setLang(lang) {
+      currentLang = lang;
+      const dict = T[lang];
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (dict[key] !== undefined) el.innerHTML = dict[key];
+      });
+      document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent === lang.toUpperCase());
+      });
+      // Update email placeholder
+      const emailInput = document.getElementById('notify-email');
+      if (emailInput) emailInput.placeholder = lang === 'en' ? 'your@email.com' : lang === 'es' ? 'tu@email.com' : 'seu@email.com';
+    }
+
+    // ── WAITLIST FORM ─────────────────────────────────────────────────────────
     document.getElementById('notify-form').addEventListener('submit', function(e) {
       e.preventDefault();
       const email = document.getElementById('notify-email').value;
@@ -1004,6 +1309,70 @@
     });
   </script>
 
+  <!-- ── VENUE SECTION ─────────────────────────────────────── -->
+  <section style="padding: 80px 24px; background: #0d0d0d; border-top: 1px solid #1e1e1e;">
+    <div style="max-width: 1000px; margin: 0 auto;">
+
+      <div style="text-align:center; margin-bottom: 40px;">
+        <div style="display:inline-block; background:rgba(201,168,76,0.1); border:1px solid rgba(201,168,76,0.35); border-radius:100px; padding:6px 18px; font-size:11px; font-weight:700; color:#c9a84c; letter-spacing:2px; text-transform:uppercase; margin-bottom:16px;">
+          📍 First Stop — Boca Raton, FL
+        </div>
+        <h2 style="font-size:clamp(28px,5vw,42px); font-weight:900; letter-spacing:-1px; margin-bottom:12px;">
+          Premier Turf Fields
+        </h2>
+        <p style="font-size:15px; color:#888; max-width:480px; margin:0 auto;">
+          We play on professional-grade artificial turf — fast, consistent, and built for the game.
+        </p>
+      </div>
+
+      <!-- Photo -->
+      <div style="position:relative; border-radius:16px; overflow:hidden; border:1px solid #2a2a2a; box-shadow: 0 24px 60px rgba(0,0,0,0.5);">
+        <img
+          src="boca-fields.jpg"
+          alt="Aerial view of soccer fields in Boca Raton"
+          style="width:100%; display:block; height:420px; object-fit:cover; object-position:center 30%;"
+        />
+        <!-- Overlay badge -->
+        <div style="position:absolute; bottom:20px; left:20px; background:rgba(0,0,0,0.75); backdrop-filter:blur(8px); border:1px solid rgba(201,168,76,0.4); border-radius:10px; padding:12px 18px;">
+          <div style="font-size:10px; font-weight:700; color:#c9a84c; letter-spacing:2px; text-transform:uppercase; margin-bottom:3px;">Tournament</div>
+          <div style="font-size:18px; font-weight:800; color:#fff;">Boca Kickoff &nbsp;·&nbsp; June 14th</div>
+          <div style="font-size:12px; color:#888; margin-top:2px;">7:00 PM · 7v7 Format · $26 Entry</div>
+        </div>
+        <!-- Register button -->
+        <div style="position:absolute; bottom:20px; right:20px;">
+          <a href="signup.html" style="display:inline-block; background:#c9a84c; color:#0d0d0d; font-weight:800; font-size:13px; letter-spacing:0.5px; padding:12px 22px; border-radius:10px; text-decoration:none;">
+            Register Now →
+          </a>
+        </div>
+      </div>
+
+      <!-- Details row -->
+      <div style="display:flex; gap:16px; margin-top:16px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:160px; background:#1a1a1a; border:1px solid #2a2a2a; border-radius:12px; padding:16px 20px;">
+          <div style="font-size:10px; font-weight:700; color:#c9a84c; letter-spacing:2px; text-transform:uppercase; margin-bottom:4px;">Format</div>
+          <div style="font-size:16px; font-weight:700; color:#fff;">7v7 Tournament</div>
+          <div style="font-size:12px; color:#666; margin-top:2px;">Minimum 2 games guaranteed</div>
+        </div>
+        <div style="flex:1; min-width:160px; background:#1a1a1a; border:1px solid #2a2a2a; border-radius:12px; padding:16px 20px;">
+          <div style="font-size:10px; font-weight:700; color:#c9a84c; letter-spacing:2px; text-transform:uppercase; margin-bottom:4px;">Entry Fee</div>
+          <div style="font-size:16px; font-weight:700; color:#fff;">$26 / Player</div>
+          <div style="font-size:12px; color:#666; margin-top:2px;">Teams &amp; individuals welcome</div>
+        </div>
+        <div style="flex:1; min-width:160px; background:#1a1a1a; border:1px solid #2a2a2a; border-radius:12px; padding:16px 20px;">
+          <div style="font-size:10px; font-weight:700; color:#c9a84c; letter-spacing:2px; text-transform:uppercase; margin-bottom:4px;">Who Can Play</div>
+          <div style="font-size:16px; font-weight:700; color:#fff;">Ages 16+</div>
+          <div style="font-size:12px; color:#666; margin-top:2px;">All skill levels welcome</div>
+        </div>
+        <div style="flex:1; min-width:160px; background:#1a1a1a; border:1px solid #2a2a2a; border-radius:12px; padding:16px 20px;">
+          <div style="font-size:10px; font-weight:700; color:#c9a84c; letter-spacing:2px; text-transform:uppercase; margin-bottom:4px;">Kickoff</div>
+          <div style="font-size:16px; font-weight:700; color:#fff;">Saturday, June 14</div>
+          <div style="font-size:12px; color:#666; margin-top:2px;">Doors open 6:30 PM</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
   <!-- FOOTER -->
   <footer>
     <div class="footer-inner">
@@ -1015,12 +1384,23 @@
         </div>
       </div>
       <ul class="footer-links">
-        <li><a href="#how-it-works">How It Works</a></li>
-        <li><a href="#features">Features</a></li>
-        <li><a href="#referees">Referees</a></li>
-        <li><a href="privacy-policy.html">Privacy Policy</a></li>
-        <li><a href="mailto:urbanpl.app@gmail.com">Contact</a></li>
+        <li><a href="#how-it-works" data-i18n="nav_how">How It Works</a></li>
+        <li><a href="#features" data-i18n="nav_features">Features</a></li>
+        <li><a href="#referees" data-i18n="nav_referees">Referees</a></li>
+        <li><a href="#cities" data-i18n="nav_cities">Launch Cities</a></li>
+        <li><a href="privacy-policy.html" data-i18n="footer_privacy">Privacy Policy</a></li>
+        <li><a href="mailto:admin@theurbanpl.com" data-i18n="footer_contact">Contact</a></li>
       </ul>
+      <div style="display:flex; align-items:center; gap:16px; margin-top:8px;">
+        <a href="mailto:admin@theurbanpl.com" title="Email us" style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--gray); transition:color 0.2s;" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--gray)'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          admin@theurbanpl.com
+        </a>
+        <a href="https://www.instagram.com/urbanpleague" target="_blank" rel="noopener" title="Instagram" style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--gray); transition:color 0.2s;" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--gray)'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+          @urbanpleague
+        </a>
+      </div>
     </div>
     <p class="footer-copy">
       Built for ballers. Powered by passion. ⚽
