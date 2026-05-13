@@ -32,17 +32,18 @@
     position: absolute; inset: 0;
     background: url('boca-fields.jpg') center center / cover no-repeat;
     z-index: 0;
+    filter: contrast(1.35) brightness(0.6) saturate(1.3);
   }
 
-  /* Dark overlay over photo */
+  /* Dark overlay — cinematic gradient */
   .bg-dark {
     position: absolute; inset: 0;
     background: linear-gradient(
       180deg,
-      rgba(5,6,5,0.82) 0%,
-      rgba(5,6,5,0.68) 30%,
-      rgba(5,6,5,0.72) 60%,
-      rgba(5,6,5,0.92) 100%
+      rgba(0,0,0,0.88) 0%,
+      rgba(0,0,0,0.55) 28%,
+      rgba(0,0,0,0.60) 60%,
+      rgba(0,0,0,0.95) 100%
     );
     z-index: 1;
   }
@@ -80,16 +81,6 @@
     pointer-events: none;
   }
 
-  /* ── Soccer ball ────────────────────────────────────────── */
-  .ball-deco {
-    position: absolute;
-    top: 54px;
-    right: 54px;
-    opacity: 0.18;
-    z-index: 3;
-    pointer-events: none;
-  }
-
   /* ── Top bar ────────────────────────────────────────────── */
   .top-bar {
     width: 100%;
@@ -108,9 +99,10 @@
   }
 
   .logo-img {
-    width: 80px; height: 80px;
+    width: 130px; height: 130px;
     object-fit: contain;
-    filter: drop-shadow(0 0 20px rgba(245,197,24,0.9)) drop-shadow(0 0 8px rgba(245,197,24,0.6)) brightness(1.15);
+    mix-blend-mode: screen;
+    filter: brightness(1.8) drop-shadow(0 0 18px rgba(245,197,24,0.8));
   }
 
   .logo-text { display: flex; flex-direction: column; line-height: 1; }
@@ -353,24 +345,6 @@
   <div class="bg-glow"></div>
   <div class="bg-vignette"></div>
 
-  <!-- ── Soccer Ball Decoration (large, top right) ── -->
-  <svg class="ball-deco" width="130" height="130" viewBox="0 0 130 130" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="65" cy="65" r="62" fill="#1a1a1a" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
-    <!-- Pentagon center top -->
-    <polygon points="65,20 79,32 73,48 57,48 51,32" fill="#222" stroke="rgba(255,255,255,0.5)" stroke-width="1.2"/>
-    <!-- Pentagon top-right -->
-    <polygon points="100,40 110,55 100,68 85,62 83,46" fill="#222" stroke="rgba(255,255,255,0.5)" stroke-width="1.2"/>
-    <!-- Pentagon top-left -->
-    <polygon points="30,40 47,46 45,62 30,68 20,55" fill="#222" stroke="rgba(255,255,255,0.5)" stroke-width="1.2"/>
-    <!-- Pentagon bottom-right -->
-    <polygon points="108,80 105,96 90,102 80,90 88,76" fill="#222" stroke="rgba(255,255,255,0.5)" stroke-width="1.2"/>
-    <!-- Pentagon bottom-left -->
-    <polygon points="22,80 42,76 50,90 40,102 25,96" fill="#222" stroke="rgba(255,255,255,0.5)" stroke-width="1.2"/>
-    <!-- Pentagon bottom center -->
-    <polygon points="65,108 52,97 57,82 73,82 78,97" fill="#222" stroke="rgba(255,255,255,0.5)" stroke-width="1.2"/>
-    <circle cx="65" cy="65" r="62" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1.5"/>
-  </svg>
-
   <!-- ── Top Bar ── -->
   <div class="top-bar">
     <div class="logo-group">
@@ -420,15 +394,19 @@
   <!-- ── Info boxes ── -->
   <div class="info-row">
     <div class="info-box">
-      <span class="info-icon">📍</span>
+      <span class="info-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F5C518" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      </span>
       <div>
         <div class="info-label">Location</div>
-        <div class="info-value">Boca Raton, FL</div>
-        <div class="info-sub">Premier Turf Fields</div>
+        <div class="info-value">Coconut Creek, FL</div>
+        <div class="info-sub">3600 W Sample Rd, FL 33073</div>
       </div>
     </div>
     <div class="info-box">
-      <span class="info-icon">📅</span>
+      <span class="info-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F5C518" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </span>
       <div>
         <div class="info-label">Date</div>
         <div class="info-value">Saturday</div>
@@ -436,7 +414,9 @@
       </div>
     </div>
     <div class="info-box">
-      <span class="info-icon">⚽</span>
+      <span class="info-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F5C518" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </span>
       <div>
         <div class="info-label">Kickoff</div>
         <div class="info-value">7:00 PM</div>
@@ -448,22 +428,30 @@
   <!-- ── Features ── -->
   <div class="features-bar">
     <div class="feature">
-      <span class="feature-icon">⚡</span>
+      <span class="feature-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F5C518" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/><path d="M4.93 4.93l4.24 4.24M14.83 14.83l4.24 4.24M4.93 19.07l4.24-4.24M14.83 9.17l4.24-4.24"/></svg>
+      </span>
       <div class="feature-title">7v7 Format</div>
       <div class="feature-sub">Fast-Paced</div>
     </div>
     <div class="feature">
-      <span class="feature-icon">🟨</span>
+      <span class="feature-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F5C518" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </span>
       <div class="feature-title">Pro Referees</div>
       <div class="feature-sub">Certified</div>
     </div>
     <div class="feature">
-      <span class="feature-icon">📸</span>
+      <span class="feature-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F5C518" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+      </span>
       <div class="feature-title">Content &amp; Highlights</div>
       <div class="feature-sub">Captured</div>
     </div>
     <div class="feature">
-      <span class="feature-icon">🏆</span>
+      <span class="feature-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F5C518" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+      </span>
       <div class="feature-title">Champions Prizes</div>
       <div class="feature-sub">Winners Take All</div>
     </div>
@@ -496,8 +484,8 @@
 
     <div class="footer-col footer-col-right">
       <div class="footer-heading" style="text-align:right;">Follow Us</div>
-      <div class="footer-line">📸 @urbanpleague</div>
-      <div class="footer-line">🌐 www.theurbanpl.com</div>
+      <div class="footer-line" style="display:flex;align-items:center;gap:5px;justify-content:flex-end;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg> @urbanpleague</div>
+      <div class="footer-line" style="display:flex;align-items:center;gap:5px;justify-content:flex-end;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> www.theurbanpl.com</div>
       <div class="footer-line dim" style="margin-top:6px;">Be part of South Florida's</div>
       <div class="footer-line dim">football culture.</div>
     </div>
