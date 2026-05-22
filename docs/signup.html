@@ -414,9 +414,9 @@
           <h3>📱 SMS Notifications</h3>
 
           <div class="consent-checkbox-row">
-            <input type="checkbox" id="smsConsent" name="sms_consent" required />
+            <input type="checkbox" id="smsConsent" name="sms_consent" />
             <label for="smsConsent" class="consent-text">
-              I agree to receive SMS notifications from <strong>Urban PL</strong>, including game confirmations, team assignments, lineup notifications, and match reminders.
+              <strong>Optional:</strong> I agree to receive SMS notifications from <strong>Urban PL</strong>, including game confirmations, team assignments, lineup notifications, and match reminders.
               <strong>Message frequency varies.</strong>
               <strong>Msg &amp; data rates may apply.</strong>
               Reply <strong>STOP</strong> to opt out at any time.
@@ -432,11 +432,12 @@
           </div>
 
           <div class="consent-links">
-            By checking the box above you agree to our
+            SMS notifications are optional and not required to use Urban PL.
+            By checking the box you agree to our
             <a href="https://www.theurbanpl.com/privacy-policy.html" target="_blank">Privacy Policy</a>
             and
             <a href="https://www.theurbanpl.com/sms-terms.html" target="_blank">SMS Terms &amp; Conditions</a>.
-            Consent is not a condition of purchase or app use.
+            You may sign up without checking this box.
           </div>
         </div>
 
@@ -476,12 +477,6 @@
       const form = e.target;
       const btn  = document.getElementById('submitBtn');
 
-      // Validate consent
-      if (!form.sms_consent.checked) {
-        alert('Please agree to receive SMS notifications to continue.');
-        return;
-      }
-
       btn.disabled = true;
       btn.textContent = 'Submitting…';
 
@@ -492,7 +487,7 @@
         phone:       form.phone.value.trim(),
         city:        form.city.value,
         skill_level: form.skill_level.value,
-        sms_consent: true,
+        sms_consent: form.sms_consent.checked,
         consent_at:  new Date().toISOString(),
         source:      'website_signup',
       };
