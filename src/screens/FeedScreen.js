@@ -393,6 +393,29 @@ function FixtureDetailModal({ fixture, visible, onClose, onWithdraw, onCheckIn, 
             </TouchableOpacity>
           )}
 
+          {/* Community Guidelines */}
+          {isGame && (
+            <View style={styles.guidelinesBox}>
+              <Text style={styles.guidelinesTitle}>COMMUNITY GUIDELINES</Text>
+              {[
+                { icon: '⏰', title: 'Arrive Ready', body: "Kick-off waits for no one. Be warmed up and on the pitch on time." },
+                { icon: '🚫', title: 'Zero Drama', body: "Disputes happen — disrespect doesn't. Any fighting = instant ban." },
+                { icon: '📸', title: 'Real Profile, Real You', body: "Use a real photo so your teammates know who's showing up." },
+                { icon: '⚖️', title: 'Play Fair', body: "Lopsided teams? Mix it up. The game is bigger than your ego." },
+                { icon: '📋', title: 'Registered Players Only', body: "If you're not on the list, you're not on the pitch. No exceptions." },
+                { icon: '🤝', title: 'Good Energy Only', body: "Daps over drama. Respect the game and your opponents." },
+              ].map(({ icon, title, body }) => (
+                <View key={title} style={styles.guidelineRow}>
+                  <Text style={styles.guidelineIcon}>{icon}</Text>
+                  <View style={styles.guidelineText}>
+                    <Text style={styles.guidelineItem}>{title}</Text>
+                    <Text style={styles.guidelineBody}>{body}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+
           <TouchableOpacity style={styles.modalCloseBtn} onPress={onClose}>
             <Text style={styles.modalCloseBtnText}>{t('feed.close')}</Text>
           </TouchableOpacity>
@@ -2644,6 +2667,39 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   playerCheckedInText: { color: colors.success, fontWeight: 'bold', fontSize: 15 },
+
+  // ── Community Guidelines ──────────────────────────────
+  guidelinesBox: {
+    backgroundColor: '#111',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+    padding: 16,
+    marginTop: 16,
+    marginBottom: 4,
+  },
+  guidelinesTitle: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: colors.gold,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: 14,
+  },
+  guidelineRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 13,
+  },
+  guidelineIcon: { fontSize: 18, marginTop: 1 },
+  guidelineText: { flex: 1 },
+  guidelineItem: {
+    fontSize: 13, fontWeight: '700', color: colors.white, marginBottom: 2,
+  },
+  guidelineBody: {
+    fontSize: 12, color: '#888', lineHeight: 17,
+  },
 
   withdrawBtn: {
     borderWidth: 1,
