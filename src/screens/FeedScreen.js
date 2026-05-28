@@ -1508,6 +1508,169 @@ function ConfirmationBadge({ game }) {
   );
 }
 
+// ─── Payment & Cancellation Policy Modal ─────────────────────────────────────
+function PaymentPolicyModal({ visible, game, onAccept, onDecline }) {
+  if (!game) return null;
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onDecline}>
+      <Pressable style={policyStyles.overlay} onPress={onDecline}>
+        <Pressable style={policyStyles.sheet} onPress={e => e.stopPropagation()}>
+          <View style={policyStyles.handle} />
+
+          {/* Header */}
+          <View style={policyStyles.header}>
+            <TouchableOpacity onPress={onDecline} style={policyStyles.closeBtn}>
+              <Text style={policyStyles.closeTxt}>✕</Text>
+            </TouchableOpacity>
+            <Text style={policyStyles.title}>Payment & cancellation policy</Text>
+          </View>
+          <Text style={policyStyles.subtitle}>
+            Make sure you're comfortable with our policy before joining a game.
+          </Text>
+
+          <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+
+            {/* Payment Details */}
+            <Text style={policyStyles.sectionTitle}>Payment details</Text>
+            <Text style={policyStyles.sectionBody}>
+              We place a temporary hold when you join a game. If it's confirmed, you'll be charged. If not, the hold is released (may take a few hours).{' '}
+              <Text style={policyStyles.bold}>A $0.50 fee applies for declined cards.</Text>
+            </Text>
+
+            {/* Game Confirmation */}
+            <Text style={policyStyles.sectionTitle}>Game confirmation</Text>
+            <Text style={policyStyles.sectionBody}>
+              Games are canceled up to one hour before kickoff if there aren't enough players. We'll notify you if the game is canceled —{' '}
+              <Text style={policyStyles.bold}>Turn your notifications on!</Text>
+            </Text>
+
+            {/* Cancellation Policy */}
+            <Text style={policyStyles.sectionTitle}>Cancellation policy</Text>
+
+            {/* Row 1 */}
+            <View style={policyStyles.policyRow}>
+              <View style={policyStyles.policyLeft}>
+                <Text style={policyStyles.policyTime}>{`> 5 hour notice`}</Text>
+                <Text style={policyStyles.policyDesc}>Cancelling more than 5 hours before your game starts.</Text>
+              </View>
+              <View style={policyStyles.policyRight}>
+                <Text style={policyStyles.policyOutcome}>Full refund</Text>
+                <Text style={policyStyles.policyDesc}>Get back 100% or receive a game credit (your choice).</Text>
+              </View>
+            </View>
+            <View style={policyStyles.divider} />
+
+            {/* Row 2 */}
+            <View style={policyStyles.policyRow}>
+              <View style={policyStyles.policyLeft}>
+                <Text style={policyStyles.policyTime}>3-5 hour notice</Text>
+                <Text style={policyStyles.policyDesc}>Cancelling between 3-5 hours before your game starts.</Text>
+              </View>
+              <View style={policyStyles.policyRight}>
+                <Text style={policyStyles.policyOutcome}>Game credit ONLY</Text>
+                <Text style={policyStyles.policyDesc}>Receive a game credit for a future game ONLY if we can find a replacement.</Text>
+              </View>
+            </View>
+            <View style={policyStyles.divider} />
+
+            {/* Row 3 */}
+            <View style={policyStyles.policyRow}>
+              <View style={policyStyles.policyLeft}>
+                <Text style={policyStyles.policyTime}>{`< 3 hour notice`}</Text>
+                <Text style={policyStyles.policyDesc}>Cancelling less than 3 hours before your game starts.</Text>
+              </View>
+              <View style={policyStyles.policyRight}>
+                <Text style={[policyStyles.policyOutcome, { color: colors.error }]}>No refund</Text>
+                <Text style={policyStyles.policyDesc}>Player does not receive a refund or game credit.</Text>
+              </View>
+            </View>
+
+            <View style={{ height: 16 }} />
+          </ScrollView>
+
+          {/* CTA */}
+          <TouchableOpacity style={policyStyles.acceptBtn} onPress={onAccept}>
+            <Text style={policyStyles.acceptTxt}>I Agree — Pay ${game.entry_fee} & Join</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={policyStyles.declineBtn} onPress={onDecline}>
+            <Text style={policyStyles.declineTxt}>Cancel</Text>
+          </TouchableOpacity>
+
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+const policyStyles = StyleSheet.create({
+  overlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: colors.dark,
+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 36,
+    maxHeight: '90%',
+  },
+  handle: {
+    width: 40, height: 4, borderRadius: 2,
+    backgroundColor: '#444',
+    alignSelf: 'center', marginTop: 12, marginBottom: 16,
+  },
+  header: {
+    flexDirection: 'row', alignItems: 'center', marginBottom: 6,
+  },
+  closeBtn: { padding: 4, marginRight: 10 },
+  closeTxt: { color: colors.gray, fontSize: 16 },
+  title: {
+    fontSize: 18, fontWeight: '800', color: colors.white, flex: 1,
+  },
+  subtitle: {
+    fontSize: 13, color: colors.gray, marginBottom: 20, lineHeight: 18,
+  },
+  sectionTitle: {
+    fontSize: 15, fontWeight: '700', color: colors.white,
+    marginTop: 16, marginBottom: 6,
+  },
+  sectionBody: {
+    fontSize: 13, color: '#bbb', lineHeight: 20,
+  },
+  bold: { fontWeight: '700', color: colors.white },
+  policyRow: {
+    flexDirection: 'row', paddingVertical: 14, gap: 12,
+  },
+  policyLeft: { flex: 1 },
+  policyRight: { flex: 1 },
+  policyTime: {
+    fontSize: 13, fontWeight: '700', color: colors.white, marginBottom: 4,
+  },
+  policyOutcome: {
+    fontSize: 13, fontWeight: '700', color: colors.gold, marginBottom: 4,
+  },
+  policyDesc: {
+    fontSize: 12, color: '#888', lineHeight: 17,
+  },
+  divider: {
+    height: 1, backgroundColor: '#222',
+  },
+  acceptBtn: {
+    backgroundColor: colors.gold,
+    borderRadius: 14, paddingVertical: 15,
+    alignItems: 'center', marginTop: 12,
+  },
+  acceptTxt: {
+    color: colors.dark, fontWeight: '800', fontSize: 15,
+  },
+  declineBtn: {
+    paddingVertical: 12, alignItems: 'center', marginTop: 6,
+  },
+  declineTxt: {
+    color: colors.gray, fontSize: 14, fontWeight: '600',
+  },
+});
+
 function GameCard({ game, onJoin, onWaitlist, isJoined, isOnWaitlist, waitlistPos, isPaying, onChat, t }) {
   const filled = game.game_players?.length || 0;
   const isFull = filled >= game.total_spots;
@@ -1602,6 +1765,7 @@ export default function FeedScreen() {
   const [selectedReport, setSelectedReport] = useState(null);
   const [payingGame, setPayingGame] = useState(null);
   const [chatGame, setChatGame] = useState(null);
+  const [policyGame, setPolicyGame] = useState(null); // paid game pending policy acceptance
   const { player, signOut } = useAuth();
   const { t } = useLanguage();
   const queryClient = useQueryClient();
@@ -1639,6 +1803,13 @@ export default function FeedScreen() {
       await joinGame(game);
       return;
     }
+
+    // Paid game — show policy modal first
+    setPolicyGame(game);
+  }
+
+  async function proceedWithPayment(game) {
+    setPolicyGame(null);
 
     // Paid game — go through Stripe
     try {
@@ -1917,6 +2088,14 @@ export default function FeedScreen() {
           }}
         />
       )}
+
+      {/* Payment & Cancellation Policy Modal */}
+      <PaymentPolicyModal
+        visible={!!policyGame}
+        game={policyGame}
+        onAccept={() => proceedWithPayment(policyGame)}
+        onDecline={() => setPolicyGame(null)}
+      />
 
       {/* Match Report Modal */}
       {selectedReport && (
