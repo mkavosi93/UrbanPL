@@ -59,12 +59,22 @@ const T_AND_C = [
 4.4. Only registered and confirmed players may take the pitch. Unregistered guests are not permitted.`,
   },
   {
-    heading: '5. LIABILITY & SAFETY',
-    body: `5.1. Participation in Urban PL games involves physical activity and carries an inherent risk of injury. By participating you acknowledge and accept these risks. Urban PL, its organizers, referees, and partners are not liable for any injury, loss, or damage sustained during or in connection with participation.
+    heading: '5. ASSUMPTION OF RISK & WAIVER OF LIABILITY',
+    body: `5.1. Acknowledgment of risk. I acknowledge and understand that participation in Urban PL soccer activities involves risks and dangers of serious bodily injury, including permanent disability, paralysis, and death ("Risks"). These risks may be caused by my own actions or inactions, the actions or inactions of other participants, the condition of the venue, or the acts or negligence of Urban PL, its organizers, referees, employees, volunteers, and agents (collectively the "Releasees"). I freely and voluntarily accept and assume all such risks and responsibility for any losses, costs, and damages I may incur as a result of my participation.
 
-5.2. Urban PL is not responsible for personal property that is lost, stolen, or damaged at any game venue.
+5.2. Physical fitness. I represent that I am in good health and in proper physical condition to participate in Urban PL activities. If at any time I believe conditions or my health make participation unsafe, I will immediately stop participating.
 
-5.3. While we make every effort to confirm games, we cannot guarantee any specific game will proceed. We are not liable for costs you incur (e.g. travel) if a game is cancelled.`,
+5.3. Release of liability. In consideration of being permitted to participate in Urban PL activities, I hereby release, discharge, and covenant not to sue Urban PL and the Releasees from all liability, claims, demands, losses, or damages arising out of or caused in whole or in part by my participation, even if caused by the negligence of the Releasees. I accept all responsibility for losses, costs, and damages I incur as a result of my participation.
+
+5.4. Indemnification. I agree to indemnify and hold harmless Urban PL and the Releasees from any loss, liability, damage, or costs — including legal fees — that they may incur due to my participation, whether caused by negligence or otherwise.
+
+5.5. Property. Urban PL is not responsible for personal property that is lost, stolen, or damaged at any game venue.
+
+5.6. Game cancellation. While we make every effort to confirm games, we cannot guarantee any specific game will proceed. We are not liable for costs you incur (e.g. travel) if a game is cancelled.
+
+5.7. Medical emergency consent. In the event of an accident or illness during my participation, I hereby grant authority to Urban PL staff and referees to seek and render reasonable medical assistance or emergency care on my behalf. I accept financial responsibility for any such medical treatment.
+
+5.8. Photo and likeness. I authorize Urban PL to use photographs, images, or video of me taken during activities — including match share cards and promotional materials — without compensation. This does not extend to selling my likeness to third parties.`,
   },
   {
     heading: '6. PRIVACY',
@@ -176,7 +186,7 @@ export default function TermsScreen({ onAccepted }) {
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.intro}>
-          By signing below you confirm that you have read and agree to Urban PL's Terms and Conditions.
+          IN CONSIDERATION of being permitted to participate in any Urban PL activity, I agree to the following Terms of Service, Release and Waiver of Liability, and Assumption of Risk. By signing below I certify that I have read and fully understand this agreement and that I sign it freely and voluntarily.
         </Text>
 
         {T_AND_C.map((section, i) => (
@@ -185,6 +195,14 @@ export default function TermsScreen({ onAccepted }) {
             <Text style={styles.sectionBody}>{section.body}</Text>
           </View>
         ))}
+
+        {/* Minor / Guardian notice */}
+        <View style={styles.minorBox}>
+          <Text style={styles.minorTitle}>For participants aged 16 or 17 (minor):</Text>
+          <Text style={styles.minorBody}>
+            As the parent or legal guardian of the participant, by signing below I hereby agree to this Release and Waiver of Liability and Assumption of Risk on behalf of the participant named on this account. I bind myself, the minor, and all assigns to these Terms. I certify that I have the legal capacity and authority to act for and on behalf of the minor in the execution of this agreement.
+          </Text>
+        </View>
 
         {/* Signature area */}
         <View style={styles.sigWrap}>
@@ -272,6 +290,20 @@ const styles = StyleSheet.create({
   },
   sectionBody: {
     fontSize: 13, color: '#444', lineHeight: 21,
+  },
+
+  // Minor guardian box
+  minorBox: {
+    marginTop: 24,
+    backgroundColor: '#fff8e7',
+    borderWidth: 1, borderColor: '#e8c84a',
+    borderRadius: 8, padding: 14,
+  },
+  minorTitle: {
+    fontSize: 12, fontWeight: '800', color: '#7a5c00', marginBottom: 6,
+  },
+  minorBody: {
+    fontSize: 12, color: '#5a4200', lineHeight: 18,
   },
 
   // Signature
