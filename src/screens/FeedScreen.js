@@ -119,7 +119,7 @@ async function fetchMyFixtures(playerId) {
     // Fetch all players' team assignments
     const { data: teamData } = await supabase
       .from('game_players')
-      .select('game_id, player_id, team, players(first_name, last_name, name, role, rating)')
+      .select('game_id, player_id, team, players(first_name, last_name, name, role, rating, avatar_url)')
       .in('game_id', gameIds);
     teamData?.forEach(gp => {
       if (!allTeams[gp.game_id]) allTeams[gp.game_id] = [];
@@ -164,6 +164,191 @@ async function fetchMyFixtures(playerId) {
 
   return fixtures;
 }
+
+// ─── Formation Pitch ─────────────────────────────────────────────────────────
+function PitchPlayerNode({ gp, myPlayerId }) {
+  const p = gp?.players;
+  const name = p ? ([p.first_name, p.last_name].filter(Boolean).join(' ') || p.name || '?') : '?';
+  const firstName = name.split(' ')[0];
+  const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  const isYou = gp.player_id === myPlayerId;
+  return (
+    <View style={pitchStyles.pNode}>
+      <View style={[pitchStyles.pCircle, isYou && pitchStyles.pCircleYou]}>
+        {p?.avatar_url
+          ? <Image source={{ uri: p.avatar_url }} style={pitchStyles.pAvatar} />
+          : <Text style={pitchStyles.pInitials}>{initials}</Text>
+        }
+      </View>
+      {isYou && <View style={pitchStyles.youBadge}><Text style={pitchStyles.youTxt}>YOU</Text></View>}
+      <Text style={pitchStyles.pName} numberOfLines={1}>{firstName}</Text>
+    </View>
+  );
+}
+
+function buildFormationRows(players) {
+  const sorted = [...players].sort((a, b) => {
+    const aGK = a.players?.role === 'Goalkeeper' ? -1 : 1;
+    const bGK = b.players?.role === 'Goalkeeper' ? -1 : 1;
+    return aGK - bGK;
+  });
+  const n = sorted.length;
+  let layout;
+  if (n <= 3)      layout = [1, n - 1];
+  else if (n === 4) layout = [1, 1, 2];
+  else if (n === 5) layout = [1, 2, 2];
+  else if (n === 6) layout = [1, 2, 2, 1];
+  else              layout = [1, 2, 2, 2]; // 7v7
+  const rows = [];
+  let i = 0;
+  for (const count of layout) {
+    const row = sorted.slice(i, i + count);
+    if (row.length > 0) rows.push(row);
+    i += count;
+  }
+  if (i < sorted.length) rows[rows.length - 1].push(...sorted.slice(i));
+  return rows;
+}
+
+function FormationPitch({ teamDark, teamBright, format, myPlayerId, myTeam, refName }) {
+  const rowsA = buildFormationRows(teamDark);
+  const rowsB = [...buildFormationRows(teamBright)].reverse(); // GK at bottom for lower half
+
+  return (
+    <View style={pitchStyles.pitch}>
+      {/* Team headers */}
+      <View style={pitchStyles.teamHeaders}>
+        <Text style={pitchStyles.teamHeaderDark}>🖤 Dark</Text>
+        <View style={pitchStyles.formatBadge}>
+          <Text style={pitchStyles.formatBadgeTxt}>{format}</Text>
+        </View>
+        <Text style={pitchStyles.teamHeaderBright}>White 🤍</Text>
+      </View>
+
+      {/* Pitch field */}
+      <View style={pitchStyles.field}>
+        {/* Top goal box */}
+        <View style={pitchStyles.goalBoxTop} />
+
+        {/* Team Dark — top half */}
+        <View style={pitchStyles.half}>
+          {rowsA.map((row, i) => (
+            <View key={i} style={pitchStyles.fRow}>
+              {row.map(gp => <PitchPlayerNode key={gp.player_id} gp={gp} myPlayerId={myPlayerId} />)}
+            </View>
+          ))}
+        </View>
+
+        {/* Center line + circle */}
+        <View style={pitchStyles.centerLineWrap}>
+          <View style={pitchStyles.centerLine} />
+          <View style={pitchStyles.centerCircle} />
+        </View>
+
+        {/* Team Bright — bottom half */}
+        <View style={pitchStyles.half}>
+          {rowsB.map((row, i) => (
+            <View key={i} style={pitchStyles.fRow}>
+              {row.map(gp => <PitchPlayerNode key={gp.player_id} gp={gp} myPlayerId={myPlayerId} />)}
+            </View>
+          ))}
+        </View>
+
+        {/* Bottom goal box */}
+        <View style={pitchStyles.goalBoxBottom} />
+      </View>
+
+      {/* My team + referee strip */}
+      <View style={pitchStyles.bottomStrip}>
+        {myTeam && (
+          <Text style={pitchStyles.myTeamTxt}>
+            {myTeam === 'A' ? '🖤 You are on Dark' : '🤍 You are on White'}
+          </Text>
+        )}
+        {refName && (
+          <Text style={pitchStyles.refTxt}>🟨 Referee: {refName}</Text>
+        )}
+      </View>
+    </View>
+  );
+}
+
+const pitchStyles = StyleSheet.create({
+  pitch: {
+    borderRadius: 14, overflow: 'hidden',
+    marginTop: 14, marginBottom: 4,
+    backgroundColor: '#0e2a0e',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+  },
+  teamHeaders: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 14, paddingVertical: 8,
+    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)',
+  },
+  teamHeaderDark:  { color: '#ddd', fontSize: 11, fontWeight: '700', flex: 1 },
+  teamHeaderBright:{ color: '#ddd', fontSize: 11, fontWeight: '700', flex: 1, textAlign: 'right' },
+  formatBadge: {
+    backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 100,
+    paddingHorizontal: 10, paddingVertical: 3,
+  },
+  formatBadgeTxt: { color: '#fff', fontSize: 10, fontWeight: '700' },
+  field: {
+    marginHorizontal: 10, marginBottom: 0,
+    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.22)',
+    borderRadius: 6, overflow: 'hidden',
+  },
+  goalBoxTop: {
+    height: 14, width: '40%', alignSelf: 'center',
+    borderWidth: 1.5, borderTopWidth: 0, borderColor: 'rgba(255,255,255,0.22)',
+    borderBottomLeftRadius: 4, borderBottomRightRadius: 4,
+  },
+  goalBoxBottom: {
+    height: 14, width: '40%', alignSelf: 'center',
+    borderWidth: 1.5, borderBottomWidth: 0, borderColor: 'rgba(255,255,255,0.22)',
+    borderTopLeftRadius: 4, borderTopRightRadius: 4,
+  },
+  half: { paddingVertical: 10, minHeight: 90 },
+  fRow: {
+    flexDirection: 'row', justifyContent: 'space-evenly',
+    marginBottom: 8,
+  },
+  centerLineWrap: { alignItems: 'center', height: 1, position: 'relative', marginVertical: 10 },
+  centerLine: {
+    position: 'absolute', left: 0, right: 0, height: 1.5,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+  },
+  centerCircle: {
+    width: 48, height: 48, borderRadius: 24,
+    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: 'transparent', marginTop: -24,
+  },
+  // Player node
+  pNode: { alignItems: 'center', width: 54 },
+  pCircle: {
+    width: 42, height: 42, borderRadius: 21,
+    backgroundColor: '#1c3a1c',
+    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.3)',
+    overflow: 'hidden',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  pCircleYou: { borderColor: colors.gold, borderWidth: 2.5 },
+  pAvatar: { width: 42, height: 42, borderRadius: 21 },
+  pInitials: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  youBadge: {
+    backgroundColor: colors.gold, borderRadius: 4,
+    paddingHorizontal: 4, paddingVertical: 1, marginTop: 2,
+  },
+  youTxt: { fontSize: 7, fontWeight: '900', color: '#000', letterSpacing: 0.5 },
+  pName: { color: 'rgba(255,255,255,0.8)', fontSize: 9, marginTop: 3, textAlign: 'center' },
+  // Bottom strip
+  bottomStrip: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 14, paddingVertical: 8, marginTop: 4,
+    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)',
+  },
+  myTeamTxt: { color: colors.gold, fontSize: 11, fontWeight: '700' },
+  refTxt: { color: '#aaa', fontSize: 11 },
+});
 
 function FixtureDetailModal({ fixture, visible, onClose, onWithdraw, onCheckIn, playerId, playerName, isAdmin, t }) {
   const [checkedIn, setCheckedIn] = useState(false);
@@ -276,59 +461,18 @@ function FixtureDetailModal({ fixture, visible, onClose, onWithdraw, onCheckIn, 
             )}
           </View>
 
-          {/* Team Lineups */}
+          {/* Team Lineups — Formation Pitch */}
           {isGame && teamsBalanced && (teamDark.length > 0 || teamBright.length > 0) && (
-            <View style={styles.teamsSection}>
+            <View>
               <Text style={styles.teamsSectionTitle}>⚖️ Line-ups</Text>
-              <View style={styles.teamsRow}>
-                {/* Team Dark */}
-                <View style={[styles.teamColumn, myTeam === 'A' && styles.teamColumnHighlight]}>
-                  <Text style={styles.teamDarkHeader}>🖤 Dark</Text>
-                  {teamDark.map(gp => {
-                    const p = gp.players;
-                    const name = [p?.first_name, p?.last_name].filter(Boolean).join(' ') || p?.name || 'Player';
-                    const rating = p?.rating != null ? p.rating.toFixed(1) : null;
-                    return (
-                      <View key={gp.player_id} style={styles.lineupPlayerRow}>
-                        <Text style={styles.teamPlayerName} numberOfLines={1}>{name}</Text>
-                        {rating && <Text style={styles.lineupRating}>★ {rating}</Text>}
-                      </View>
-                    );
-                  })}
-                </View>
-                <View style={styles.teamsMiddle}>
-                  <Text style={styles.teamsVs}>VS</Text>
-                </View>
-                {/* Team Bright */}
-                <View style={[styles.teamColumn, styles.teamColumnRight, myTeam === 'B' && styles.teamColumnHighlight]}>
-                  <Text style={styles.teamBrightHeader}>🤍 White</Text>
-                  {teamBright.map(gp => {
-                    const p = gp.players;
-                    const name = [p?.first_name, p?.last_name].filter(Boolean).join(' ') || p?.name || 'Player';
-                    const rating = p?.rating != null ? p.rating.toFixed(1) : null;
-                    return (
-                      <View key={gp.player_id} style={[styles.lineupPlayerRow, { flexDirection: 'row-reverse' }]}>
-                        <Text style={[styles.teamPlayerName, { textAlign: 'right' }]} numberOfLines={1}>{name}</Text>
-                        {rating && <Text style={styles.lineupRating}>★ {rating}</Text>}
-                      </View>
-                    );
-                  })}
-                </View>
-              </View>
-
-              {myTeam && (
-                <View style={[styles.myTeamBanner, myTeam === 'A' ? styles.myTeamBannerA : styles.myTeamBannerB]}>
-                  <Text style={styles.myTeamBannerText}>
-                    You are on {myTeam === 'A' ? '🖤 Dark' : '🤍 White'}
-                  </Text>
-                </View>
-              )}
-
-              <View style={styles.refRow}>
-                <Text style={styles.refRowIcon}>🟨</Text>
-                <Text style={styles.refRowLabel}>Referee</Text>
-                <Text style={styles.refRowName}>{refName ?? 'TBC'}</Text>
-              </View>
+              <FormationPitch
+                teamDark={teamDark}
+                teamBright={teamBright}
+                format={data.format}
+                myPlayerId={playerId}
+                myTeam={myTeam}
+                refName={refName}
+              />
             </View>
           )}
 
@@ -477,60 +621,15 @@ function FixtureCard({ fixture, onPress, t }) {
         {/* Divider */}
         <View style={styles.fcDivider} />
 
-        {/* Team columns */}
-        <View style={styles.fcTeamsRow}>
-          {/* Team Dark */}
-          <View style={styles.fcTeamCol}>
-            <Text style={styles.fcTeamDarkLabel}>🖤 Dark</Text>
-            {teamDark.map(gp => {
-              const p = gp.players;
-              const name = [p?.first_name, p?.last_name].filter(Boolean).join(' ') || p?.name || 'Player';
-              const rating = p?.rating != null ? p.rating.toFixed(1) : null;
-              return (
-                <View key={gp.player_id} style={styles.fcPlayerRow}>
-                  <Text style={styles.fcPlayerName} numberOfLines={1}>{name}</Text>
-                  {rating && <Text style={styles.fcPlayerRating}>★ {rating}</Text>}
-                </View>
-              );
-            })}
-          </View>
-
-          <View style={styles.fcVsDivider}>
-            <Text style={styles.fcVsText}>VS</Text>
-          </View>
-
-          {/* Team Bright */}
-          <View style={[styles.fcTeamCol, { alignItems: 'flex-end' }]}>
-            <Text style={styles.fcTeamBrightLabel}>White 🤍</Text>
-            {teamBright.map(gp => {
-              const p = gp.players;
-              const name = [p?.first_name, p?.last_name].filter(Boolean).join(' ') || p?.name || 'Player';
-              const rating = p?.rating != null ? p.rating.toFixed(1) : null;
-              return (
-                <View key={gp.player_id} style={[styles.fcPlayerRow, { flexDirection: 'row-reverse' }]}>
-                  <Text style={[styles.fcPlayerName, { textAlign: 'right' }]} numberOfLines={1}>{name}</Text>
-                  {rating && <Text style={styles.fcPlayerRating}>★ {rating}</Text>}
-                </View>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* My team banner */}
-        {myTeam && (
-          <View style={[styles.fcMyTeamBanner, myTeam === 'A' ? styles.fcMyTeamDark : styles.fcMyTeamBright]}>
-            <Text style={styles.fcMyTeamText}>
-              You are on {myTeam === 'A' ? '🖤 Dark' : '🤍 White'}
-            </Text>
-          </View>
-        )}
-
-        {/* Referee row */}
-        <View style={styles.fcRefRow}>
-          <Text style={styles.fcRefIcon}>🟨</Text>
-          <Text style={styles.fcRefLabel}>Referee</Text>
-          <Text style={styles.fcRefName}>{refName ?? 'TBC'}</Text>
-        </View>
+        {/* Formation Pitch */}
+        <FormationPitch
+          teamDark={teamDark}
+          teamBright={teamBright}
+          format={data.format}
+          myPlayerId={null}
+          myTeam={myTeam}
+          refName={refName}
+        />
       </TouchableOpacity>
     );
   }
