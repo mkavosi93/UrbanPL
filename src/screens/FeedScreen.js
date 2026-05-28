@@ -401,8 +401,7 @@ function FixtureDetailModal({ fixture, visible, onClose, onWithdraw, onCheckIn, 
                 { icon: '⏰', title: 'Arrive Ready', body: "Kick-off waits for no one. Be warmed up and on the pitch on time." },
                 { icon: '🚫', title: 'Zero Drama', body: "Disputes happen — disrespect doesn't. Any fighting = instant ban." },
                 { icon: '📸', title: 'Real Profile, Real You', body: "Use a real photo so your teammates know who's showing up." },
-                { icon: '⚖️', title: 'Play Fair', body: "Lopsided teams? Mix it up. The game is bigger than your ego." },
-                { icon: '📋', title: 'Registered Players Only', body: "If you're not on the list, you're not on the pitch. No exceptions." },
+{ icon: '📋', title: 'Registered Players Only', body: "If you're not on the list, you're not on the pitch. No exceptions." },
                 { icon: '🤝', title: 'Good Energy Only', body: "Daps over drama. Respect the game and your opponents." },
               ].map(({ icon, title, body }) => (
                 <View key={title} style={styles.guidelineRow}>
