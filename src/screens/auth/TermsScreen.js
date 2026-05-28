@@ -15,15 +15,13 @@ const T_AND_C = [
   },
   {
     heading: '1. YOUR ACCOUNT',
-    body: `1.1. Age requirement. The minimum age to create an account and participate in Urban PL is 16 years old. This is a hard minimum — no exceptions.
+    body: `1.1. Age requirement. The minimum age to create an account and participate in Urban PL is 18 years old. This is a hard minimum — no exceptions. By registering, you confirm that you are 18 years of age or older.
 
-1.2. Players aged 16 or 17 must have obtained explicit approval from a parent or legal guardian before registering. By creating an account as a 16 or 17 year old, you confirm that your parent or guardian is aware of and has approved your use of Urban PL and agrees to these Terms on your behalf. Urban PL reserves the right to request proof of parental consent and to suspend any account where consent cannot be verified.
+1.2. You must always supply us with accurate and complete information, including your real name and a genuine profile photo. This lets your teammates and referees know who's showing up. False information or impersonation of any other person will result in immediate account removal.
 
-1.3. You must always supply us with accurate and complete information, including your real name and a genuine profile photo. This lets your teammates and referees know who's showing up. False information or impersonation of any other person will result in immediate account removal.
+1.3. Notifications. We send account, legal, and game-related notifications to the email address registered to your account. These include game confirmations, team assignments, lineup notifications, and match reminders — keep your email current.
 
-1.4. Notifications. We send account, legal, and game-related notifications to the email address registered to your account. These include game confirmations, team assignments, lineup notifications, and match reminders — keep your email current.
-
-1.5. Account security. You must keep your login credentials private. Notify us immediately at urbanpl.app@gmail.com if you become aware of any breach, unauthorized access, or loss of your login details. You are responsible for all activity that occurs under your account.`,
+1.4. Account security. You must keep your login credentials private. Notify us immediately at urbanpl.app@gmail.com if you become aware of any breach, unauthorized access, or loss of your login details. You are responsible for all activity that occurs under your account.`,
   },
   {
     heading: '2. ACCOUNT TERMINATION',
@@ -195,14 +193,6 @@ export default function TermsScreen({ onAccepted }) {
             <Text style={styles.sectionBody}>{section.body}</Text>
           </View>
         ))}
-
-        {/* Minor / Guardian notice */}
-        <View style={styles.minorBox}>
-          <Text style={styles.minorTitle}>For participants aged 16 or 17 (minor):</Text>
-          <Text style={styles.minorBody}>
-            As the parent or legal guardian of the participant, by signing below I hereby agree to this Release and Waiver of Liability and Assumption of Risk on behalf of the participant named on this account. I bind myself, the minor, and all assigns to these Terms. I certify that I have the legal capacity and authority to act for and on behalf of the minor in the execution of this agreement.
-          </Text>
-        </View>
 
         {/* Signature area */}
         <View style={styles.sigWrap}>
