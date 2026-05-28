@@ -11,60 +11,74 @@ import { colors } from '../../theme';
 const T_AND_C = [
   {
     heading: null,
-    body: `These Terms of Service ("Terms") govern your access to and use of Urban PL, a pickup soccer league platform. By creating an account and using Urban PL you agree to be bound by these Terms. Please read them carefully before proceeding.`,
+    body: `To all participants — these Terms of Service (the "Terms") set out the terms and conditions by which Urban PL offers you access to use and enjoy all our services. Urban PL is a pickup soccer league app that connects players, referees, and organizers across cities.\n\nPlease read these Terms carefully and make sure you understand them before using the app. By creating an account you agree to follow our rules. You are responsible for all content and activity on your account. Urban PL has no liability for content loss or problems with transmission of content.\n\nAttention: if you are under 18, please ensure a parent or guardian is aware you are using this app.`,
   },
   {
     heading: '1. YOUR ACCOUNT',
-    body: `1.1. You must be 16 years of age or older to create an account and participate in Urban PL games. By registering, you confirm that you meet this requirement.
+    body: `1.1. You must be 16 years of age or older to create an account and participate in Urban PL games. By registering, you confirm that you meet this age requirement.
 
-1.2. You are responsible for all activity that occurs under your account. Keep your login credentials private and notify us immediately at urbanpl.app@gmail.com if you suspect any unauthorized access.
+1.2. To create an account you must: (i) be at least 16 years old; or (ii) have valid parent or legal guardian consent. If you are unsure about this section, please speak to a parent or guardian before proceeding.
 
-1.3. You must provide accurate, complete, and up-to-date information including your real name and a genuine profile photo. Fake profiles or impersonation of another person will result in immediate account termination.
+1.3. You must always supply us with accurate and complete information, including your real name and a genuine profile photo. This lets your teammates and referees know who's showing up. False information or impersonation of any other person will result in immediate account removal.
 
-1.4. Urban PL reserves the right to suspend or terminate any account that violates these Terms, engages in unsportsmanlike conduct, or is found to be fraudulent — with or without prior notice.`,
+1.4. What email do I use? We send account, legal, and game-related notifications to the email address registered to your account. These may include game confirmations, team assignments, lineup notifications, and match reminders — so keep your email current.
+
+1.5. Account security: You must keep your login credentials private. Notify us immediately at urbanpl.app@gmail.com if you become aware of any breach, unauthorized access, or loss of your login details. You are responsible for all activity on your account.`,
   },
   {
-    heading: '2. PAYMENTS & REFUNDS',
-    body: `2.1. Entry fees for paid games are processed securely through Stripe. By submitting payment you authorize Urban PL to charge the stated amount to your selected payment method.
+    heading: '2. ACCOUNT TERMINATION',
+    body: `2.1. Can my account be suspended or terminated?
 
-2.2. A temporary authorization hold is placed when you join a paid game. You are charged only when the game is confirmed. If the game does not reach minimum player requirements the hold is released, which may take a few hours depending on your bank.
+2.1.1. You. You may close your account at any time by contacting us at urbanpl.app@gmail.com.
 
-2.3. Cancellation and refund policy:
-  • More than 5 hours before kickoff: Full refund or game credit (your choice).
-  • 3–5 hours before kickoff: Game credit only, subject to finding a replacement player.
-  • Less than 3 hours before kickoff: No refund.
+2.1.2. Us. We may suspend or terminate your account without notice if we reasonably determine that: you have breached any part of these Terms; you have made unauthorized use of another person's account; you are posting unacceptable content; or your conduct on or off the pitch is deemed harmful to other players, referees, or the Urban PL community. If you believe a mistake has been made, contact us and we will review — though we may keep the account suspended during that review.
 
-2.4. Urban PL is not liable for payment processing delays, bank fees, or declined card charges.`,
+2.2. Inactive accounts. If you abandon your account for a prolonged period without use, Urban PL reserves the right to deactivate or remove it.`,
   },
   {
-    heading: '3. GAME CONDUCT',
-    body: `3.1. All participants must follow the Community Guidelines displayed on each game. These include but are not limited to: arriving on time, respecting the referee's decisions, and maintaining sportsmanlike behavior at all times.
+    heading: '3. PAYMENTS & REFUNDS',
+    body: `3.1. Entry fees for paid games are processed securely through Stripe. By submitting payment you authorize Urban PL to charge the stated amount to your selected payment method.
 
-3.2. Any form of fighting, verbal abuse, discrimination, or threatening behavior will result in an immediate and permanent ban from Urban PL with no refund.
+3.2. We place a temporary authorization hold when you join a paid game. You are charged only once the game is confirmed. If the game does not reach the minimum number of players, the hold is released — this may take a few hours depending on your bank.
 
-3.3. Referee decisions are final during a game. Disputes may be reported post-game to urbanpl.app@gmail.com and will be reviewed at Urban PL's discretion.
+3.3. Cancellation policy:
+  • More than 5 hours before kickoff — Full refund or game credit (your choice).
+  • 3–5 hours before kickoff — Game credit only, subject to finding a replacement.
+  • Less than 3 hours before kickoff — No refund.
 
-3.4. Only registered and confirmed players are permitted to participate. Bringing unregistered guests onto the pitch is not permitted.`,
+3.4. A $0.50 fee applies for declined cards. Urban PL is not liable for payment processing delays or bank-imposed fees.`,
   },
   {
-    heading: '4. LIABILITY',
-    body: `4.1. Participation in Urban PL games involves physical activity and inherent risk of injury. By participating you acknowledge and accept these risks. Urban PL, its organizers, referees, and partners are not liable for any injury, loss, or damage sustained during participation.
+    heading: '4. GAME CONDUCT',
+    body: `4.1. All participants must follow the Community Guidelines shown on each game. This includes arriving on time, respecting the referee, and maintaining sportsmanlike behavior.
 
-4.2. Urban PL is not responsible for personal property lost, stolen, or damaged at any game venue.
+4.2. Fighting, verbal abuse, threats, or any form of discrimination will result in an immediate permanent ban with no refund issued.
 
-4.3. Urban PL makes reasonable efforts to confirm games but cannot guarantee that any specific game will proceed. We are not liable for costs incurred (e.g. travel) if a game is cancelled.`,
+4.3. Referee decisions are final during a game. Post-game disputes can be reported to urbanpl.app@gmail.com and will be reviewed at Urban PL's discretion.
+
+4.4. Only registered and confirmed players may take the pitch. Unregistered guests are not permitted.`,
   },
   {
-    heading: '5. PRIVACY',
-    body: `5.1. Urban PL collects personal information including your name, email address, phone number, and profile photo for the purpose of operating the platform, managing game registrations, and communicating with you about your account and upcoming games.
+    heading: '5. LIABILITY & SAFETY',
+    body: `5.1. Participation in Urban PL games involves physical activity and carries an inherent risk of injury. By participating you acknowledge and accept these risks. Urban PL, its organizers, referees, and partners are not liable for any injury, loss, or damage sustained during or in connection with participation.
 
-5.2. We do not sell or share your personal data with third parties except as required to deliver our services (e.g. Stripe for payment processing).
+5.2. Urban PL is not responsible for personal property that is lost, stolen, or damaged at any game venue.
 
-5.3. Full details are available in our Privacy Policy at theurbanpl.com/privacy-policy.html.`,
+5.3. While we make every effort to confirm games, we cannot guarantee any specific game will proceed. We are not liable for costs you incur (e.g. travel) if a game is cancelled.`,
   },
   {
-    heading: '6. CHANGES TO TERMS',
-    body: `Urban PL reserves the right to update these Terms at any time. Continued use of the app after changes are posted constitutes your acceptance of the revised Terms. We will make reasonable efforts to notify you of material changes via email or in-app notification.`,
+    heading: '6. PRIVACY',
+    body: `6.1. Urban PL collects your name, email, phone number, and profile photo to operate the platform, manage game registrations, and keep you informed about your account and upcoming games.
+
+6.2. We do not sell your personal data. We share it only as necessary to deliver our services (e.g. Stripe for payment processing, Supabase for data storage).
+
+6.3. Full details are in our Privacy Policy at theurbanpl.com/privacy-policy.html.`,
+  },
+  {
+    heading: '7. CHANGES TO THESE TERMS',
+    body: `Urban PL may update these Terms at any time. Continued use of the app after changes are posted means you accept the updated Terms. We will notify you of material changes via email or in-app notice.
+
+For questions about these Terms, contact us at urbanpl.app@gmail.com.`,
   },
 ];
 
