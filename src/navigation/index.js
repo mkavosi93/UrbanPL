@@ -20,6 +20,7 @@ import SignUpScreen from '../screens/auth/SignUpScreen';
 import ResetPasswordScreen from '../screens/auth/ResetPasswordScreen';
 import RefereeLoginScreen from '../screens/auth/RefereeLoginScreen';
 import RefereeSignUpScreen from '../screens/auth/RefereeSignUpScreen';
+import TermsScreen from '../screens/auth/TermsScreen';
 
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -129,10 +130,11 @@ function AuthStack() {
 }
 
 export default function Navigation() {
-  const { session, loading, isPasswordRecovery, player } = useAuth();
+  const { session, loading, isPasswordRecovery, player, setPlayer } = useAuth();
   const [splashDone, setSplashDone] = React.useState(false);
   const [onboardingChecked, setOnboardingChecked] = React.useState(false);
   const [showOnboarding, setShowOnboarding] = React.useState(false);
+  const [termsAccepted, setTermsAccepted] = React.useState(false);
 
   React.useEffect(() => {
     async function check() {
@@ -168,13 +170,16 @@ export default function Navigation() {
   }
 
   const isReferee = player?.role === 'Referee';
+  const needsTerms = session && player && !player.terms_accepted_at && !termsAccepted;
 
   return (
     <NavigationContainer>
       {isPasswordRecovery
         ? <ResetPasswordScreen />
         : session
-          ? isReferee ? <RefereeTabs /> : <MainTabs />
+          ? needsTerms
+            ? <TermsScreen onAccepted={() => setTermsAccepted(true)} />
+            : isReferee ? <RefereeTabs /> : <MainTabs />
           : <AuthStack />
       }
     </NavigationContainer>
