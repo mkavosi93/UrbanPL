@@ -11,19 +11,19 @@ import { colors } from '../../theme';
 const T_AND_C = [
   {
     heading: null,
-    body: `To all participants — these Terms of Service (the "Terms") set out the terms and conditions by which Urban PL offers you access to use and enjoy all our services. Urban PL is a pickup soccer league app that connects players, referees, and organizers across cities.\n\nPlease read these Terms carefully and make sure you understand them before using the app. By creating an account you agree to follow our rules. You are responsible for all content and activity on your account. Urban PL has no liability for content loss or problems with transmission of content.\n\nAttention: if you are under 18, please ensure a parent or guardian is aware you are using this app.`,
+    body: `To all participants — these Terms of Service (the "Terms") set out the terms and conditions by which Urban PL offers you access to use and enjoy all our services. Urban PL is a pickup soccer league app that connects players, referees, and organizers across cities.\n\nPlease read these Terms carefully and make sure you understand them before using the app. By creating an account you agree to follow our rules. You are responsible for all content and activity on your account. Urban PL has no liability for content loss or problems with transmission of content.`,
   },
   {
     heading: '1. YOUR ACCOUNT',
-    body: `1.1. You must be 16 years of age or older to create an account and participate in Urban PL games. By registering, you confirm that you meet this age requirement.
+    body: `1.1. Age requirement. The minimum age to create an account and participate in Urban PL is 16 years old. This is a hard minimum — no exceptions.
 
-1.2. To create an account you must: (i) be at least 16 years old; or (ii) have valid parent or legal guardian consent. If you are unsure about this section, please speak to a parent or guardian before proceeding.
+1.2. Players aged 16 or 17 must have obtained explicit approval from a parent or legal guardian before registering. By creating an account as a 16 or 17 year old, you confirm that your parent or guardian is aware of and has approved your use of Urban PL and agrees to these Terms on your behalf. Urban PL reserves the right to request proof of parental consent and to suspend any account where consent cannot be verified.
 
 1.3. You must always supply us with accurate and complete information, including your real name and a genuine profile photo. This lets your teammates and referees know who's showing up. False information or impersonation of any other person will result in immediate account removal.
 
-1.4. What email do I use? We send account, legal, and game-related notifications to the email address registered to your account. These may include game confirmations, team assignments, lineup notifications, and match reminders — so keep your email current.
+1.4. Notifications. We send account, legal, and game-related notifications to the email address registered to your account. These include game confirmations, team assignments, lineup notifications, and match reminders — keep your email current.
 
-1.5. Account security: You must keep your login credentials private. Notify us immediately at urbanpl.app@gmail.com if you become aware of any breach, unauthorized access, or loss of your login details. You are responsible for all activity on your account.`,
+1.5. Account security. You must keep your login credentials private. Notify us immediately at urbanpl.app@gmail.com if you become aware of any breach, unauthorized access, or loss of your login details. You are responsible for all activity that occurs under your account.`,
   },
   {
     heading: '2. ACCOUNT TERMINATION',
@@ -76,28 +76,24 @@ const T_AND_C = [
   },
   {
     heading: '7. USER RULES',
-    body: `7.1. You must comply with the acceptable use and behavioral policies that Urban PL publishes from time to time on our app and website (collectively the "User Rules"). These rules are not exhaustive, and we reserve the right to modify them and take appropriate disciplinary action — including temporary bans, account suspension, or permanent termination — to protect the integrity of the Urban PL community, regardless of whether a specific behavior is explicitly listed.
+    body: `7.1. You must comply with the acceptable use and behavioral policies that Urban PL publishes from time to time on the app (collectively the "User Rules"). These rules are not exhaustive, and we reserve the right to modify them and take appropriate disciplinary action — including temporary bans, account suspension, or permanent termination — to protect the integrity of the Urban PL community, regardless of whether a specific behavior is explicitly listed.
 
 The following are examples of behavior that will result in disciplinary action:
   • Impersonating any person, business, or entity, or communicating in a way that falsely implies the message originates from another user.
-  • Publicly posting identifying or private information about other users without their consent.
-  • Harassing, stalking, threatening, or intimidating other players, referees, or staff.
-  • Removing, altering, or concealing any copyright, trademark, or proprietary rights notice belonging to Urban PL.
-  • Transmitting content that infringes or violates the rights of others, including patent, trademark, trade secret, copyright, or personal rights.
+  • Publicly posting identifying or private information about other players or referees without their consent.
+  • Harassing, stalking, threatening, or intimidating other players, referees, or Urban PL staff.
   • Posting or communicating content that is unlawful, harmful, threatening, abusive, harassing, defamatory, vulgar, obscene, sexually explicit, or racially, ethnically, or otherwise objectionable.
   • Choosing an account name or username that is offensive, defamatory, vulgar, or objectionable, or using a misspelling or alternative spelling to circumvent this restriction. Urban PL may modify any name that violates this provision without notice and may take further action for repeated violations.`,
   },
   {
     heading: '8. USER GENERATED CONTENT',
-    body: `8.1. You are responsible for all content you create, upload, or transmit through Urban PL, including your profile photo, username, in-game chat messages, and any other material ("Your Content").
+    body: `8.1. You are responsible for all content you upload or send through Urban PL — including your profile photo, username, and in-game chat messages.
 
-8.2. By uploading or transmitting Your Content you grant Urban PL a worldwide, perpetual, irrevocable, sub-licensable, non-exclusive, royalty-free right and license to use, reproduce, distribute, adapt, modify, translate, create derivative works from, publicly perform, publicly display, and import Your Content — including all copyrights, publicity rights, trademarks, and other intellectual property rights — for the purpose of operating and improving Urban PL, without any compensation to you.
+8.2. Your profile photo may be visible to other players and referees in games you join. By uploading a photo you confirm you have the right to use it and that it meets our community standards (real photo, no offensive imagery).
 
-8.3. You waive any moral rights you may have in Your Content to the maximum extent permitted by applicable law. If local laws do not allow waiver of moral rights, you grant Urban PL the right to use Your Content with or without your name or pseudonym, and to freely edit Your Content as needed.
+8.3. By uploading content to Urban PL you grant us a limited license to display it within the app for the purpose of operating the platform (e.g. showing your photo on game lineups and your profile). We will not use your content for advertising or sell it to third parties.
 
-8.4. You represent and warrant that Your Content does not violate any third-party rights, is not subject to any confidentiality obligations, and complies with all applicable laws. Urban PL will not be liable for any use or disclosure of Your Content.
-
-8.5. Urban PL reserves the right to remove any content that we reasonably believe violates these Terms or is otherwise harmful to our community.`,
+8.4. Urban PL reserves the right to remove any content that violates these Terms or is otherwise harmful to the community, without prior notice.`,
   },
   {
     heading: '9. CHANGES TO THESE TERMS',
