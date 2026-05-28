@@ -75,7 +75,32 @@ const T_AND_C = [
 6.3. Full details are in our Privacy Policy at theurbanpl.com/privacy-policy.html.`,
   },
   {
-    heading: '7. CHANGES TO THESE TERMS',
+    heading: '7. USER RULES',
+    body: `7.1. You must comply with the acceptable use and behavioral policies that Urban PL publishes from time to time on our app and website (collectively the "User Rules"). These rules are not exhaustive, and we reserve the right to modify them and take appropriate disciplinary action — including temporary bans, account suspension, or permanent termination — to protect the integrity of the Urban PL community, regardless of whether a specific behavior is explicitly listed.
+
+The following are examples of behavior that will result in disciplinary action:
+  • Impersonating any person, business, or entity, or communicating in a way that falsely implies the message originates from another user.
+  • Publicly posting identifying or private information about other users without their consent.
+  • Harassing, stalking, threatening, or intimidating other players, referees, or staff.
+  • Removing, altering, or concealing any copyright, trademark, or proprietary rights notice belonging to Urban PL.
+  • Transmitting content that infringes or violates the rights of others, including patent, trademark, trade secret, copyright, or personal rights.
+  • Posting or communicating content that is unlawful, harmful, threatening, abusive, harassing, defamatory, vulgar, obscene, sexually explicit, or racially, ethnically, or otherwise objectionable.
+  • Choosing an account name or username that is offensive, defamatory, vulgar, or objectionable, or using a misspelling or alternative spelling to circumvent this restriction. Urban PL may modify any name that violates this provision without notice and may take further action for repeated violations.`,
+  },
+  {
+    heading: '8. USER GENERATED CONTENT',
+    body: `8.1. You are responsible for all content you create, upload, or transmit through Urban PL, including your profile photo, username, in-game chat messages, and any other material ("Your Content").
+
+8.2. By uploading or transmitting Your Content you grant Urban PL a worldwide, perpetual, irrevocable, sub-licensable, non-exclusive, royalty-free right and license to use, reproduce, distribute, adapt, modify, translate, create derivative works from, publicly perform, publicly display, and import Your Content — including all copyrights, publicity rights, trademarks, and other intellectual property rights — for the purpose of operating and improving Urban PL, without any compensation to you.
+
+8.3. You waive any moral rights you may have in Your Content to the maximum extent permitted by applicable law. If local laws do not allow waiver of moral rights, you grant Urban PL the right to use Your Content with or without your name or pseudonym, and to freely edit Your Content as needed.
+
+8.4. You represent and warrant that Your Content does not violate any third-party rights, is not subject to any confidentiality obligations, and complies with all applicable laws. Urban PL will not be liable for any use or disclosure of Your Content.
+
+8.5. Urban PL reserves the right to remove any content that we reasonably believe violates these Terms or is otherwise harmful to our community.`,
+  },
+  {
+    heading: '9. CHANGES TO THESE TERMS',
     body: `Urban PL may update these Terms at any time. Continued use of the app after changes are posted means you accept the updated Terms. We will notify you of material changes via email or in-app notice.
 
 For questions about these Terms, contact us at urbanpl.app@gmail.com.`,
