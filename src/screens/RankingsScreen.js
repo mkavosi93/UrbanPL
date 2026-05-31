@@ -201,6 +201,102 @@ function RankRow({ player, rank, sortKey, isMe }) {
   );
 }
 
+// ── Points Formula Card ───────────────────────────────────────────────────────
+function PointsFormulaCard() {
+  const [expanded, setExpanded] = React.useState(false);
+  const rows = [
+    { icon: '🏆', label: 'Win',               value: '+3 pts' },
+    { icon: '⚽', label: 'Goal scored',        value: '+1 pt each' },
+    { icon: '🧤', label: 'GK clean sheet',     value: '+3 pts' },
+    { icon: '🧤', label: 'GK concede only 1',  value: '+1 pt' },
+    { icon: '🟨', label: 'Yellow card',         value: '−1 pt' },
+    { icon: '🟥', label: 'Red card',            value: '−3 pts' },
+  ];
+
+  return (
+    <TouchableOpacity
+      style={formulaStyles.card}
+      onPress={() => setExpanded(e => !e)}
+      activeOpacity={0.85}
+    >
+      <View style={formulaStyles.header}>
+        <Text style={formulaStyles.title}>🏅 How Points Are Calculated</Text>
+        <Text style={formulaStyles.chevron}>{expanded ? '▲' : '▼'}</Text>
+      </View>
+      {expanded && (
+        <View style={formulaStyles.body}>
+          {rows.map((row, i) => (
+            <View key={i} style={[formulaStyles.row, i < rows.length - 1 && formulaStyles.rowBorder]}>
+              <Text style={formulaStyles.rowIcon}>{row.icon}</Text>
+              <Text style={formulaStyles.rowLabel}>{row.label}</Text>
+              <Text style={[
+                formulaStyles.rowValue,
+                row.value.startsWith('−') && formulaStyles.rowValueNeg,
+              ]}>
+                {row.value}
+              </Text>
+            </View>
+          ))}
+          <Text style={formulaStyles.note}>Minimum 0 pts per game · Referees excluded from rankings</Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+}
+
+const formulaStyles = StyleSheet.create({
+  card: {
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+    backgroundColor: colors.darkCard,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.gold + '44',
+    overflow: 'hidden',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+  },
+  title: {
+    color: colors.gold,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+  },
+  chevron: { color: colors.gray, fontSize: 11 },
+  body: {
+    borderTopWidth: 1,
+    borderTopColor: colors.darkBorder,
+    paddingHorizontal: spacing.md,
+    paddingTop: 6,
+    paddingBottom: 10,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
+  rowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.darkBorder,
+  },
+  rowIcon: { fontSize: 14, width: 24 },
+  rowLabel: { flex: 1, color: colors.grayLight, fontSize: 12, fontWeight: '500' },
+  rowValue: { color: '#4CAF50', fontSize: 13, fontWeight: '700' },
+  rowValueNeg: { color: '#F44336' },
+  note: {
+    color: colors.gray,
+    fontSize: 10,
+    marginTop: 8,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+});
+
 // ── Section Divider ───────────────────────────────────────────────────────────
 function SectionLabel({ label }) {
   return (
@@ -323,6 +419,7 @@ export default function RankingsScreen() {
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={
             <>
+              <PointsFormulaCard />
               <Podium players={top3} sortKey={activeSortKey} />
               <SectionLabel label={t('rankings.rank')} />
               {top3.map((p, i) => (

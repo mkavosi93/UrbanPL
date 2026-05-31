@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Terms of Service — Urban PL</title>
+  <meta name="description" content="Urban PL Terms of Service, Release and Waiver of Liability, and Assumption of Risk." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0d0d0d;
+      color: #ffffff;
+      line-height: 1.8;
+    }
+    a { color: #c9a84c; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* NAV */
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 32px;
+      background: rgba(13,13,13,0.98);
+      border-bottom: 1px solid #2a2a2a;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .nav-logo { display: flex; align-items: center; gap: 10px; color: inherit; text-decoration: none; }
+    .nav-logo img { width: 34px; height: 34px; border-radius: 8px; object-fit: contain; }
+    .nav-logo-urban { font-size: 14px; font-weight: 300; color: #fff; letter-spacing: 4px; }
+    .nav-logo-pl { font-size: 20px; font-weight: 900; color: #c9a84c; letter-spacing: -0.5px; }
+    .nav-back { font-size: 13px; color: #888; font-weight: 500; transition: color 0.2s; }
+    .nav-back:hover { color: #c9a84c; text-decoration: none; }
+
+    /* HERO */
+    .hero {
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(201,168,76,0.1) 0%, transparent 70%);
+      border-bottom: 1px solid #2a2a2a;
+      padding: 64px 24px 48px;
+      text-align: center;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.35);
+      border-radius: 100px; padding: 5px 14px;
+      font-size: 11px; font-weight: 700; color: #c9a84c;
+      letter-spacing: 2px; text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .hero h1 { font-size: clamp(28px, 5vw, 44px); font-weight: 900; letter-spacing: -1px; margin-bottom: 12px; }
+    .hero-sub { font-size: 15px; color: #888; max-width: 560px; margin: 0 auto; line-height: 1.7; }
+    .hero-updated { font-size: 12px; color: #555; margin-top: 16px; }
+
+    /* CONTENT */
+    .container { max-width: 780px; margin: 0 auto; padding: 56px 24px 80px; }
+
+    .intro-box {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-left: 3px solid #c9a84c;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 40px;
+      font-size: 14px;
+      color: #bbb;
+      line-height: 1.8;
+      font-style: italic;
+    }
+
+    .section { margin-bottom: 40px; }
+
+    h2 {
+      font-size: 13px; font-weight: 800;
+      color: #c9a84c; text-transform: uppercase;
+      letter-spacing: 2px; margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #2a2a2a;
+    }
+
+    p { font-size: 14px; color: #bbb; margin-bottom: 14px; line-height: 1.8; }
+    p:last-child { margin-bottom: 0; }
+    strong { color: #fff; }
+
+    .sub-section { margin-bottom: 20px; }
+    .sub-heading {
+      font-size: 13px; font-weight: 700; color: #fff;
+      margin-bottom: 8px;
+    }
+
+    ul.bullet { padding-left: 20px; margin-bottom: 14px; }
+    ul.bullet li {
+      font-size: 14px; color: #bbb; line-height: 1.8; margin-bottom: 6px;
+      list-style: disc;
+    }
+
+    .highlight-box {
+      background: rgba(201,168,76,0.06);
+      border: 1px solid rgba(201,168,76,0.25);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 16px 0;
+      font-size: 13px; color: #bbb; line-height: 1.7;
+    }
+    .highlight-box strong { color: #c9a84c; }
+
+    hr { border: none; border-top: 1px solid #2a2a2a; margin: 48px 0; }
+
+    /* FOOTER */
+    footer {
+      background: #1a1a1a;
+      border-top: 1px solid #2a2a2a;
+      padding: 32px 24px;
+      text-align: center;
+      font-size: 12px; color: #555;
+    }
+    footer a { color: #c9a84c; }
+    footer .footer-links { display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; margin-bottom: 16px; }
+
+    @media (max-width: 540px) {
+      nav { padding: 14px 20px; }
+      .container { padding: 40px 20px 60px; }
+      .hero { padding: 48px 20px 36px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a href="/" class="nav-logo">
+      <img src="logo.png" alt="Urban PL" />
+      <div>
+        <span class="nav-logo-urban">URBAN </span><span class="nav-logo-pl">PL</span>
+      </div>
+    </a>
+    <a href="/" class="nav-back">← Back to Home</a>
+  </nav>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-badge">⚽ Legal</div>
+    <h1>Terms of Service</h1>
+    <p class="hero-sub">Please read these Terms carefully before using Urban PL. By creating an account you agree to be bound by these Terms.</p>
+    <p class="hero-updated">Last updated: May 2026</p>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="container">
+
+    <div class="intro-box">
+      IN CONSIDERATION of being permitted to participate in any Urban PL activity, I agree to the following Terms of Service, Release and Waiver of Liability, and Assumption of Risk. By signing up I certify that I have read and fully understand this agreement and that I accept it freely and voluntarily.
+    </div>
+
+    <p style="font-size:14px;color:#bbb;margin-bottom:40px;">
+      To all participants — these Terms of Service (the "Terms") set out the terms and conditions by which Urban PL offers you access to use and enjoy all our services. Urban PL is a pickup soccer league app that connects players, referees, and organizers across cities.<br /><br />
+      Please read these Terms carefully and make sure you understand them before using the app. By creating an account you agree to follow our rules. You are responsible for all content and activity on your account. Urban PL has no liability for content loss or problems with transmission of content.
+    </p>
+
+    <!-- 1 -->
+    <div class="section">
+      <h2>1. Your Account</h2>
+      <div class="sub-section">
+        <div class="sub-heading">1.1 Age Requirement</div>
+        <p>The minimum age to create an account and participate in Urban PL is <strong>18 years old</strong>. This is a hard minimum — no exceptions. By registering, you confirm that you are 18 years of age or older.</p>
+      </div>
+      <div class="sub-section">
+        <div class="sub-heading">1.2 Accurate Information</div>
+        <p>You must always supply us with accurate and complete information, including your real name and a genuine profile photo. This lets your teammates and referees know who's showing up. False information or impersonation of any other person will result in immediate account removal.</p>
+      </div>
+      <div class="sub-section">
+        <div class="sub-heading">1.3 Notifications</div>
+        <p>We send account, legal, and game-related notifications to the email address registered to your account. These include game confirmations, team assignments, lineup notifications, and match reminders — keep your email current.</p>
+      </div>
+      <div class="sub-section">
+        <div class="sub-heading">1.4 Account Security</div>
+        <p>You must keep your login credentials private. Notify us immediately at <a href="mailto:urbanpl.app@gmail.com">urbanpl.app@gmail.com</a> if you become aware of any breach, unauthorized access, or loss of your login details. You are responsible for all activity that occurs under your account.</p>
+      </div>
+    </div>
+
+    <!-- 2 -->
+    <div class="section">
+      <h2>2. Account Termination</h2>
+      <div class="sub-section">
+        <div class="sub-heading">2.1 Can my account be suspended or terminated?</div>
+        <p><strong>You.</strong> You may close your account at any time by contacting us at <a href="mailto:urbanpl.app@gmail.com">urbanpl.app@gmail.com</a>.</p>
+        <p><strong>Us.</strong> We may suspend or terminate your account without notice if we reasonably determine that: you have breached any part of these Terms; you have made unauthorized use of another person's account; you are posting unacceptable content; or your conduct on or off the pitch is deemed harmful to other players, referees, or the Urban PL community. If you believe a mistake has been made, contact us and we will review — though we may keep the account suspended during that review.</p>
+      </div>
+      <div class="sub-section">
+        <div class="sub-heading">2.2 Inactive Accounts</div>
+        <p>If you abandon your account for a prolonged period without use, Urban PL reserves the right to deactivate or remove it.</p>
+      </div>
+    </div>
+
+    <!-- 3 -->
+    <div class="section">
+      <h2>3. Payments &amp; Refunds</h2>
+      <p>Entry fees for paid games are processed securely through Stripe. By submitting payment you authorize Urban PL to charge the stated amount to your selected payment method.</p>
+      <p>We place a temporary authorization hold when you join a paid game. You are charged only once the game is confirmed. If the game does not reach the minimum number of players, the hold is released — this may take a few hours depending on your bank.</p>
+      <div class="highlight-box">
+        <strong>Cancellation Policy:</strong><br />
+        • More than 5 hours before kickoff — Full refund or game credit (your choice).<br />
+        • 3–5 hours before kickoff — Game credit only, subject to finding a replacement.<br />
+        • Less than 3 hours before kickoff — No refund.
+      </div>
+      <p>A $0.50 fee applies for declined cards. Urban PL is not liable for payment processing delays or bank-imposed fees.</p>
+    </div>
+
+    <!-- 4 -->
+    <div class="section">
+      <h2>4. Game Conduct</h2>
+      <p>All participants must follow the Community Guidelines shown on each game. This includes arriving on time, respecting the referee, and maintaining sportsmanlike behavior.</p>
+      <p>Fighting, verbal abuse, threats, or any form of discrimination will result in an immediate permanent ban with no refund issued.</p>
+      <p>Referee decisions are final during a game. Post-game disputes can be reported to <a href="mailto:urbanpl.app@gmail.com">urbanpl.app@gmail.com</a> and will be reviewed at Urban PL's discretion.</p>
+      <p>Only registered and confirmed players may take the pitch. Unregistered guests are not permitted.</p>
+    </div>
+
+    <!-- 5 -->
+    <div class="section">
+      <h2>5. Assumption of Risk &amp; Waiver of Liability</h2>
+      <div class="sub-section">
+        <div class="sub-heading">5.1 Acknowledgment of Risk</div>
+        <p>I acknowledge and understand that participation in Urban PL soccer activities involves risks and dangers of serious bodily injury, including permanent disability, paralysis, and death ("Risks"). These risks may be caused by my own actions or inactions, the actions or inactions of other participants, the condition of the venue, or the acts or negligence of Urban PL, its organizers, referees, employees, volunteers, and agents (collectively the "Releasees"). I freely and voluntarily accept and assume all such risks and responsibility for any losses, costs, and damages I may incur as a result of my participation.</p>
+      </div>
+      <div class="sub-section">
+        <div class="sub-heading">5.2 Physical Fitness</div>
+        <p>I represent that I am in good health and in proper physical condition to participate in Urban PL activities. If at any time I believe conditions or my health make participation unsafe, I will immediately stop participating.</p>
+      </div>
+      <div class="sub-section">
+        <div class="sub-heading">5.3 Release of Liability</div>
+        <p>In consideration of being permitted to participate in Urban PL activities, I hereby release, discharge, and covenant not to sue Urban PL and the Releasees from all liability, claims, demands, losses, or damages arising out of or caused in whole or in part by my participation, even if caused by the negligence of the Releasees. I accept all responsibility for losses, costs, and damages I incur as a result of my participation.</p>
+      </div>
+      <div class="sub-section">
+        <div class="sub-heading">5.4 Indemnification</div>
+        <p>I agree to indemnify and hold harmless Urban PL and the Releasees from any loss, liability, damage, or costs — including legal fees — that they may incur due to my participation, whether caused by negligence or otherwise.</p>
+      </div>
+      <div class="sub-section">
+        <div class="sub-heading">5.5 Property</div>
+        <p>Urban PL is not responsible for personal property that is lost, stolen, or damaged at any game venue.</p>
+      </div>
+      <div class="sub-section">
+        <div class="sub-heading">5.6 Game Cancellation</div>
+        <p>While we make every effort to confirm games, we cannot guarantee any specific game will proceed. We are not liable for costs you incur (e.g. travel) if a game is cancelled.</p>
+      </div>
+      <div class="sub-section">
+        <div class="sub-heading">5.7 Medical Emergency Consent</div>
+        <p>In the event of an accident or illness during my participation, I hereby grant authority to Urban PL staff and referees to seek and render reasonable medical assistance or emergency care on my behalf. I accept financial responsibility for any such medical treatment.</p>
+      </div>
+      <div class="sub-section">
+        <div class="sub-heading">5.8 Photo and Likeness</div>
+        <p>I authorize Urban PL to use photographs, images, or video of me taken during activities — including match share cards and promotional materials — without compensation. This does not extend to selling my likeness to third parties.</p>
+      </div>
+    </div>
+
+    <!-- 6 -->
+    <div class="section">
+      <h2>6. Privacy</h2>
+      <p>Urban PL collects your name, email, phone number, and profile photo to operate the platform, manage game registrations, and keep you informed about your account and upcoming games.</p>
+      <p>We do not sell your personal data. We share it only as necessary to deliver our services (e.g. Stripe for payment processing, Supabase for data storage).</p>
+      <p>Full details are in our <a href="privacy-policy.html">Privacy Policy</a>.</p>
+    </div>
+
+    <!-- 7 -->
+    <div class="section">
+      <h2>7. User Rules</h2>
+      <p>You must comply with the acceptable use and behavioral policies that Urban PL publishes from time to time on the app. These rules are not exhaustive, and we reserve the right to modify them and take appropriate disciplinary action — including temporary bans, account suspension, or permanent termination — to protect the integrity of the Urban PL community.</p>
+      <p>The following are examples of behavior that will result in disciplinary action:</p>
+      <ul class="bullet">
+        <li>Impersonating any person, business, or entity, or communicating in a way that falsely implies the message originates from another user.</li>
+        <li>Publicly posting identifying or private information about other players or referees without their consent.</li>
+        <li>Harassing, stalking, threatening, or intimidating other players, referees, or Urban PL staff.</li>
+        <li>Posting or communicating content that is unlawful, harmful, threatening, abusive, harassing, defamatory, vulgar, obscene, sexually explicit, or racially, ethnically, or otherwise objectionable.</li>
+        <li>Choosing an account name or username that is offensive, defamatory, vulgar, or objectionable, or using a misspelling or alternative spelling to circumvent this restriction.</li>
+      </ul>
+    </div>
+
+    <!-- 8 -->
+    <div class="section">
+      <h2>8. User Generated Content</h2>
+      <p>You are responsible for all content you upload or send through Urban PL — including your profile photo, username, and in-game chat messages.</p>
+      <p>Your profile photo may be visible to other players and referees in games you join. By uploading a photo you confirm you have the right to use it and that it meets our community standards (real photo, no offensive imagery).</p>
+      <p>By uploading content to Urban PL you grant us a limited license to display it within the app for the purpose of operating the platform. We will not use your content for advertising or sell it to third parties.</p>
+      <p>Urban PL reserves the right to remove any content that violates these Terms or is otherwise harmful to the community, without prior notice.</p>
+    </div>
+
+    <!-- 9 -->
+    <div class="section">
+      <h2>9. Changes to These Terms</h2>
+      <p>Urban PL may update these Terms at any time. Continued use of the app after changes are posted means you accept the updated Terms. We will notify you of material changes via email or in-app notice.</p>
+      <p>For questions about these Terms, contact us at <a href="mailto:urbanpl.app@gmail.com">urbanpl.app@gmail.com</a>.</p>
+    </div>
+
+    <hr />
+
+    <div style="text-align:center; padding: 8px 0;">
+      <div style="font-size:11px; color:#555; margin-bottom:8px; letter-spacing:1px; text-transform:uppercase;">Urban PL · South Florida</div>
+      <a href="mailto:urbanpl.app@gmail.com" style="font-size:13px; color:#c9a84c;">urbanpl.app@gmail.com</a>
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="privacy-policy.html">Privacy Policy</a>
+      <a href="sms-terms.html">SMS Terms</a>
+      <a href="signup.html">Sign Up</a>
+      <a href="mailto:urbanpl.app@gmail.com">Contact</a>
+    </div>
+    © 2026 Urban PL. All rights reserved.
+  </footer>
+
+</body>
+</html>

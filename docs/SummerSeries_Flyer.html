@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Urban PL – Summer Series</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,700;0,900;1,700;1,900&family=Oswald:wght@300;400;600;700&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a0a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 30px;
+    min-height: 100vh;
+  }
+
+  .flyer {
+    width: 1100px;
+    height: 720px;
+    position: relative;
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Background photo ── */
+  .bg-photo {
+    position: absolute; inset: 0;
+    background: url('florida-sunset-bg.jpg') center 30% / cover no-repeat;
+    z-index: 0;
+    filter: brightness(0.75) saturate(1.2) contrast(1.05);
+  }
+
+  /* Dark overlay top + left side */
+  .bg-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(
+      105deg,
+      rgba(5,5,18,0.92) 0%,
+      rgba(5,5,18,0.70) 35%,
+      rgba(5,5,18,0.20) 65%,
+      rgba(5,5,18,0.10) 100%
+    );
+    z-index: 1;
+  }
+
+  /* Bottom dark strip (matches the reference) */
+  .bg-bottom {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 210px;
+    background: linear-gradient(to top,
+      rgba(5,5,18,0.98) 0%,
+      rgba(5,5,18,0.85) 55%,
+      transparent 100%
+    );
+    z-index: 2;
+  }
+
+  /* Subtle sunset glow center */
+  .bg-glow {
+    position: absolute;
+    top: 10%; left: 55%;
+    transform: translateX(-50%);
+    width: 700px; height: 400px;
+    background: radial-gradient(ellipse,
+      rgba(255,90,30,0.14) 0%,
+      rgba(220,50,100,0.08) 40%,
+      transparent 70%
+    );
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  /* ── All content above bg ── */
+  .content {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 0;
+  }
+
+  /* ─────────── TOP SECTION ─────────── */
+  .top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 34px 44px 0;
+  }
+
+  /* Logo */
+  .logo-group { display: flex; align-items: center; gap: 12px; }
+  .logo-img {
+    width: 100px; height: 100px;
+    object-fit: contain;
+    mix-blend-mode: screen;
+    filter: brightness(2.2) drop-shadow(0 0 20px rgba(245,197,24,0.95)) drop-shadow(0 0 40px rgba(245,197,24,0.5));
+  }
+  .logo-text { display: flex; flex-direction: column; line-height: 1; }
+  .logo-urban {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 400; font-size: 20px;
+    color: #fff; letter-spacing: 7px;
+    text-shadow: 0 0 20px rgba(255,255,255,0.4);
+  }
+  .logo-pl {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700; font-size: 38px;
+    color: #F5C518; letter-spacing: -1px; line-height: 1;
+    text-shadow: 0 0 24px rgba(245,197,24,0.7);
+  }
+
+  /* Badge — top right */
+  .presents-badge {
+    display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
+  }
+  .presents-label {
+    font-size: 8px; font-weight: 700;
+    color: rgba(245,197,24,0.7);
+    letter-spacing: 3px; text-transform: uppercase;
+  }
+  .presents-series {
+    font-family: 'Oswald', sans-serif;
+    font-size: 13px; font-weight: 600;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 4px; text-transform: uppercase;
+  }
+
+  /* ─────────── HEADLINE AREA ─────────── */
+  .headline-area {
+    padding: 12px 44px 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+  }
+
+  .event-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(245,197,24,0.12);
+    border: 1px solid rgba(245,197,24,0.5);
+    border-radius: 3px; padding: 4px 12px;
+    margin-bottom: 10px;
+    width: fit-content;
+  }
+  .event-dot { width: 5px; height: 5px; background: #F5C518; border-radius: 50%; }
+  .event-badge-text {
+    font-size: 8px; font-weight: 700;
+    color: #F5C518; letter-spacing: 3px; text-transform: uppercase;
+  }
+
+  .hl-urban {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 100px; font-weight: 900;
+    color: #fff; text-transform: uppercase;
+    letter-spacing: -2px; line-height: 0.85;
+    text-shadow: 0 2px 40px rgba(0,0,0,0.5);
+    display: block;
+  }
+  .hl-summer {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 100px; font-weight: 900; font-style: italic;
+    color: #F5C518; text-transform: uppercase;
+    letter-spacing: -2px; line-height: 0.85;
+    text-shadow: 0 0 60px rgba(245,197,24,0.45), 0 2px 30px rgba(0,0,0,0.5);
+    display: block;
+  }
+  .hl-series {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 100px; font-weight: 900;
+    color: #fff; text-transform: uppercase;
+    letter-spacing: -2px; line-height: 0.85;
+    text-shadow: 0 2px 40px rgba(0,0,0,0.5);
+    display: block;
+  }
+
+  .tagline-row {
+    display: flex; align-items: center; gap: 12px;
+    margin-top: 14px;
+  }
+  .tagline-line { width: 32px; height: 2px; background: #F5C518; flex-shrink: 0; }
+  .tagline-text {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 18px; font-weight: 700; font-style: italic;
+    color: rgba(255,255,255,0.75);
+    letter-spacing: 3px; text-transform: uppercase;
+  }
+  .tagline-text em { color: #F5C518; font-style: italic; }
+
+  /* ─────────── CITIES ─────────── */
+  .cities-area {
+    padding: 14px 44px 0;
+  }
+  .cities-label {
+    font-size: 8px; font-weight: 800;
+    color: rgba(245,197,24,0.65);
+    letter-spacing: 3.5px; text-transform: uppercase;
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .cities-label::before, .cities-label::after {
+    content: '';
+    height: 1px; width: 24px;
+    background: rgba(245,197,24,0.4);
+    display: inline-block;
+  }
+  .cities-row {
+    display: flex; gap: 0; align-items: stretch;
+  }
+  .city-card {
+    flex: 1;
+    background: rgba(0,0,0,0.45);
+    border: 1px solid rgba(245,197,24,0.22);
+    border-right: none;
+    padding: 12px 18px;
+    display: flex; flex-direction: column;
+    align-items: flex-start; gap: 3px;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.2s;
+  }
+  .city-card:first-child { border-radius: 8px 0 0 8px; }
+  .city-card:last-child  { border-radius: 0 8px 8px 0; border-right: 1px solid rgba(245,197,24,0.22); }
+  .city-card::before {
+    content: '';
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: linear-gradient(to bottom, #F5C518, rgba(245,197,24,0.2));
+  }
+  .city-card-pin {
+    font-size: 13px; margin-bottom: 1px;
+  }
+  .city-card-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 20px; font-weight: 900;
+    color: #fff; text-transform: uppercase;
+    letter-spacing: 0.5px; line-height: 1;
+  }
+  .city-card-state {
+    font-size: 8px; font-weight: 700;
+    color: #F5C518; letter-spacing: 2.5px;
+    text-transform: uppercase;
+  }
+
+  /* ─────────── BOTTOM STRIP ─────────── */
+  .bottom-strip {
+    display: flex;
+    align-items: center;
+    padding: 18px 44px;
+    margin-top: auto;
+    gap: 24px;
+    border-top: 1px solid rgba(245,197,24,0.18);
+  }
+
+  /* Features */
+  .features {
+    display: flex; gap: 20px; flex: 1;
+  }
+  .feature {
+    display: flex; align-items: center; gap: 7px;
+  }
+  .feature-icon { font-size: 16px; }
+  .feature-text {
+    font-size: 9px; font-weight: 700;
+    color: rgba(255,255,255,0.65);
+    letter-spacing: 1px; text-transform: uppercase;
+    line-height: 1.4;
+  }
+  .feature-text strong {
+    color: #fff;
+    display: block;
+    font-size: 10px;
+  }
+
+  /* Divider */
+  .strip-divider {
+    width: 1px; height: 60px;
+    background: rgba(255,255,255,0.12);
+    flex-shrink: 0;
+  }
+
+  /* CTA */
+  .cta-col {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 6px;
+    flex-shrink: 0;
+  }
+  .cta-btn {
+    background: #F5C518;
+    border-radius: 5px;
+    padding: 10px 24px;
+    text-align: center;
+    box-shadow: 0 0 30px rgba(245,197,24,0.4);
+    cursor: pointer;
+  }
+  .cta-btn-text {
+    font-family: 'Oswald', sans-serif;
+    font-size: 13px; font-weight: 700;
+    color: #07080a; letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+  .cta-sub {
+    font-size: 8px; font-weight: 700;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 2px; text-transform: uppercase;
+  }
+
+  /* QR */
+  .qr-col {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 5px;
+    flex-shrink: 0;
+  }
+  .qr-label {
+    font-size: 7px; font-weight: 700;
+    color: #F5C518; letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .qr-img {
+    width: 80px; height: 80px;
+    border: 2px solid #F5C518;
+    border-radius: 5px;
+    padding: 3px; background: #fff; display: block;
+  }
+  .qr-url {
+    font-size: 7px; color: rgba(255,255,255,0.3);
+    letter-spacing: 1px; text-transform: uppercase;
+  }
+
+  /* Social */
+  .social-col {
+    display: flex; flex-direction: column;
+    gap: 5px; flex-shrink: 0;
+  }
+  .social-line {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 9px; color: rgba(255,255,255,0.5);
+    letter-spacing: 0.8px;
+  }
+  .social-line svg { opacity: 0.6; }
+
+  @media print {
+    body { background: none; padding: 0; }
+    .flyer { width: 11in; height: 8.5in; }
+  }
+</style>
+</head>
+<body>
+<div class="flyer">
+
+  <!-- BG -->
+  <div class="bg-photo"></div>
+  <div class="bg-overlay"></div>
+  <div class="bg-bottom"></div>
+  <div class="bg-glow"></div>
+
+  <div class="content">
+
+    <!-- ── TOP ── -->
+    <div class="top">
+      <div class="logo-group">
+        <img src="../assets/logo.png" class="logo-img" alt="Urban PL" />
+        <div class="logo-text">
+          <span class="logo-urban">URBAN</span>
+          <span class="logo-pl">PL</span>
+        </div>
+      </div>
+      <div class="presents-badge">
+        <span class="presents-label">Presents</span>
+        <span class="presents-series">South Florida · 2025</span>
+      </div>
+    </div>
+
+    <!-- ── HEADLINE ── -->
+    <div class="headline-area">
+      <div class="event-badge">
+        <div class="event-dot"></div>
+        <span class="event-badge-text">7v7 · Open to All · Pro Referees</span>
+        <div class="event-dot"></div>
+      </div>
+
+      <span class="hl-urban">URBAN PL</span>
+      <span class="hl-summer">SUMMER</span>
+      <span class="hl-series">SERIES</span>
+
+      <div class="tagline-row">
+        <div class="tagline-line"></div>
+        <div class="tagline-text">WHERE THE SUN SETS &amp; THE <em>GAME COMES ALIVE</em></div>
+      </div>
+    </div>
+
+    <!-- ── CITIES ── -->
+    <div class="cities-area">
+      <div class="cities-label">Coming to your city</div>
+      <div class="cities-row">
+        <div class="city-card">
+          <span class="city-card-pin">📍</span>
+          <span class="city-card-name">Boca Raton</span>
+          <span class="city-card-state">Florida</span>
+        </div>
+        <div class="city-card">
+          <span class="city-card-pin">📍</span>
+          <span class="city-card-name">West Palm Beach</span>
+          <span class="city-card-state">Florida</span>
+        </div>
+        <div class="city-card">
+          <span class="city-card-pin">📍</span>
+          <span class="city-card-name">Fort Lauderdale</span>
+          <span class="city-card-state">Florida</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── BOTTOM STRIP ── -->
+    <div class="bottom-strip">
+
+      <!-- Features -->
+      <div class="features">
+        <div class="feature">
+          <span class="feature-icon">🏆</span>
+          <div class="feature-text">
+            <strong>Cash Prizes</strong>
+            Winners Take All
+          </div>
+        </div>
+        <div class="feature">
+          <span class="feature-icon">🧑‍⚖️</span>
+          <div class="feature-text">
+            <strong>Pro Referees</strong>
+            Certified Officials
+          </div>
+        </div>
+        <div class="feature">
+          <span class="feature-icon">📸</span>
+          <div class="feature-text">
+            <strong>Content & Highlights</strong>
+            Full Coverage
+          </div>
+        </div>
+        <div class="feature">
+          <span class="feature-icon">⚽</span>
+          <div class="feature-text">
+            <strong>7v7 Format</strong>
+            Fast-Paced
+          </div>
+        </div>
+        <div class="feature">
+          <span class="feature-icon">🔒</span>
+          <div class="feature-text">
+            <strong>18+ Players</strong>
+            All Skill Levels
+          </div>
+        </div>
+      </div>
+
+      <div class="strip-divider"></div>
+
+      <!-- CTA -->
+      <div class="cta-col">
+        <div class="cta-btn">
+          <div class="cta-btn-text">Register Now</div>
+        </div>
+        <div class="cta-sub">Spots Are Limited</div>
+      </div>
+
+      <div class="strip-divider"></div>
+
+      <!-- QR -->
+      <div class="qr-col">
+        <div class="qr-label">Scan to Sign Up</div>
+        <img
+          src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&color=000000&bgcolor=ffffff&data=https://www.theurbanpl.com"
+          class="qr-img"
+          alt="QR Code"
+        />
+        <div class="qr-url">theurbanpl.com</div>
+      </div>
+
+      <div class="strip-divider"></div>
+
+      <!-- Social -->
+      <div class="social-col">
+        <div class="social-line">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#F5C518" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+          <span>@urbanpleague</span>
+        </div>
+        <div class="social-line">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#F5C518" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          <span>www.theurbanpl.com</span>
+        </div>
+        <div class="social-line">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#F5C518" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span>urbanpl.app@gmail.com</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</body>
+</html>

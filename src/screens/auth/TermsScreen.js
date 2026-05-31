@@ -1,9 +1,8 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  PanResponder, Alert, ActivityIndicator, Platform,
+  Alert, ActivityIndicator, Platform, TextInput,
 } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { colors } from '../../theme';
@@ -113,48 +112,18 @@ For questions about these Terms, contact us at urbanpl.app@gmail.com.`,
 
 export default function TermsScreen({ onAccepted }) {
   const { player } = useAuth();
-  const [signed, setSigned] = useState(false);
+  const [typedName, setTypedName] = useState('');
   const [saving, setSaving] = useState(false);
-  const paths = useRef([]);         // array of SVG path strings
-  const currentPath = useRef(null); // current path being drawn
-  const [svgPaths, setSvgPaths] = useState([]);
-  const sigAreaLayout = useRef({ x: 0, y: 0 });
 
-  // ── PanResponder for signature drawing ──────────────────────────────────────
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (evt) => {
-        const { locationX, locationY } = evt.nativeEvent;
-        currentPath.current = `M${locationX.toFixed(1)},${locationY.toFixed(1)}`;
-      },
-      onPanResponderMove: (evt) => {
-        if (!currentPath.current) return;
-        const { locationX, locationY } = evt.nativeEvent;
-        currentPath.current += ` L${locationX.toFixed(1)},${locationY.toFixed(1)}`;
-        setSvgPaths([...paths.current, currentPath.current]);
-      },
-      onPanResponderRelease: () => {
-        if (currentPath.current) {
-          paths.current = [...paths.current, currentPath.current];
-          currentPath.current = null;
-          if (!signed && paths.current.length > 0) setSigned(true);
-        }
-      },
-    })
-  ).current;
+  const signed = typedName.trim().length > 0;
 
   function clearSignature() {
-    paths.current = [];
-    currentPath.current = null;
-    setSvgPaths([]);
-    setSigned(false);
+    setTypedName('');
   }
 
   async function handleContinue() {
     if (!signed) {
-      Alert.alert('Signature Required', 'Please sign above before continuing.');
+      Alert.alert('Signature Required', 'Please type your full name to sign the agreement.');
       return;
     }
     setSaving(true);
@@ -164,7 +133,8 @@ export default function TermsScreen({ onAccepted }) {
       .eq('id', player.id);
     setSaving(false);
     if (error) {
-      Alert.alert('Error', 'Could not save. Please try again.');
+      console.error('terms save error:', error);
+      Alert.alert('Error', error.message || 'Could not save. Please try again.');
     } else {
       onAccepted?.();
     }
@@ -196,35 +166,24 @@ export default function TermsScreen({ onAccepted }) {
 
         {/* Signature area */}
         <View style={styles.sigWrap}>
-          <Text style={styles.sigLabel}>Please, sign here</Text>
-          <View
-            style={styles.sigCanvas}
-            {...panResponder.panHandlers}
-            onLayout={(e) => {
-              sigAreaLayout.current = {
-                x: e.nativeEvent.layout.x,
-                y: e.nativeEvent.layout.y,
-              };
-            }}
-          >
-            <Svg style={StyleSheet.absoluteFill}>
-              {svgPaths.map((d, i) => (
-                <Path
-                  key={i}
-                  d={d}
-                  stroke={colors.dark}
-                  strokeWidth={2.5}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  fill="none"
-                />
-              ))}
-            </Svg>
-            {svgPaths.length === 0 && (
-              <Text style={styles.sigPlaceholder}>✍️</Text>
-            )}
-          </View>
+          <Text style={styles.sigLabel}>Type your full name to sign</Text>
+          <TextInput
+            style={styles.sigInput}
+            value={typedName}
+            onChangeText={setTypedName}
+            placeholder="Full name"
+            placeholderTextColor="#bbb"
+            autoCorrect={false}
+            autoCapitalize="words"
+            returnKeyType="done"
+          />
+          {typedName.trim().length > 0 && (
+            <Text style={styles.sigPreview}>{typedName}</Text>
+          )}
           <View style={styles.sigLine} />
+          <Text style={styles.sigDisclaimer}>
+            By typing your name above, you are signing this agreement electronically. You agree your electronic signature is the legal equivalent of your manual signature on this document.
+          </Text>
         </View>
 
         <View style={{ height: 24 }} />
@@ -299,18 +258,35 @@ const styles = StyleSheet.create({
   // Signature
   sigWrap: { marginTop: 24 },
   sigLabel: {
-    fontSize: 13, color: '#3a7bd5', fontWeight: '500', marginBottom: 10,
+    fontSize: 13, color: '#3a7bd5', fontWeight: '600', marginBottom: 10,
   },
-  sigCanvas: {
-    height: 110,
-    backgroundColor: '#f9f9f9',
+  sigInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
     borderRadius: 8,
-    overflow: 'hidden',
-    alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: '#111',
+    backgroundColor: '#f9f9f9',
   },
-  sigPlaceholder: { fontSize: 32, opacity: 0.2 },
+  sigPreview: {
+    marginTop: 12,
+    fontSize: 26,
+    fontStyle: 'italic',
+    color: '#111',
+    textAlign: 'center',
+    letterSpacing: 0.5,
+  },
   sigLine: {
-    height: 1.5, backgroundColor: '#ccc', marginTop: 8,
+    height: 1.5, backgroundColor: '#ccc', marginTop: 12,
+  },
+  sigDisclaimer: {
+    marginTop: 8,
+    fontSize: 11,
+    color: '#888',
+    lineHeight: 16,
+    textAlign: 'center',
   },
 
   // Footer
