@@ -13,7 +13,9 @@
     },
     "production": {
       "autoIncrement": true,
-      "image": "macos-ventura-14.3-xcode-15.2"
+      "ios": {
+        "image": "macos-ventura-14.3-xcode-15.2"
+      }
     }
   },
   "submit": {
