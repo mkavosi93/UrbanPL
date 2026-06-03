@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Urban PL – Summer Series · Instagram</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,700;0,900;1,700;1,900&family=Oswald:wght@300;400;600;700&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #111;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 30px;
+    gap: 16px;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .label {
+    color: #555;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  /* ── The post — 1080×1080 rendered at 600×600 ── */
+  .post {
+    width: 600px;
+    height: 600px;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  /* ── Background ── */
+  .bg {
+    position: absolute; inset: 0;
+    background: url('florida-sunset-bg.jpg') center 25% / cover no-repeat;
+    filter: brightness(0.62) saturate(1.2) contrast(1.05);
+    z-index: 0;
+  }
+
+  /* Strong dark overlay — bottom half must be legible */
+  .bg-gradient {
+    position: absolute; inset: 0;
+    background:
+      linear-gradient(180deg,
+        rgba(5,5,18,0.55) 0%,
+        rgba(5,5,18,0.30) 35%,
+        rgba(5,5,18,0.70) 65%,
+        rgba(5,5,18,0.97) 100%
+      );
+    z-index: 1;
+  }
+
+  /* Subtle top-left fade for logo area */
+  .bg-top {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 160px;
+    background: linear-gradient(180deg, rgba(5,5,18,0.65) 0%, transparent 100%);
+    z-index: 2;
+  }
+
+  /* ── Content ── */
+  .content {
+    position: relative; z-index: 10;
+    width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 28px;
+  }
+
+  /* ── TOP ROW: Logo + badge ── */
+  .top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo-group { display: flex; align-items: center; gap: 9px; }
+  .logo-img {
+    width: 52px; height: 52px;
+    object-fit: contain;
+    mix-blend-mode: screen;
+    filter: brightness(2.2) drop-shadow(0 0 12px rgba(245,197,24,0.9));
+  }
+  .logo-text { line-height: 1; }
+  .logo-urban {
+    font-family: 'Oswald', sans-serif;
+    font-size: 11px; font-weight: 400;
+    color: #fff; letter-spacing: 5px;
+    display: block;
+  }
+  .logo-pl {
+    font-family: 'Oswald', sans-serif;
+    font-size: 22px; font-weight: 700;
+    color: #F5C518; letter-spacing: -0.5px;
+    text-shadow: 0 0 16px rgba(245,197,24,0.6);
+    display: block;
+  }
+
+  .presents-badge {
+    display: flex; flex-direction: column; align-items: flex-end; gap: 1px;
+  }
+  .presents-label {
+    font-size: 7px; font-weight: 700;
+    color: rgba(245,197,24,0.65); letter-spacing: 2.5px; text-transform: uppercase;
+  }
+  .presents-sub {
+    font-size: 10px; font-weight: 600;
+    color: rgba(255,255,255,0.45); letter-spacing: 3px; text-transform: uppercase;
+  }
+
+  /* ── HEADLINE — center of post ── */
+  .headline-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 8px 0;
+  }
+
+  .event-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(245,197,24,0.12);
+    border: 1px solid rgba(245,197,24,0.5);
+    border-radius: 3px; padding: 4px 12px;
+    margin-bottom: 14px;
+  }
+  .event-dot { width: 4px; height: 4px; background: #F5C518; border-radius: 50%; }
+  .event-text {
+    font-size: 8px; font-weight: 800;
+    color: #F5C518; letter-spacing: 2.5px; text-transform: uppercase;
+  }
+
+  .hl-urban {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 72px; font-weight: 900;
+    color: #fff; text-transform: uppercase;
+    letter-spacing: -1px; line-height: 0.85;
+    text-shadow: 0 2px 30px rgba(0,0,0,0.5);
+    display: block;
+  }
+  .hl-summer {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 72px; font-weight: 900; font-style: italic;
+    color: #F5C518; text-transform: uppercase;
+    letter-spacing: -1px; line-height: 0.85;
+    text-shadow: 0 0 50px rgba(245,197,24,0.5);
+    display: block;
+  }
+  .hl-series {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 72px; font-weight: 900;
+    color: #fff; text-transform: uppercase;
+    letter-spacing: -1px; line-height: 0.85;
+    text-shadow: 0 2px 30px rgba(0,0,0,0.5);
+    display: block;
+  }
+
+  .tagline-row {
+    display: flex; align-items: center; gap: 10px;
+    margin-top: 14px; justify-content: center;
+  }
+  .tagline-line { width: 24px; height: 1.5px; background: #F5C518; flex-shrink: 0; }
+  .tagline-text {
+    font-size: 9px; font-weight: 700; font-style: italic;
+    color: rgba(255,255,255,0.65);
+    letter-spacing: 2px; text-transform: uppercase;
+  }
+  .tagline-text em { color: #F5C518; font-style: italic; }
+
+  /* ── FEATURES ROW ── */
+  .features-row {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .feat {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+  }
+  .feat-icon { font-size: 16px; }
+  .feat-text {
+    font-size: 7px; font-weight: 700;
+    color: rgba(255,255,255,0.6);
+    letter-spacing: 0.8px; text-transform: uppercase;
+    text-align: center;
+  }
+
+  /* ── CITIES ── */
+  .cities-row {
+    display: flex; gap: 0; margin-bottom: 16px;
+  }
+  .city-card {
+    flex: 1;
+    background: rgba(0,0,0,0.55);
+    border: 1px solid rgba(245,197,24,0.25);
+    border-right: none;
+    padding: 8px 10px;
+    position: relative;
+    overflow: hidden;
+  }
+  .city-card:first-child { border-radius: 6px 0 0 6px; }
+  .city-card:last-child { border-radius: 0 6px 6px 0; border-right: 1px solid rgba(245,197,24,0.25); }
+  .city-card::before {
+    content: '';
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 2.5px;
+    background: linear-gradient(to bottom, #F5C518, rgba(245,197,24,0.15));
+  }
+  .city-pin { font-size: 9px; margin-bottom: 1px; display: block; }
+  .city-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px; font-weight: 900;
+    color: #fff; text-transform: uppercase;
+    letter-spacing: 0.3px; line-height: 1;
+    display: block;
+  }
+  .city-state {
+    font-size: 7px; font-weight: 700;
+    color: #F5C518; letter-spacing: 2px;
+    text-transform: uppercase; display: block;
+    margin-top: 1px;
+  }
+
+  /* ── BOTTOM: CTA + QR + Social ── */
+  .bottom-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(245,197,24,0.18);
+  }
+
+  .cta-col { display: flex; flex-direction: column; gap: 6px; }
+  .cta-btn {
+    background: #F5C518;
+    border-radius: 6px;
+    padding: 9px 18px;
+    box-shadow: 0 0 20px rgba(245,197,24,0.4);
+  }
+  .cta-btn-text {
+    font-family: 'Oswald', sans-serif;
+    font-size: 12px; font-weight: 700;
+    color: #07080a; letter-spacing: 2px; text-transform: uppercase;
+  }
+  .cta-sub {
+    font-size: 7px; font-weight: 700;
+    color: rgba(255,255,255,0.35);
+    letter-spacing: 2px; text-transform: uppercase;
+    text-align: center;
+  }
+
+  /* QR */
+  .qr-col { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .qr-label { font-size: 6px; font-weight: 700; color: #F5C518; letter-spacing: 2px; text-transform: uppercase; }
+  .qr-img {
+    width: 64px; height: 64px;
+    border: 1.5px solid #F5C518;
+    border-radius: 5px;
+    padding: 3px; background: #fff; display: block;
+  }
+  .qr-url { font-size: 6px; color: rgba(255,255,255,0.28); letter-spacing: 0.8px; }
+
+  /* Social */
+  .social-col { display: flex; flex-direction: column; gap: 5px; align-items: flex-end; }
+  .social-line {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 9px; color: rgba(255,255,255,0.5);
+  }
+  .social-line svg { opacity: 0.7; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<div class="label">Instagram Post · 1080 × 1080</div>
+
+<div class="post">
+  <div class="bg"></div>
+  <div class="bg-gradient"></div>
+  <div class="bg-top"></div>
+
+  <div class="content">
+
+    <!-- TOP -->
+    <div class="top-row">
+      <div class="logo-group">
+        <img src="../assets/logo.png" class="logo-img" alt="Urban PL" />
+        <div class="logo-text">
+          <span class="logo-urban">URBAN</span>
+          <span class="logo-pl">PL</span>
+        </div>
+      </div>
+      <div class="presents-badge">
+        <span class="presents-label">Presents</span>
+        <span class="presents-sub">South Florida · 2025</span>
+      </div>
+    </div>
+
+    <!-- HEADLINE -->
+    <div class="headline-area">
+      <div class="event-badge">
+        <div class="event-dot"></div>
+        <span class="event-text">7v7 · Open to All · 18+ · Cash Prizes</span>
+        <div class="event-dot"></div>
+      </div>
+
+      <span class="hl-urban">URBAN PL</span>
+      <span class="hl-summer">SUMMER</span>
+      <span class="hl-series">SERIES</span>
+
+      <div class="tagline-row">
+        <div class="tagline-line"></div>
+        <div class="tagline-text">WHERE THE SUN SETS &amp; THE <em>GAME COMES ALIVE</em></div>
+        <div class="tagline-line"></div>
+      </div>
+    </div>
+
+    <!-- FEATURES -->
+    <div class="features-row">
+      <div class="feat"><span class="feat-icon">🏆</span><span class="feat-text">Cash Prizes</span></div>
+      <div class="feat"><span class="feat-icon">🧑‍⚖️</span><span class="feat-text">Pro Refs</span></div>
+      <div class="feat"><span class="feat-icon">📸</span><span class="feat-text">Highlights</span></div>
+      <div class="feat"><span class="feat-icon">📊</span><span class="feat-text">Live Stats</span></div>
+      <div class="feat"><span class="feat-icon">🔒</span><span class="feat-text">18+ Only</span></div>
+    </div>
+
+    <!-- CITIES -->
+    <div class="cities-row">
+      <div class="city-card">
+        <span class="city-pin">📍</span>
+        <span class="city-name">Boca Raton</span>
+        <span class="city-state">Florida</span>
+      </div>
+      <div class="city-card">
+        <span class="city-pin">📍</span>
+        <span class="city-name">West Palm Beach</span>
+        <span class="city-state">Florida</span>
+      </div>
+      <div class="city-card">
+        <span class="city-pin">📍</span>
+        <span class="city-name">Ft. Lauderdale</span>
+        <span class="city-state">Florida</span>
+      </div>
+    </div>
+
+    <!-- BOTTOM -->
+    <div class="bottom-row">
+      <div class="cta-col">
+        <div class="cta-btn"><div class="cta-btn-text">Register Now</div></div>
+        <div class="cta-sub">Spots Are Limited</div>
+      </div>
+
+      <div class="qr-col">
+        <div class="qr-label">Scan to Sign Up</div>
+        <img
+          src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&color=000000&bgcolor=ffffff&data=https://www.theurbanpl.com/signup.html"
+          class="qr-img" alt="QR" />
+        <div class="qr-url">theurbanpl.com</div>
+      </div>
+
+      <div class="social-col">
+        <div class="social-line">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#F5C518" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+          <span>@urbanpleague</span>
+        </div>
+        <div class="social-line">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#F5C518" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          <span>theurbanpl.com</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="label">Open in Chrome · Screenshot at 600×600 · Export at 1×</div>
+
+</body>
+</html>
