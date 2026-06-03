@@ -1014,12 +1014,17 @@ function CreateCupForm({ onCreated }) {
     }
 
     setSaving(true);
+    const parsedMaxTeams = parseInt(maxTeams) || 8;
+    const playersPerSide = { '5v5': 5, '6v6': 6, '7v7': 7, '8v8': 8, '11v11': 11 }[format] ?? 7;
+    const capacity = parsedMaxTeams * playersPerSide;
+
     const { error: dbError } = await supabase.from('tournaments').insert({
       name: name.trim(),
       venue: venue.trim(),
       format,
       kickoff_date: kickoff.toISOString(),
-      max_teams: parseInt(maxTeams) || 8,
+      max_teams: parsedMaxTeams,
+      capacity,
       entry_fee: parseFloat(fee) || 0,
       referee_pay: parseFloat(refPay) || 0,
       referees_needed: parseInt(refsNeeded) || 1,
