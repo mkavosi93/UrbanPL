@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=430">
+<title>Screenshot 1 – Feed</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 428px; height: 926px;
+    background: #080810;
+    font-family: 'Inter', sans-serif;
+    color: #fff;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Status bar */
+  .status { display: flex; justify-content: space-between; align-items: center; padding: 14px 24px 0; }
+  .status-time { font-size: 15px; font-weight: 700; }
+  .status-icons { display: flex; gap: 6px; align-items: center; }
+  .status-icons span { font-size: 13px; }
+
+  /* Header */
+  .header { padding: 10px 20px 12px; display: flex; justify-content: space-between; align-items: center; }
+  .header-title { font-size: 22px; font-weight: 800; color: #C9A84C; }
+  .header-user { display: flex; align-items: center; gap: 8px; }
+  .avatar { width: 34px; height: 34px; border-radius: 50%; background: #C9A84C; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #000; }
+  .signout { font-size: 11px; color: #666; border: 1px solid #333; border-radius: 20px; padding: 4px 10px; }
+
+  /* Filters */
+  .filters { display: flex; gap: 8px; padding: 0 20px 14px; overflow-x: auto; }
+  .filters::-webkit-scrollbar { display: none; }
+  .filter { border-radius: 50px; padding: 7px 16px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+  .filter.active { background: #C9A84C; color: #000; }
+  .filter.inactive { background: #1C1C28; color: #888; }
+
+  /* Section label */
+  .section-label { padding: 0 20px 10px; font-size: 11px; font-weight: 800; color: #C9A84C; letter-spacing: 1.5px; text-transform: uppercase; }
+
+  /* Game card */
+  .card { margin: 0 20px 14px; background: #12121E; border-radius: 18px; overflow: hidden; border: 1px solid #222; }
+
+  .map-area {
+    height: 180px; background: #1a2535; position: relative; overflow: hidden;
+    background-image:
+      linear-gradient(rgba(30,60,90,0.3) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(30,60,90,0.3) 1px, transparent 1px);
+    background-size: 30px 30px;
+  }
+  .map-road-h { position: absolute; height: 12px; background: #2a3a4a; left: 0; right: 0; }
+  .map-road-v { position: absolute; width: 12px; background: #2a3a4a; top: 0; bottom: 0; }
+  .map-road-h.r1 { top: 55px; } .map-road-h.r2 { top: 120px; }
+  .map-road-v.v1 { left: 80px; } .map-road-v.v2 { left: 220px; } .map-road-v.v3 { left: 340px; }
+  .map-block { position: absolute; background: #1e2d3d; border-radius: 3px; }
+  .map-pin { position: absolute; top: 72px; left: 190px; font-size: 28px; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.6)); }
+  .map-badge { position: absolute; top: 10px; left: 12px; background: rgba(0,0,0,0.75); border-radius: 20px; padding: 5px 10px; display: flex; align-items: center; gap: 6px; }
+  .map-badge-text { font-size: 11px; color: #ddd; font-weight: 600; }
+  .map-free { position: absolute; top: 10px; right: 12px; background: #C9A84C; border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 800; color: #000; }
+  .map-directions { position: absolute; bottom: 10px; right: 12px; background: rgba(0,0,0,0.8); border-radius: 20px; padding: 6px 12px; display: flex; align-items: center; gap: 5px; font-size: 11px; color: #C9A84C; font-weight: 700; border: 1px solid rgba(201,168,76,0.3); }
+  .map-logo { position: absolute; bottom: 10px; left: 12px; font-size: 9px; color: rgba(255,255,255,0.3); }
+
+  .card-body { padding: 14px 16px 16px; }
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .card-venue { font-size: 17px; font-weight: 800; color: #fff; }
+  .card-format { background: #1e1e30; border-radius: 8px; padding: 4px 10px; font-size: 12px; font-weight: 700; color: #C9A84C; border: 1px solid rgba(201,168,76,0.3); }
+  .card-progress { height: 5px; background: #1e1e30; border-radius: 10px; margin-bottom: 6px; overflow: hidden; }
+  .card-progress-fill { height: 100%; background: linear-gradient(90deg, #C9A84C, #f0c060); border-radius: 10px; width: 79%; }
+  .card-spots { font-size: 11px; color: #666; margin-bottom: 14px; }
+  .card-join { background: #C9A84C; border-radius: 12px; padding: 14px; text-align: center; font-size: 16px; font-weight: 800; color: #000; }
+
+  /* Second card (partial) */
+  .card2 { margin: 0 20px; background: #12121E; border-radius: 18px; overflow: hidden; border: 1px solid #222; }
+  .card2-map { height: 120px; background: #1a2535; position: relative; overflow: hidden;
+    background-image: linear-gradient(rgba(30,60,90,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(30,60,90,0.3) 1px, transparent 1px);
+    background-size: 30px 30px;
+  }
+  .card2-map .map-pin { top: 40px; left: 160px; font-size: 22px; }
+  .card2-body { padding: 12px 16px; }
+  .card2-venue { font-size: 15px; font-weight: 800; margin-bottom: 4px; }
+  .card2-row { display: flex; gap: 8px; align-items: center; }
+  .card2-badge { background: #1e1e30; border-radius: 6px; padding: 3px 8px; font-size: 11px; color: #C9A84C; font-weight: 700; }
+
+  /* Tab bar */
+  .tabbar { position: absolute; bottom: 0; left: 0; right: 0; height: 84px; background: #0e0e1a; border-top: 1px solid #1e1e30; display: flex; align-items: flex-start; padding-top: 12px; }
+  .tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .tab-icon { font-size: 22px; }
+  .tab-label { font-size: 10px; font-weight: 600; }
+  .tab.active .tab-label { color: #C9A84C; }
+  .tab.inactive .tab-label { color: #555; }
+  .tab.inactive .tab-icon { filter: grayscale(1) opacity(0.4); }
+
+  /* Promo banner */
+  .promo { margin: 0 20px 14px; background: linear-gradient(135deg, #1a2010, #243018); border-radius: 14px; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; border: 1px solid rgba(201,168,76,0.2); }
+  .promo-text { font-size: 12px; font-weight: 700; color: #C9A84C; }
+  .promo-sub { font-size: 10px; color: #888; margin-top: 2px; }
+  .promo-icon { font-size: 26px; }
+</style>
+</head>
+<body>
+
+<!-- Status bar -->
+<div class="status">
+  <span class="status-time">18:52</span>
+  <div class="status-icons"><span>●●●●</span><span>WiFi</span><span>🔋</span></div>
+</div>
+
+<!-- Header -->
+<div class="header">
+  <span class="header-title">Urban PL</span>
+  <div class="header-user">
+    <div class="avatar">MK</div>
+    <span class="signout">Sign Out</span>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="filters">
+  <div class="filter active">All</div>
+  <div class="filter inactive">5v5</div>
+  <div class="filter inactive">6v6</div>
+  <div class="filter inactive">7v7</div>
+  <div class="filter inactive">Free</div>
+  <div class="filter inactive">Today</div>
+</div>
+
+<!-- Section -->
+<div class="section-label">Sunday, June 20</div>
+
+<!-- Game Card 1 -->
+<div class="card">
+  <div class="map-area">
+    <div class="map-road-h r1"></div>
+    <div class="map-road-h r2"></div>
+    <div class="map-road-v v1"></div>
+    <div class="map-road-v v2"></div>
+    <div class="map-road-v v3"></div>
+    <div class="map-block" style="top:10px;left:20px;width:55px;height:38px;"></div>
+    <div class="map-block" style="top:10px;left:100px;width:110px;height:38px;"></div>
+    <div class="map-block" style="top:75px;left:20px;width:55px;height:38px;"></div>
+    <div class="map-block" style="top:75px;left:100px;width:110px;height:38px;"></div>
+    <div class="map-block" style="top:75px;left:240px;width:90px;height:38px;"></div>
+    <div class="map-block" style="top:138px;left:20px;width:150px;height:35px;"></div>
+    <div class="map-block" style="top:138px;left:240px;width:90px;height:35px;"></div>
+    <div class="map-pin">📍</div>
+    <div class="map-badge">
+      <span style="font-size:14px;">⏰</span>
+      <span class="map-badge-text">Jun 20 · 7:00 PM</span>
+    </div>
+    <div class="map-free">FREE</div>
+    <div class="map-directions">🧭 Get Directions</div>
+    <div class="map-logo">🍎 Maps</div>
+  </div>
+  <div class="card-body">
+    <div class="card-top">
+      <span class="card-venue">Boca Raton Sports Park</span>
+      <span class="card-format">7v7</span>
+    </div>
+    <div class="card-progress"><div class="card-progress-fill"></div></div>
+    <div class="card-spots">11 of 14 spots filled</div>
+    <div class="card-join">Join Game</div>
+  </div>
+</div>
+
+<!-- Promo -->
+<div class="promo">
+  <div>
+    <div class="promo-text">🏆 Summer Series — Cash Prizes</div>
+    <div class="promo-sub">Boca · West Palm · Fort Lauderdale</div>
+  </div>
+  <div class="promo-icon">⚽</div>
+</div>
+
+<!-- Game Card 2 (partial) -->
+<div class="card2">
+  <div class="card2-map">
+    <div class="map-road-h" style="top:35px;"></div>
+    <div class="map-road-v" style="left:100px;"></div>
+    <div class="map-road-v" style="left:240px;"></div>
+    <div class="map-pin">📍</div>
+    <div class="map-badge" style="top:8px;left:10px;">
+      <span style="font-size:12px;">⏰</span>
+      <span class="map-badge-text">Jun 21 · 6:00 PM</span>
+    </div>
+  </div>
+  <div class="card2-body">
+    <div class="card2-venue">West Palm Beach Field</div>
+    <div class="card2-row">
+      <span class="card2-badge">6v6</span>
+      <span style="font-size:11px;color:#666;">8 of 12 spots · $15 entry</span>
+    </div>
+  </div>
+</div>
+
+<!-- Tab Bar -->
+<div class="tabbar">
+  <div class="tab active"><span class="tab-icon">⚽</span><span class="tab-label">Feed</span></div>
+  <div class="tab inactive"><span class="tab-icon">🏆</span><span class="tab-label">Cups</span></div>
+  <div class="tab inactive"><span class="tab-icon">📊</span><span class="tab-label">Rankings</span></div>
+  <div class="tab inactive"><span class="tab-icon">👤</span><span class="tab-label">Profile</span></div>
+</div>
+
+</body>
+</html>

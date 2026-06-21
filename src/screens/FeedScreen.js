@@ -3,7 +3,9 @@ import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, RefreshControl, ScrollView, Modal, Pressable,
   Share, Image, Alert, TextInput, KeyboardAvoidingView, Platform as RNPlatform,
+  ImageBackground, Dimensions,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Platform } from 'react-native';
 const useStripe = Platform.OS !== 'web'
@@ -15,6 +17,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { scheduleGameReminders } from '../lib/notifications';
 import GameMap from '../components/GameMap';
 import GameChat from '../components/GameChat';
+import SummerSeriesModal from '../components/SummerSeriesModal';
 import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import * as ImagePicker from 'expo-image-picker';
@@ -105,7 +108,7 @@ async function fetchMyFixtures(playerId) {
   // My tournament registrations
   const { data: myTournaments } = await supabase
     .from('tournament_teams')
-    .select('tournament_id, tournaments(id, name, format, kickoff_date, venue, entry_fee, status)')
+    .select('id, tournament_id, player_ids, captain_id, registration_type, name, tournaments(id, name, format, kickoff_date, venue, entry_fee, status)')
     .contains('player_ids', [playerId]);
 
   const fixtures = [];
@@ -150,11 +153,41 @@ async function fetchMyFixtures(playerId) {
     }
   });
 
+  // Deduplicate by tournament_id — player may have multiple rows if they registered more than once
+  const seenTournaments = new Set();
+  const tournamentIds = [];
   myTournaments?.forEach(row => {
-    if (row.tournaments && new Date(row.tournaments.kickoff_date) >= now) {
-      fixtures.push({ type: 'tournament', data: row.tournaments });
-    }
+    if (!row.tournaments || new Date(row.tournaments.kickoff_date) < now) return;
+    if (seenTournaments.has(row.tournament_id)) return;
+    seenTournaments.add(row.tournament_id);
+    tournamentIds.push(row.tournament_id);
+    fixtures.push({
+      type: 'tournament',
+      data: row.tournaments,
+      teamRow: {
+        id: row.id,
+        name: row.name,
+        player_ids: row.player_ids,
+        captain_id: row.captain_id,
+        registration_type: row.registration_type,
+        tournament_id: row.tournament_id,
+      },
+      checkedIn: false,
+    });
   });
+
+  // Fetch tournament check-in status
+  if (tournamentIds.length > 0) {
+    const { data: checkins } = await supabase
+      .from('tournament_checkins')
+      .select('tournament_id')
+      .eq('player_id', playerId)
+      .in('tournament_id', tournamentIds);
+    const checkedInIds = new Set((checkins || []).map(c => c.tournament_id));
+    fixtures.forEach(f => {
+      if (f.type === 'tournament' && checkedInIds.has(f.data.id)) f.checkedIn = true;
+    });
+  }
 
   fixtures.sort((a, b) => {
     const dateA = new Date(a.type === 'game' ? a.data.kickoff_time : a.data.kickoff_date);
@@ -354,11 +387,19 @@ function FixtureDetailModal({ fixture, visible, onClose, onWithdraw, onCheckIn, 
   const [checkedIn, setCheckedIn] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const scrollRef = useRef(null);
 
   // Sync local state whenever the fixture changes (different game opened)
   useEffect(() => {
     setCheckedIn(fixture?.checkedIn ?? false);
   }, [fixture?.data?.id, fixture?.checkedIn]);
+
+  // Scroll to top whenever the modal opens or the fixture changes
+  useEffect(() => {
+    if (visible) {
+      setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: false }), 50);
+    }
+  }, [visible, fixture?.data?.id]);
 
   if (!fixture) return null;
   const isGame = fixture.type === 'game';
@@ -377,8 +418,9 @@ function FixtureDetailModal({ fixture, visible, onClose, onWithdraw, onCheckIn, 
     : null;
 
   // Check-in window: within 60 mins before kickoff, up to 30 mins after
-  const minsUntil = isGame ? (new Date(data.kickoff_time) - new Date()) / (1000 * 60) : Infinity;
-  const showCheckIn = isGame && minsUntil <= 60 && minsUntil > -30;
+  const kickoffDate = isGame ? new Date(data.kickoff_time) : new Date(data.kickoff_date);
+  const minsUntil = (kickoffDate - new Date()) / (1000 * 60);
+  const showCheckIn = minsUntil <= 60 && minsUntil > -30;
 
   async function handleCheckInPress() {
     if (checkingIn || checkedIn) return;
@@ -395,11 +437,19 @@ function FixtureDetailModal({ fixture, visible, onClose, onWithdraw, onCheckIn, 
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.modalOverlay} onPress={onClose}>
-        <Pressable style={styles.modalSheet} onPress={e => e.stopPropagation()}>
-          {/* Handle bar */}
+      <View style={styles.modalOverlay}>
+        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
+        <View style={styles.modalSheet}>
+          {/* Handle bar — always visible, outside scroll */}
           <View style={styles.modalHandle} />
 
+          <ScrollView
+            ref={scrollRef}
+            style={{ flex: 1 }}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: spacing.xxl }}
+            keyboardShouldPersistTaps="handled"
+          >
           {/* Icon + Title */}
           <View style={styles.modalHeader}>
             <View style={styles.modalIconCircle}>
@@ -520,13 +570,19 @@ function FixtureDetailModal({ fixture, visible, onClose, onWithdraw, onCheckIn, 
             )
           )}
 
-          {/* Withdraw button — games only */}
-          {isGame && onWithdraw && (
+          {/* Withdraw button — games and tournaments */}
+          {onWithdraw && (
             <TouchableOpacity
-              style={[styles.withdrawBtn, withinSixHours && styles.withdrawBtnNoRefund]}
+              style={[styles.withdrawBtn, isGame && withinSixHours && styles.withdrawBtnNoRefund]}
               onPress={() => onWithdraw(fixture)}
             >
-              <Text style={styles.withdrawBtnText}>{withdrawLabel}</Text>
+              <Text style={styles.withdrawBtnText}>
+                {isGame
+                  ? withdrawLabel
+                  : (fixture.teamRow?.captain_id === playerId || fixture.teamRow?.registration_type === 'solo_draft')
+                    ? '✕ Withdraw from Tournament'
+                    : '✕ Leave Team'}
+              </Text>
             </TouchableOpacity>
           )}
 
@@ -538,33 +594,39 @@ function FixtureDetailModal({ fixture, visible, onClose, onWithdraw, onCheckIn, 
           )}
 
           {/* Community Guidelines */}
-          {isGame && (
-            <View style={styles.guidelinesBox}>
-              <Text style={styles.guidelinesTitle}>COMMUNITY GUIDELINES</Text>
-              {[
-                { icon: '⏰', title: 'Arrive Ready', body: "Kick-off waits for no one. Be warmed up and on the pitch on time." },
-                { icon: '🚫', title: 'Zero Drama', body: "Disputes happen — disrespect doesn't. Any fighting = instant ban." },
-                { icon: '📸', title: 'Real Profile, Real You', body: "Use a real photo so your teammates know who's showing up." },
-{ icon: '📋', title: 'Registered Players Only', body: "If you're not on the list, you're not on the pitch. No exceptions." },
-                { icon: '🟨', title: 'Meet the Referee', body: "Introduce yourself before the game. They're here to keep it fair — show some respect." },
-                { icon: '🤝', title: 'Good Energy Only', body: "Daps over drama. Respect the game and your opponents." },
-              ].map(({ icon, title, body }) => (
-                <View key={title} style={styles.guidelineRow}>
-                  <Text style={styles.guidelineIcon}>{icon}</Text>
-                  <View style={styles.guidelineText}>
-                    <Text style={styles.guidelineItem}>{title}</Text>
-                    <Text style={styles.guidelineBody}>{body}</Text>
-                  </View>
+          <View style={styles.guidelinesBox}>
+            <Text style={styles.guidelinesTitle}>COMMUNITY GUIDELINES</Text>
+            {(isGame ? [
+              { icon: '⏰', title: 'Arrive Ready', body: "Kick-off waits for no one. Be warmed up and on the pitch on time." },
+              { icon: '🚫', title: 'Zero Drama', body: "Disputes happen — disrespect doesn't. Any fighting = instant ban." },
+              { icon: '📸', title: 'Real Profile, Real You', body: "Use a real photo so your teammates know who's showing up." },
+              { icon: '📋', title: 'Registered Players Only', body: "If you're not on the list, you're not on the pitch. No exceptions." },
+              { icon: '🟨', title: 'Meet the Referee', body: "Introduce yourself before the game. They're here to keep it fair — show some respect." },
+              { icon: '🤝', title: 'Good Energy Only', body: "Daps over drama. Respect the game and your opponents." },
+            ] : [
+              { icon: '⏰', title: 'Be On Time', body: "Tournament brackets run on a tight schedule. Late arrivals forfeit their match." },
+              { icon: '🏆', title: 'Compete with Respect', body: "Win with humility, lose with class. This is a community — act like it." },
+              { icon: '📋', title: 'Registered Rosters Only', body: "Only players on your registered team may play. No ringers, no exceptions." },
+              { icon: '🚫', title: 'Zero Tolerance', body: "Any fighting, abuse, or unsportsmanlike conduct = immediate disqualification and ban." },
+              { icon: '🟨', title: 'Referee is Final', body: "All referee decisions are final. Disputes must be raised calmly — never on the pitch." },
+              { icon: '🤝', title: 'Good Energy Only', body: "Daps over drama. Respect every team, every game, every opponent." },
+            ]).map(({ icon, title, body }) => (
+              <View key={title} style={styles.guidelineRow}>
+                <Text style={styles.guidelineIcon}>{icon}</Text>
+                <View style={styles.guidelineText}>
+                  <Text style={styles.guidelineItem}>{title}</Text>
+                  <Text style={styles.guidelineBody}>{body}</Text>
                 </View>
-              ))}
-            </View>
-          )}
+              </View>
+            ))}
+          </View>
 
           <TouchableOpacity style={styles.modalCloseBtn} onPress={onClose}>
             <Text style={styles.modalCloseBtnText}>{t('feed.close')}</Text>
           </TouchableOpacity>
-        </Pressable>
-      </Pressable>
+          </ScrollView>
+        </View>
+      </View>
 
       {/* Game Chat */}
       {isGame && (
@@ -664,17 +726,28 @@ function UpcomingFixtures({ playerId, playerName, playerRole, isAdmin, t }) {
   const [selectedFixture, setSelectedFixture] = useState(null);
   const queryClient = useQueryClient();
 
-  const { data: fixtures, isLoading } = useQuery({
+  const { data: fixtures, isLoading, refetch: refetchFixtures } = useQuery({
     queryKey: ['myFixtures', playerId],
     queryFn: async () => {
       await checkAndBalanceGames(playerId);
       return fetchMyFixtures(playerId);
     },
     enabled: !!playerId,
-    refetchInterval: 10 * 60 * 1000, // re-check every 10 mins
+    refetchInterval: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,   // prevent AppState focus from overwriting optimistic updates
+    refetchOnReconnect: false,
   });
 
   async function handleCheckIn(fixture) {
+    if (fixture.type === 'tournament') {
+      const { error } = await supabase
+        .from('tournament_checkins')
+        .upsert({ tournament_id: fixture.data.id, player_id: playerId }, { onConflict: 'tournament_id,player_id' });
+      if (error) { Alert.alert('Error', error.message); return false; }
+      queryClient.invalidateQueries(['myFixtures', playerId]);
+      return true;
+    }
+
     const { error, count } = await supabase
       .from('game_players')
       .update({ checked_in: true, checked_in_at: new Date().toISOString() }, { count: 'exact' })
@@ -693,8 +766,103 @@ function UpcomingFixtures({ playerId, playerName, playerRole, isAdmin, t }) {
     return true;
   }
 
+  async function issueRefund({ gameId, tournamentId }) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/create-refund`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ playerId, gameId: gameId || null, tournamentId: tournamentId || null }),
+      });
+      const json = await res.json();
+      console.log('[Refund result]', JSON.stringify(json));
+      return json; // { refunded: true/false, amount, reason, error }
+    } catch (e) {
+      console.warn('[Refund error]', e.message);
+      return { refunded: false, reason: 'network_error' };
+    }
+  }
+
   async function handleWithdraw(fixture) {
     const data = fixture.data;
+
+    // ── Tournament withdrawal ─────────────────────────────────────────
+    if (fixture.type === 'tournament') {
+      const teamRow = fixture.teamRow;
+      const isCaptainOrSolo = teamRow?.captain_id === playerId || teamRow?.registration_type === 'solo_draft';
+      const title = isCaptainOrSolo ? 'Withdraw from Tournament' : 'Leave Team';
+      const hoursUntilTournament = (new Date(data.kickoff_date) - new Date()) / (1000 * 60 * 60);
+      const tournamentRefundEligible = hoursUntilTournament > 48;
+      const hasTournamentFee = (data.entry_fee || 0) > 0;
+
+      const refundLine = hasTournamentFee
+        ? tournamentRefundEligible
+          ? '\n\n💚 You are eligible for a full refund.'
+          : '\n\n🚫 No Refund — tournament is within 48 hours.'
+        : '';
+
+      const msg = isCaptainOrSolo
+        ? teamRow?.registration_type === 'solo_draft'
+          ? `This will remove your solo entry from ${data.name}.${refundLine}`
+          : `You are the captain. This will disband "${teamRow.name}" and remove all members from ${data.name}.${refundLine}`
+        : `This will remove you from "${teamRow.name}" in ${data.name}.${refundLine}`;
+
+      Alert.alert(title, msg + '\n\nAre you sure?', [
+        { text: 'Keep My Spot', style: 'cancel' },
+        {
+          text: title, style: 'destructive',
+          onPress: async () => {
+            // Use teamRow directly from fixture — avoids RLS issues on SELECT
+            let error = null;
+            if (isCaptainOrSolo || (teamRow.player_ids?.length ?? 0) <= 1) {
+              // Delete the whole row
+              const { error: e } = await supabase
+                .from('tournament_teams')
+                .delete()
+                .eq('id', teamRow.id);
+              error = e;
+            } else {
+              // Remove just this player from the team
+              const newIds = (teamRow.player_ids || []).filter(id => id !== playerId);
+              const { error: e } = await supabase
+                .from('tournament_teams')
+                .update({ player_ids: newIds })
+                .eq('id', teamRow.id);
+              error = e;
+            }
+
+            if (error) {
+              Alert.alert('Error', error.message);
+            } else {
+              setSelectedFixture(null);
+              await queryClient.cancelQueries({ queryKey: ['myFixtures', playerId] });
+              queryClient.setQueryData(['myFixtures', playerId], (old) =>
+                old?.filter(f => !(f.type === 'tournament' && f.teamRow?.id === teamRow.id)) ?? []
+              );
+              queryClient.invalidateQueries({ queryKey: ['tournaments'] });
+              setTimeout(() => refetchFixtures(), 1500);
+
+              // Auto-refund if eligible
+              let refundMsg = '';
+              if (hasTournamentFee && tournamentRefundEligible) {
+                const result = await issueRefund({ tournamentId: data.id });
+                refundMsg = result.refunded
+                  ? `\n\n💚 $${result.amount} refund issued to your original payment method.`
+                  : `\n\nRefund could not be processed automatically (${result.reason || result.error || 'unknown'}). Contact urbanpl.app@gmail.com.`;
+              }
+
+              Alert.alert(
+                'Withdrawn',
+                (isCaptainOrSolo ? "You've been withdrawn from the tournament." : "You've left the team.") + refundMsg
+              );
+            }
+          },
+        },
+      ]);
+      return;
+    }
+
+    // ── Game withdrawal ───────────────────────────────────────────────
     const kickoff = new Date(data.kickoff_time);
     const now = new Date();
     const hoursUntil = (kickoff - now) / (1000 * 60 * 60);
@@ -703,11 +871,11 @@ function UpcomingFixtures({ playerId, playerName, playerRole, isAdmin, t }) {
 
     let message = `You will be removed from this game.`;
     if (withinSixHours && hasFee) {
-      message = `⚠️ No Refund Policy\n\nThis game kicks off in less than 6 hours. Cancellations within 6 hours of kickoff are non-refundable.\n\nAre you sure you want to withdraw?`;
+      message = `⚠️ No Refund — this game kicks off in less than 6 hours. Cancellations within 6 hours are non-refundable.\n\nWithdraw anyway?`;
     } else if (withinSixHours) {
       message = `This game kicks off in less than 6 hours. Are you sure you want to withdraw?`;
     } else if (hasFee) {
-      message = `You paid $${data.entry_fee} to join this game.\n\nFor refund requests on early cancellations, contact us at urbanpl.app@gmail.com.\n\nWithdraw from this game?`;
+      message = `💚 You are eligible for a full refund.\n\nYour $${data.entry_fee} payment will be automatically returned to your original payment method.\n\nWithdraw from this game?`;
     } else {
       message = `Are you sure you want to withdraw from this game?`;
     }
@@ -733,9 +901,23 @@ function UpcomingFixtures({ playerId, playerName, playerRole, isAdmin, t }) {
               Alert.alert('Error', 'Could not remove you from the game. You may not have permission — please contact support.');
             } else {
               setSelectedFixture(null);
-              queryClient.invalidateQueries(['myFixtures']);
-              queryClient.invalidateQueries(['games']);
-              Alert.alert('Done', "You've been withdrawn from the game.");
+              await queryClient.cancelQueries({ queryKey: ['myFixtures', playerId] });
+              queryClient.setQueryData(['myFixtures', playerId], (old) =>
+                old?.filter(f => !(f.type === 'game' && f.data?.id === data.id)) ?? []
+              );
+              queryClient.invalidateQueries({ queryKey: ['games'] });
+              setTimeout(() => refetchFixtures(), 1500);
+
+              // Auto-refund if outside the 6-hour window
+              let refundMsg = '';
+              if (hasFee && !withinSixHours) {
+                const result = await issueRefund({ gameId: data.id });
+                refundMsg = result.refunded
+                  ? `\n\n💚 $${result.amount} refund issued to your original payment method.`
+                  : `\n\nRefund could not be processed automatically (${result.reason || result.error || 'unknown'}). Contact urbanpl.app@gmail.com.`;
+              }
+
+              Alert.alert('Withdrawn', "You've been removed from the game." + refundMsg);
             }
           },
         },
@@ -1342,8 +1524,9 @@ function MatchReportModal({ report, playerId, visible, onClose, onVerified }) {
 async function fetchGames(filter) {
   let query = supabase
     .from('games')
-    .select(`*, game_players(player_id), game_waitlist(player_id, position), game_referees(status), latitude, longitude`)
+    .select(`*, game_players(player_id), game_waitlist(player_id, position), game_referees(status), latitude, longitude, field:fields(name, photo_url)`)
     .in('status', ['open', 'confirmed'])
+    .gte('kickoff_time', new Date().toISOString())
     .order('kickoff_time', { ascending: true });
 
   if (filter === '5v5') query = query.eq('format', '5v5');
@@ -1632,11 +1815,12 @@ function ConfirmationBadge({ game }) {
 
 // ─── Payment & Cancellation Policy Modal ─────────────────────────────────────
 function PaymentPolicyModal({ visible, game, onAccept, onDecline }) {
+  const [expanded, setExpanded] = useState(false);
   if (!game) return null;
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onDecline}>
       <Pressable style={policyStyles.overlay} onPress={onDecline}>
-        <Pressable style={policyStyles.sheet} onPress={e => e.stopPropagation()}>
+        <View style={policyStyles.sheet}>
           <View style={policyStyles.handle} />
 
           {/* Header */}
@@ -1646,69 +1830,65 @@ function PaymentPolicyModal({ visible, game, onAccept, onDecline }) {
             </TouchableOpacity>
             <Text style={policyStyles.title}>Payment & cancellation policy</Text>
           </View>
-          <Text style={policyStyles.subtitle}>
-            Make sure you're comfortable with our policy before joining a game.
+
+          {/* Summary */}
+          <Text style={policyStyles.sectionBody}>
+            ⚠️ This game is subject to reaching minimum players and a confirmed referee.{' '}
+            Cancellation: full refund 5h+, credit only 3–5h, no refund under 3h.
           </Text>
 
-          <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
-
-            {/* Payment Details */}
-            <Text style={policyStyles.sectionTitle}>Payment details</Text>
-            <Text style={policyStyles.sectionBody}>
-              We place a temporary hold when you join a game. If it's confirmed, you'll be charged. If not, the hold is released (may take a few hours).{' '}
-              <Text style={policyStyles.bold}>A $0.50 fee applies for declined cards.</Text>
+          {/* Expand toggle */}
+          <TouchableOpacity onPress={() => setExpanded(e => !e)} style={{ paddingVertical: 8 }}>
+            <Text style={{ color: colors.gold, fontSize: 13, fontWeight: '600' }}>
+              {expanded ? '▾ Hide full policy' : '▸ Read full policy'}
             </Text>
+          </TouchableOpacity>
 
-            {/* Game Confirmation */}
-            <Text style={policyStyles.sectionTitle}>Game confirmation</Text>
-            <Text style={policyStyles.sectionBody}>
-              Games are canceled up to one hour before kickoff if there aren't enough players. We'll notify you if the game is canceled —{' '}
-              <Text style={policyStyles.bold}>Turn your notifications on!</Text>
-            </Text>
+          {expanded && (
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 300 }}>
+              <Text style={policyStyles.sectionTitle}>Payment details</Text>
+              <Text style={policyStyles.sectionBody}>
+                We place a temporary hold when you join. If confirmed, you're charged. If not, the hold is released.{' '}
+                <Text style={policyStyles.bold}>$0.50 fee for declined cards.</Text>
+              </Text>
 
-            {/* Cancellation Policy */}
-            <Text style={policyStyles.sectionTitle}>Cancellation policy</Text>
+              <Text style={policyStyles.sectionTitle}>Cancellation policy</Text>
 
-            {/* Row 1 */}
-            <View style={policyStyles.policyRow}>
-              <View style={policyStyles.policyLeft}>
-                <Text style={policyStyles.policyTime}>{`> 5 hour notice`}</Text>
-                <Text style={policyStyles.policyDesc}>Cancelling more than 5 hours before your game starts.</Text>
+              <View style={policyStyles.policyRow}>
+                <View style={policyStyles.policyLeft}>
+                  <Text style={policyStyles.policyTime}>{`> 5 hour notice`}</Text>
+                  <Text style={policyStyles.policyDesc}>Before your game starts.</Text>
+                </View>
+                <View style={policyStyles.policyRight}>
+                  <Text style={policyStyles.policyOutcome}>Full refund</Text>
+                  <Text style={policyStyles.policyDesc}>100% back or game credit.</Text>
+                </View>
               </View>
-              <View style={policyStyles.policyRight}>
-                <Text style={policyStyles.policyOutcome}>Full refund</Text>
-                <Text style={policyStyles.policyDesc}>Get back 100% or receive a game credit (your choice).</Text>
-              </View>
-            </View>
-            <View style={policyStyles.divider} />
+              <View style={policyStyles.divider} />
 
-            {/* Row 2 */}
-            <View style={policyStyles.policyRow}>
-              <View style={policyStyles.policyLeft}>
-                <Text style={policyStyles.policyTime}>3-5 hour notice</Text>
-                <Text style={policyStyles.policyDesc}>Cancelling between 3-5 hours before your game starts.</Text>
+              <View style={policyStyles.policyRow}>
+                <View style={policyStyles.policyLeft}>
+                  <Text style={policyStyles.policyTime}>3-5 hour notice</Text>
+                </View>
+                <View style={policyStyles.policyRight}>
+                  <Text style={policyStyles.policyOutcome}>Game credit ONLY</Text>
+                  <Text style={policyStyles.policyDesc}>If replacement found.</Text>
+                </View>
               </View>
-              <View style={policyStyles.policyRight}>
-                <Text style={policyStyles.policyOutcome}>Game credit ONLY</Text>
-                <Text style={policyStyles.policyDesc}>Receive a game credit for a future game ONLY if we can find a replacement.</Text>
-              </View>
-            </View>
-            <View style={policyStyles.divider} />
+              <View style={policyStyles.divider} />
 
-            {/* Row 3 */}
-            <View style={policyStyles.policyRow}>
-              <View style={policyStyles.policyLeft}>
-                <Text style={policyStyles.policyTime}>{`< 3 hour notice`}</Text>
-                <Text style={policyStyles.policyDesc}>Cancelling less than 3 hours before your game starts.</Text>
+              <View style={policyStyles.policyRow}>
+                <View style={policyStyles.policyLeft}>
+                  <Text style={policyStyles.policyTime}>{`< 3 hour notice`}</Text>
+                </View>
+                <View style={policyStyles.policyRight}>
+                  <Text style={[policyStyles.policyOutcome, { color: colors.error }]}>No refund</Text>
+                </View>
               </View>
-              <View style={policyStyles.policyRight}>
-                <Text style={[policyStyles.policyOutcome, { color: colors.error }]}>No refund</Text>
-                <Text style={policyStyles.policyDesc}>Player does not receive a refund or game credit.</Text>
-              </View>
-            </View>
 
-            <View style={{ height: 16 }} />
-          </ScrollView>
+              <View style={{ height: 8 }} />
+            </ScrollView>
+          )}
 
           {/* CTA */}
           <TouchableOpacity style={policyStyles.acceptBtn} onPress={onAccept}>
@@ -1718,7 +1898,7 @@ function PaymentPolicyModal({ visible, game, onAccept, onDecline }) {
             <Text style={policyStyles.declineTxt}>Cancel</Text>
           </TouchableOpacity>
 
-        </Pressable>
+        </View>
       </Pressable>
     </Modal>
   );
@@ -1733,8 +1913,8 @@ const policyStyles = StyleSheet.create({
     backgroundColor: colors.dark,
     borderTopLeftRadius: 24, borderTopRightRadius: 24,
     paddingHorizontal: 20,
-    paddingBottom: 36,
-    maxHeight: '90%',
+    paddingBottom: Platform.OS === 'ios' ? 36 : 20,
+    maxHeight: '85%',
   },
   handle: {
     width: 40, height: 4, borderRadius: 2,
@@ -1797,10 +1977,13 @@ function GameCard({ game, onJoin, onWaitlist, isJoined, isOnWaitlist, waitlistPo
   const filled = game.game_players?.length || 0;
   const isFull = filled >= game.total_spots;
   const hasFee = game.entry_fee > 0;
+  const [mediaWidth, setMediaWidth] = useState(0);
+  const [mediaPage, setMediaPage] = useState(0);
+  const hasFieldPhoto = !!game.field?.photo_url;
 
   function joinLabel() {
     if (isPaying) return '⏳ Processing...';
-    if (isJoined) return '✓ ' + t('feed.joined');
+    if (isJoined) return t('feed.joined');
     if (isFull && isOnWaitlist) return `⏳ Waitlist #${waitlistPos}`;
     if (isFull) return '📋 Join Waitlist';
     if (hasFee) return `Pay $${game.entry_fee} & Join`;
@@ -1829,18 +2012,57 @@ function GameCard({ game, onJoin, onWaitlist, isJoined, isOnWaitlist, waitlistPo
 
   return (
     <View style={styles.card}>
-      <GameMap latitude={game.latitude} longitude={game.longitude} location={game.location} />
+      <View
+        style={styles.mediaContainer}
+        onLayout={e => setMediaWidth(e.nativeEvent.layout.width)}
+      >
+        {hasFieldPhoto && mediaWidth > 0 ? (
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={e => setMediaPage(Math.round(e.nativeEvent.contentOffset.x / mediaWidth))}
+          >
+            <ImageBackground
+              source={{ uri: game.field.photo_url }}
+              style={[styles.mediaPage, { width: mediaWidth }]}
+              resizeMode="cover"
+            >
+              <LinearGradient
+                colors={['rgba(5,5,18,0.1)', 'rgba(5,5,18,0.65)']}
+                style={StyleSheet.absoluteFill}
+              />
+              <View style={styles.fieldBannerBadge}>
+                <Text style={styles.fieldBannerBadgeText}>📍 {game.field.name}</Text>
+              </View>
+            </ImageBackground>
+            <View style={[styles.mediaPage, { width: mediaWidth }]}>
+              <GameMap latitude={game.latitude} longitude={game.longitude} location={game.location} />
+            </View>
+          </ScrollView>
+        ) : (
+          <GameMap latitude={game.latitude} longitude={game.longitude} location={game.location} />
+        )}
 
-      {/* Time & Cost badges */}
-      <View style={styles.badgeRow}>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>🕐 {formatDate(game.kickoff_time, t)}</Text>
+        {/* Time & Cost badges */}
+        <View style={styles.badgeRow}>
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>🕐 {formatDate(game.kickoff_time, t)}</Text>
+          </View>
+          <View style={[styles.badge, styles.badgeRight]}>
+            <Text style={styles.badgeText}>
+              {hasFee ? `$${game.entry_fee}` : t('feed.free')}
+            </Text>
+          </View>
         </View>
-        <View style={[styles.badge, styles.badgeRight]}>
-          <Text style={styles.badgeText}>
-            {hasFee ? `$${game.entry_fee}` : t('feed.free')}
-          </Text>
-        </View>
+
+        {/* Page dots */}
+        {hasFieldPhoto && (
+          <View style={styles.mediaDots}>
+            <View style={[styles.mediaDot, mediaPage === 0 && styles.mediaDotActive]} />
+            <View style={[styles.mediaDot, mediaPage === 1 && styles.mediaDotActive]} />
+          </View>
+        )}
       </View>
 
       {/* Game Info */}
@@ -1905,6 +2127,19 @@ export default function FeedScreen() {
     refetchInterval: 60000, // re-check every minute
   });
 
+  async function sendEmail(type, payload) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      await fetch(`${SUPABASE_FUNCTIONS_URL}/send-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify(payload),
+      });
+    } catch (e) {
+      console.warn('Email send failed:', e.message);
+    }
+  }
+
   async function joinGame(game) {
     const { error } = await supabase
       .from('game_players')
@@ -1913,9 +2148,18 @@ export default function FeedScreen() {
       Alert.alert('Error', error.message);
     } else {
       queryClient.invalidateQueries(['games']);
-      queryClient.invalidateQueries(['myFixtures']);
+      queryClient.invalidateQueries(['myFixtures', player?.id]);
       await scheduleGameReminders(game);
       Alert.alert('🎉 Joined!', `You're in for ${game.location.split(',')[0]}. See you on the pitch!`);
+      // Send booking confirmation email (fire and forget)
+      if (player?.email) {
+        sendEmail('game_booking', {
+          type: 'game_booking',
+          to: player.email,
+          firstName: player.first_name || player.name || 'Player',
+          game,
+        });
+      }
     }
   }
 
@@ -2081,6 +2325,9 @@ export default function FeedScreen() {
   return (
     <View style={styles.container}>
 
+      {/* Summer Series announcement modal */}
+      <SummerSeriesModal />
+
       {/* Top bar */}
       <View style={styles.topBar}>
         <Text style={styles.topBarTitle}>⚽ Urban PL</Text>
@@ -2133,6 +2380,9 @@ export default function FeedScreen() {
         data={FILTERS}
         horizontal
         showsHorizontalScrollIndicator={false}
+        showsVerticalScrollIndicator={false}
+        scrollEnabled
+        bounces={false}
         keyExtractor={item => item}
         style={styles.filterBar}
         contentContainerStyle={styles.filterContent}
@@ -2409,10 +2659,10 @@ const styles = StyleSheet.create({
   fixtureBadgeText: { color: colors.gold, fontSize: 10, fontWeight: 'bold' },
 
   // Filters
-  filterBar: { maxHeight: 52, borderBottomWidth: 1, borderBottomColor: colors.darkBorder },
-  filterContent: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, gap: spacing.sm },
+  filterBar: { height: 56, borderBottomWidth: 1, borderBottomColor: colors.darkBorder, flexGrow: 0 },
+  filterContent: { paddingHorizontal: spacing.md, gap: spacing.sm, alignItems: 'center', flexDirection: 'row' },
   filterChip: {
-    paddingVertical: spacing.xs,
+    paddingVertical: 8,
     paddingHorizontal: spacing.md,
     borderRadius: radius.full,
     borderWidth: 1,
@@ -2443,6 +2693,41 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.darkBorder,
   },
+
+  // Media carousel (field photo + map)
+  mediaContainer: {
+    height: 150,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  mediaPage: {
+    height: 150,
+    justifyContent: 'flex-end',
+  },
+  mediaDots: {
+    position: 'absolute',
+    bottom: spacing.sm,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 5,
+  },
+  mediaDot: {
+    width: 6, height: 6, borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.4)',
+  },
+  mediaDotActive: { backgroundColor: colors.white },
+  fieldBannerBadge: {
+    position: 'absolute',
+    bottom: spacing.sm,
+    left: spacing.sm,
+    backgroundColor: 'rgba(26,26,46,0.85)',
+    borderRadius: radius.sm,
+    paddingVertical: 4,
+    paddingHorizontal: spacing.sm,
+  },
+  fieldBannerBadgeText: { color: colors.white, fontSize: 12, fontWeight: '700' },
 
   // Map strip
   mapStrip: {
@@ -2581,10 +2866,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.darkCard,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    padding: spacing.lg,
-    paddingBottom: spacing.xxl,
+    paddingTop: spacing.lg,
+    paddingHorizontal: spacing.lg,
     borderTopWidth: 1,
     borderColor: colors.darkBorder,
+    height: Dimensions.get('window').height * 0.88,
   },
   modalHandle: {
     width: 40, height: 4,

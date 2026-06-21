@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=430">
+<title>Screenshot 3 – Cups</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 428px; height: 926px; background: #080810; font-family: 'Inter', sans-serif; color: #fff; overflow: hidden; position: relative; }
+
+  .status { display: flex; justify-content: space-between; align-items: center; padding: 14px 24px 0; }
+  .status-time { font-size: 15px; font-weight: 700; }
+  .header { padding: 10px 20px 16px; text-align: center; }
+  .header-title { font-size: 22px; font-weight: 800; color: #C9A84C; }
+
+  /* Hero cup card */
+  .cup-hero { margin: 0 20px 14px; border-radius: 20px; overflow: hidden; border: 1px solid rgba(201,168,76,0.3); }
+  .cup-hero-bg {
+    height: 190px;
+    background: linear-gradient(160deg, #0d2010, #1a3a18, #0f2a0d);
+    position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  }
+  .cup-lines { position: absolute; inset: 0; opacity: 0.08; }
+  .cup-lines::before { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 140px; height: 140px; border: 2px solid #fff; border-radius: 50%; }
+  .cup-lines::after { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 240px; height: 140px; border: 2px solid #fff; }
+  .cup-icon { font-size: 52px; position: relative; z-index: 1; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5)); }
+  .cup-name { font-size: 22px; font-weight: 900; color: #fff; text-align: center; position: relative; z-index: 1; }
+  .cup-badges { display: flex; gap: 8px; position: relative; z-index: 1; }
+  .cup-badge { border-radius: 20px; padding: 4px 12px; font-size: 12px; font-weight: 700; }
+  .cup-badge.format { background: rgba(255,255,255,0.15); color: #fff; }
+  .cup-badge.status { background: rgba(100,200,100,0.2); color: #6dc86d; border: 1px solid rgba(100,200,100,0.4); }
+
+  .cup-body { background: #0e0e1a; padding: 14px 16px; }
+  .cup-stats { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+  .cup-stat { background: #12121E; border-radius: 12px; padding: 10px 8px; text-align: center; }
+  .cup-stat-icon { font-size: 18px; margin-bottom: 4px; }
+  .cup-stat-val { font-size: 15px; font-weight: 800; color: #C9A84C; }
+  .cup-stat-label { font-size: 9px; color: #666; margin-top: 2px; }
+
+  .cup-where { background: #12121E; border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; }
+  .cup-where-title { font-size: 12px; font-weight: 700; color: #C9A84C; margin-bottom: 6px; }
+  .cup-where-text { font-size: 13px; color: #ccc; }
+  .cup-where-sub { font-size: 11px; color: #666; margin-top: 2px; }
+
+  .cup-bracket { background: #12121E; border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; }
+  .cup-bracket-title { font-size: 12px; font-weight: 700; color: #C9A84C; margin-bottom: 8px; }
+  .bracket-placeholder { border: 1.5px dashed #2a2a40; border-radius: 8px; padding: 14px; text-align: center; color: #444; font-size: 12px; }
+
+  .cup-register { background: #C9A84C; border-radius: 14px; padding: 16px; text-align: center; font-size: 16px; font-weight: 800; color: #000; }
+
+  .tabbar { position: absolute; bottom: 0; left: 0; right: 0; height: 84px; background: #0e0e1a; border-top: 1px solid #1e1e30; display: flex; align-items: flex-start; padding-top: 12px; }
+  .tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .tab-icon { font-size: 22px; }
+  .tab-label { font-size: 10px; font-weight: 600; }
+  .tab.active .tab-label { color: #C9A84C; }
+  .tab.inactive .tab-label { color: #555; }
+  .tab.inactive .tab-icon { filter: grayscale(1) opacity(0.4); }
+</style>
+</head>
+<body>
+
+<div class="status">
+  <span class="status-time">18:53</span>
+  <div style="display:flex;gap:6px;font-size:13px;"><span>●●●●</span><span>🔋</span></div>
+</div>
+<div class="header"><span class="header-title">Cups</span></div>
+
+<div class="cup-hero">
+  <div class="cup-hero-bg">
+    <div class="cup-lines"></div>
+    <div class="cup-icon">🏆</div>
+    <div class="cup-name">Boca Summer Series</div>
+    <div class="cup-badges">
+      <span class="cup-badge format">7v7</span>
+      <span class="cup-badge status">Open</span>
+    </div>
+  </div>
+  <div class="cup-body">
+    <div class="cup-stats">
+      <div class="cup-stat"><div class="cup-stat-icon">💰</div><div class="cup-stat-val">$26</div><div class="cup-stat-label">Entry Fee</div></div>
+      <div class="cup-stat"><div class="cup-stat-icon">👥</div><div class="cup-stat-val">0/6</div><div class="cup-stat-label">Teams</div></div>
+      <div class="cup-stat"><div class="cup-stat-icon">⏱️</div><div class="cup-stat-val">20min</div><div class="cup-stat-label">Game Time</div></div>
+      <div class="cup-stat"><div class="cup-stat-icon">🏃</div><div class="cup-stat-val">8p</div><div class="cup-stat-label">Per Team</div></div>
+    </div>
+
+    <div class="cup-where">
+      <div class="cup-where-title">📅 When & Where</div>
+      <div class="cup-where-text">Saturday, June 20 · 7:00 PM</div>
+      <div class="cup-where-sub">📍 Boca Raton Sports Park</div>
+    </div>
+
+    <div class="cup-bracket">
+      <div class="cup-bracket-title">🗂 Bracket</div>
+      <div class="bracket-placeholder">Registration open — bracket generated at kickoff</div>
+    </div>
+
+    <div class="cup-register">View & Register →</div>
+  </div>
+</div>
+
+<div class="tabbar">
+  <div class="tab inactive"><span class="tab-icon">⚽</span><span class="tab-label">Feed</span></div>
+  <div class="tab active"><span class="tab-icon">🏆</span><span class="tab-label">Cups</span></div>
+  <div class="tab inactive"><span class="tab-icon">📊</span><span class="tab-label">Rankings</span></div>
+  <div class="tab inactive"><span class="tab-icon">👤</span><span class="tab-label">Profile</span></div>
+</div>
+
+</body>
+</html>

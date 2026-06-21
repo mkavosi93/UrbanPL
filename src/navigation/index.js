@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, ActivityIndicator, Platform } from 'react-native';
+import { View, ActivityIndicator, Platform, TouchableOpacity } from 'react-native';
 import { Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
@@ -69,6 +69,28 @@ const TAB_SCREEN_OPTIONS = {
   },
   headerTintColor: colors.gold,
 };
+
+// ─── Pending approval screen (referee not yet approved) ───────────────────────
+function PendingApprovalScreen() {
+  const { signOut } = useAuth();
+  return (
+    <View style={{ flex: 1, backgroundColor: '#07080a', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+      <Text style={{ fontSize: 56, marginBottom: 20 }}>⏳</Text>
+      <Text style={{ color: colors.gold, fontSize: 22, fontWeight: '900', marginBottom: 10, textAlign: 'center' }}>
+        Application Under Review
+      </Text>
+      <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 15, textAlign: 'center', lineHeight: 24, marginBottom: 40 }}>
+        Our team is verifying your ID and selfie.{'\n'}You'll be notified by email once approved.
+      </Text>
+      <TouchableOpacity
+        onPress={signOut}
+        style={{ paddingVertical: 10, paddingHorizontal: 28, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }}
+      >
+        <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>Sign Out</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
 
 // ─── Referee-only tabs ────────────────────────────────────────────────────────
 function RefereeTabs() {
@@ -179,7 +201,9 @@ export default function Navigation() {
         : session
           ? needsTerms
             ? <TermsScreen onAccepted={() => setTermsAccepted(true)} />
-            : isReferee ? <RefereeTabs /> : <MainTabs />
+            : isReferee
+              ? (player?.referee_approved ? <RefereeTabs /> : <PendingApprovalScreen />)
+              : <MainTabs />
           : <AuthStack />
       }
     </NavigationContainer>

@@ -2,6 +2,7 @@
   "expo": {
     "name": "Urban PL",
     "slug": "UrbanPL",
+    "scheme": "urbanpl",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -46,7 +47,8 @@
           "merchantIdentifier": "merchant.com.urbanpl.app",
           "enableGooglePay": false
         }
-      ]
+      ],
+      "expo-font"
     ],
     "extra": {
       "eas": {

@@ -2,24 +2,22 @@ import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, Alert, Modal, KeyboardAvoidingView,
-  Platform, Linking,
+  Platform, Linking, Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
+import { decode } from 'base64-arraybuffer';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { colors, spacing, radius } from '../theme';
 
-// Generate a 60-minute signed URL for a private referee ID doc and open it
-async function viewRefereeId(storagePath) {
-  if (!storagePath) { Alert.alert('No ID', 'This referee has not uploaded an ID document.'); return; }
-  const { data, error } = await supabase.storage
-    .from('referee-ids')
-    .createSignedUrl(storagePath, 3600); // 1-hour expiry
-  if (error || !data?.signedUrl) {
-    Alert.alert('Error', 'Could not load ID document. ' + (error?.message || ''));
-    return;
-  }
-  Linking.openURL(data.signedUrl);
+const SUPABASE_FUNCTIONS_URL = 'https://zprtghdcmiavtoaltlld.supabase.co/functions/v1';
+
+// Open referee ID doc or selfie URL
+async function viewRefereeId(url) {
+  if (!url) { Alert.alert('No ID', 'This referee has not uploaded an ID document.'); return; }
+  Linking.openURL(url);
 }
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -28,7 +26,7 @@ const SLOT_LABELS = { AM: 'Morning', PM: 'Afternoon', EVE: 'Evening' };
 const FORMATS = ['5v5', '6v6', '7v7', '8v8', '11v11'];
 const GAME_STATUSES = ['open', 'active', 'completed', 'cancelled'];
 const CUP_STATUSES  = ['upcoming', 'active', 'completed', 'cancelled'];
-const SECTIONS = ['Dashboard', 'Reports', 'Availability', 'New Game', 'New Cup', 'Payments', 'Referees'];
+const SECTIONS = ['Dashboard', 'Reports', 'Availability', 'New Game', 'New Cup', 'Payments', 'Referees', 'Email', 'Fields'];
 
 // ─── Fetch helpers ────────────────────────────────────────────────────────────
 async function fetchAvailabilities() {
@@ -155,6 +153,7 @@ function EditGameModal({ game, visible, onClose, onSaved }) {
   const [status, setStatus]             = useState(game?.status   || 'open');
   const [refPay, setRefPay]             = useState(String(game?.referee_pay || '0'));
   const [refsNeeded, setRefsNeeded]     = useState(String(game?.referees_needed || '1'));
+  const [fieldId, setFieldId]           = useState(game?.field_id || null);
   const [saving, setSaving]             = useState(false);
 
   // Re-seed fields when game changes (different row tapped)
@@ -169,6 +168,7 @@ function EditGameModal({ game, visible, onClose, onSaved }) {
       setStatus(game.status || 'open');
       setRefPay(String(game.referee_pay || '0'));
       setRefsNeeded(String(game.referees_needed || '1'));
+      setFieldId(game.field_id || null);
     }
   }, [game?.id]);
 
@@ -190,6 +190,7 @@ function EditGameModal({ game, visible, onClose, onSaved }) {
         status,
         referee_pay: parseFloat(refPay) || 0,
         referees_needed: parseInt(refsNeeded) || 1,
+        field_id: fieldId,
       })
       .eq('id', game.id)
       .select();
@@ -252,6 +253,8 @@ function EditGameModal({ game, visible, onClose, onSaved }) {
               value={location}
               onChangeText={setLocation}
             />
+
+            <FieldPicker value={fieldId} onChange={setFieldId} />
 
             <Text style={styles.formLabel}>Format</Text>
             <View style={styles.chipRow}>
@@ -378,11 +381,45 @@ function EditCupModal({ cup, visible, onClose, onSaved }) {
   const [time, setTime]             = useState(toTimeStr(cup?.kickoff_date));
   const [maxTeams, setMaxTeams]     = useState(String(cup?.max_teams  || '8'));
   const [fee, setFee]               = useState(String(cup?.entry_fee  || '0'));
+  const [prize, setPrize]           = useState(String(cup?.prize_money || '0'));
   const [status, setStatus]         = useState(cup?.status  || 'upcoming');
   const [refPay, setRefPay]         = useState(String(cup?.referee_pay || '0'));
   const [refsNeeded, setRefsNeeded] = useState(String(cup?.referees_needed || '1'));
+  const [fieldId, setFieldId]       = useState(cup?.field_id || null);
   const [saving, setSaving]         = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [waitlist, setWaitlist]     = useState([]);
+
+  // Fetch waitlisted entries
+  React.useEffect(() => {
+    if (!cup?.id) return;
+    supabase
+      .from('tournament_teams')
+      .select('id, name, player_ids, avg_rating, captain_id, players:captain_id(first_name, last_name, name)')
+      .eq('tournament_id', cup.id)
+      .eq('registration_type', 'waitlist')
+      .then(({ data }) => setWaitlist(data || []));
+  }, [cup?.id]);
+
+  async function approveWaitlist(entry) {
+    const { error } = await supabase
+      .from('tournament_teams')
+      .update({ registration_type: 'solo_draft' })
+      .eq('id', entry.id);
+    if (error) { Alert.alert('Error', error.message); return; }
+    setWaitlist(old => old.filter(w => w.id !== entry.id));
+    Alert.alert('✅ Approved', `${entry.name} moved from waitlist to draft pool.`);
+    onSaved?.();
+  }
+
+  async function rejectWaitlist(entry) {
+    const { error } = await supabase
+      .from('tournament_teams')
+      .delete()
+      .eq('id', entry.id);
+    if (error) { Alert.alert('Error', error.message); return; }
+    setWaitlist(old => old.filter(w => w.id !== entry.id));
+  }
 
   React.useEffect(() => {
     if (cup) {
@@ -393,9 +430,11 @@ function EditCupModal({ cup, visible, onClose, onSaved }) {
       setTime(toTimeStr(cup.kickoff_date));
       setMaxTeams(String(cup.max_teams || '8'));
       setFee(String(cup.entry_fee || '0'));
+      setPrize(String(cup.prize_money || '0'));
       setStatus(cup.status || 'upcoming');
       setRefPay(String(cup.referee_pay || '0'));
       setRefsNeeded(String(cup.referees_needed || '1'));
+      setFieldId(cup.field_id || null);
     }
   }, [cup?.id]);
 
@@ -415,9 +454,11 @@ function EditCupModal({ cup, visible, onClose, onSaved }) {
         kickoff_date: kickoff.toISOString(),
         max_teams: parseInt(maxTeams) || 8,
         entry_fee: parseFloat(fee) || 0,
+        prize_money: parseFloat(prize) || 0,
         status,
         referee_pay: parseFloat(refPay) || 0,
         referees_needed: parseInt(refsNeeded) || 1,
+        field_id: fieldId,
       })
       .eq('id', cup.id);
     setSaving(false);
@@ -435,18 +476,11 @@ function EditCupModal({ cup, visible, onClose, onSaved }) {
       .eq('tournament_id', cup.id)
       .order('avg_rating', { ascending: false });
 
-    if (error) {
-      Alert.alert('Error', error.message);
-      setGenerating(false);
-      return;
-    }
+    if (error) { Alert.alert('Error', error.message); setGenerating(false); return; }
 
-    const count = teams.length;
-    if (![4, 8, 16].includes(count)) {
-      Alert.alert(
-        'Cannot Generate',
-        `Need exactly 4, 8, or 16 registered teams. Currently ${count} team${count !== 1 ? 's' : ''}.`
-      );
+    const n = teams.length;
+    if (n < 2) {
+      Alert.alert('Cannot Generate', 'Need at least 2 registered teams.');
       setGenerating(false);
       return;
     }
@@ -463,30 +497,80 @@ function EditCupModal({ cup, visible, onClose, onSaved }) {
       return;
     }
 
-    const totalRounds = Math.log2(count);
-    const matchesToInsert = [];
+    // Round up to next power of 2 so we get a clean bracket
+    let bracketSize = 1;
+    while (bracketSize < n) bracketSize *= 2;
 
-    for (let i = 0; i < count / 2; i++) {
+    const byes = bracketSize - n;
+    const totalRounds = Math.log2(bracketSize);
+    const fields = cup.field_count || 1;
+    const gameMins = cup.game_duration || 20;
+    const baseTime = cup.kickoff_date ? new Date(cup.kickoff_date) : new Date();
+
+    // Fill slots: seed 1 vs seed n, seed 2 vs seed n-1, ...
+    // slots are paired as (0,1),(2,3),... so place teams accordingly
+    const slots = Array(bracketSize).fill(null);
+    for (let i = 0; i < n; i++) {
+      // Standard seeding: top half gets seeds 1..bracketSize/2, bottom half reversed
+      const pos = i < Math.ceil(n / 2)
+        ? i * 2
+        : (bracketSize - 1) - (i - Math.ceil(n / 2)) * 2;
+      slots[pos] = teams[i];
+    }
+
+    const matchesToInsert = [];
+    let currentTime = new Date(baseTime);
+    const breakBetween = 10; // minutes break between games on the same field
+    const breakBetweenRounds = breakBetween; // same break between rounds as between games
+    // Slot duration = game time + break (unless games run on separate fields simultaneously)
+    const slotMins = gameMins + breakBetween;
+
+    // Round 1 — may include byes
+    const r1Count = bracketSize / 2;
+    for (let i = 0; i < r1Count; i++) {
+      const teamA = slots[i * 2];
+      const teamB = slots[i * 2 + 1];
+      const isBye = !teamA || !teamB;
+      const fieldNum = (i % fields) + 1;
+      const batchIdx = Math.floor(i / fields);
+      // Games on different fields start at the same time; same field gets game+break gap
+      const matchTime = new Date(currentTime.getTime() + batchIdx * slotMins * 60000);
+
       matchesToInsert.push({
         tournament_id: cup.id,
         round: 1,
         match_number: i + 1,
-        team_a_id: teams[i].id,
-        team_b_id: teams[count - 1 - i].id,
-        status: 'scheduled',
+        team_a_id: teamA?.id || null,
+        team_b_id: isBye ? null : teamB?.id || null,
+        status: isBye ? 'bye' : 'scheduled',
+        winner_id: isBye ? (teamA?.id || teamB?.id) : null,
+        kickoff_time: isBye ? null : matchTime.toISOString(),
+        field_number: isBye ? null : fieldNum,
       });
     }
 
+    // Advance time past round 1 (last batch only needs gameMins, not slotMins) + round break
+    const r1Batches = Math.ceil(r1Count / fields);
+    currentTime = new Date(currentTime.getTime() + ((r1Batches - 1) * slotMins + gameMins) * 60000 + breakBetweenRounds * 60000);
+
+    // Later rounds — teams TBD, just schedule the slots
     for (let r = 2; r <= totalRounds; r++) {
-      const matchCount = count / Math.pow(2, r);
+      const matchCount = bracketSize / Math.pow(2, r);
+      const rBatches = Math.ceil(matchCount / fields);
       for (let m = 1; m <= matchCount; m++) {
+        const fieldNum = ((m - 1) % fields) + 1;
+        const batchIdx = Math.floor((m - 1) / fields);
+        const matchTime = new Date(currentTime.getTime() + batchIdx * slotMins * 60000);
         matchesToInsert.push({
           tournament_id: cup.id,
           round: r,
           match_number: m,
           status: 'scheduled',
+          kickoff_time: matchTime.toISOString(),
+          field_number: fieldNum,
         });
       }
+      currentTime = new Date(currentTime.getTime() + ((rBatches - 1) * slotMins + gameMins) * 60000 + breakBetweenRounds * 60000);
     }
 
     const { error: insertError } = await supabase
@@ -498,9 +582,120 @@ function EditCupModal({ cup, visible, onClose, onSaved }) {
     if (insertError) {
       Alert.alert('Error', insertError.message);
     } else {
-      Alert.alert('✅ Bracket Generated', `${count}-team knockout bracket is ready!`);
+      const realMatches = matchesToInsert.filter(m => m.status !== 'bye').length;
+      // Total time: each round's batches × slot duration + round breaks (last batch uses gameMins not slotMins)
+      let estMins = 0;
+      for (let r = 1; r <= totalRounds; r++) {
+        const mc = bracketSize / Math.pow(2, r);
+        const batches = Math.ceil(mc / fields);
+        estMins += (batches - 1) * slotMins + gameMins;
+        if (r < totalRounds) estMins += breakBetweenRounds;
+      }
+      Alert.alert(
+        '✅ Bracket Generated',
+        `${n} teams · ${realMatches} matches\n` +
+        `${fields} field${fields > 1 ? 's' : ''} · ${fields} referee${fields > 1 ? 's' : ''} needed\n` +
+        `${breakBetween} min break between games · ~${Math.round(estMins)} min total` +
+        (byes > 0 ? `\n${byes} bye${byes > 1 ? 's' : ''} given to top seed${byes > 1 ? 's' : ''}` : '')
+      );
       onSaved?.();
     }
+  }
+
+  async function draftSoloPlayers() {
+    setGenerating(true);
+
+    // Fetch all solo_draft entries for this cup
+    const { data: soloTeams, error } = await supabase
+      .from('tournament_teams')
+      .select('id, player_ids, avg_rating')
+      .eq('tournament_id', cup.id)
+      .eq('registration_type', 'solo_draft');
+
+    if (error) { Alert.alert('Error', error.message); setGenerating(false); return; }
+    if (!soloTeams || soloTeams.length === 0) {
+      Alert.alert('No Solo Players', 'There are no solo registrations to draft.');
+      setGenerating(false);
+      return;
+    }
+
+    // Collect all solo player IDs with their ratings
+    const soloPlayers = soloTeams.map(t => ({
+      id: t.player_ids[0],
+      rating: t.avg_rating || 5.0,
+    }));
+
+    // Determine number of teams — at least 2
+    const perSide = parseInt(cup.format) || 6;
+    const idealTeamSize = perSide + 1;
+    const numTeams = Math.max(2, Math.min(Math.floor(soloPlayers.length / 2), Math.floor(soloPlayers.length / idealTeamSize) || 2));
+
+    if (soloPlayers.length < 4) {
+      Alert.alert('Not Enough Players', `Need at least 4 solo players to draft 2 teams. Currently ${soloPlayers.length}.`);
+      setGenerating(false);
+      return;
+    }
+
+    // Sort by rating descending
+    soloPlayers.sort((a, b) => b.rating - a.rating);
+
+    // Snake draft into teams
+    const draftedTeams = Array.from({ length: numTeams }, () => []);
+    let direction = 1;
+    let teamIdx = 0;
+    for (const player of soloPlayers) {
+      draftedTeams[teamIdx].push(player);
+      teamIdx += direction;
+      if (teamIdx >= numTeams || teamIdx < 0) {
+        direction *= -1;
+        teamIdx += direction;
+      }
+    }
+
+    // Team names
+    const teamNames = ['Red Lions', 'Blue Storm', 'Green Eagles', 'Gold FC', 'Silver Wolves', 'Purple Kings', 'Orange Blaze', 'Black Hawks'];
+
+    // Fetch existing non-solo team count for naming offset
+    const { data: existingTeams } = await supabase
+      .from('tournament_teams')
+      .select('id')
+      .eq('tournament_id', cup.id)
+      .neq('registration_type', 'solo_draft');
+    const nameOffset = existingTeams?.length || 0;
+
+    // Insert new balanced teams
+    const newTeams = draftedTeams.map((players, i) => {
+      const avgRating = players.reduce((s, p) => s + p.rating, 0) / players.length;
+      return {
+        tournament_id: cup.id,
+        name: teamNames[(nameOffset + i) % teamNames.length],
+        player_ids: players.map(p => p.id),
+        avg_rating: Math.round(avgRating * 10) / 10,
+        registration_type: 'team',
+        captain_id: players[0].id,
+      };
+    });
+
+    const { error: insertErr } = await supabase
+      .from('tournament_teams')
+      .insert(newTeams);
+
+    if (insertErr) {
+      Alert.alert('Error', insertErr.message);
+      setGenerating(false);
+      return;
+    }
+
+    // Delete old solo entries
+    const soloIds = soloTeams.map(t => t.id);
+    await supabase.from('tournament_teams').delete().in('id', soloIds);
+
+    setGenerating(false);
+    Alert.alert(
+      '✅ Teams Drafted',
+      `${soloPlayers.length} solo players → ${numTeams} balanced teams (${draftedTeams[0].length} per team)\nSnake draft by rating.`
+    );
+    onSaved?.();
   }
 
   function handleDelete() {
@@ -557,6 +752,8 @@ function EditCupModal({ cup, visible, onClose, onSaved }) {
               value={venue}
               onChangeText={setVenue}
             />
+
+            <FieldPicker value={fieldId} onChange={setFieldId} />
 
             <Text style={styles.formLabel}>Format</Text>
             <View style={styles.chipRow}>
@@ -631,6 +828,17 @@ function EditCupModal({ cup, visible, onClose, onSaved }) {
 
             <View style={styles.twoCol}>
               <View style={styles.twoColField}>
+                <Text style={styles.formLabel}>Prize Money ($)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="0"
+                  placeholderTextColor={colors.gray}
+                  value={prize}
+                  onChangeText={setPrize}
+                  keyboardType="decimal-pad"
+                />
+              </View>
+              <View style={styles.twoColField}>
                 <Text style={styles.formLabel}>Referee Pay ($)</Text>
                 <TextInput
                   style={styles.input}
@@ -641,6 +849,9 @@ function EditCupModal({ cup, visible, onClose, onSaved }) {
                   keyboardType="decimal-pad"
                 />
               </View>
+            </View>
+
+            <View style={styles.twoCol}>
               <View style={styles.twoColField}>
                 <Text style={styles.formLabel}>Refs Needed</Text>
                 <TextInput
@@ -653,6 +864,45 @@ function EditCupModal({ cup, visible, onClose, onSaved }) {
                 />
               </View>
             </View>
+
+            {waitlist.length > 0 && (
+              <View style={{ marginBottom: spacing.md }}>
+                <Text style={[styles.formLabel, { color: '#e8a832' }]}>⏳ Waitlist ({waitlist.length})</Text>
+                {waitlist.map(w => {
+                  const pName = w.players
+                    ? [w.players.first_name, w.players.last_name].filter(Boolean).join(' ') || w.players.name
+                    : w.name;
+                  return (
+                    <View key={w.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.darkBorder }}>
+                      <Text style={{ color: colors.grayLight, flex: 1, fontSize: 14 }}>{pName}</Text>
+                      <TouchableOpacity
+                        style={{ backgroundColor: colors.success, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, marginRight: 8 }}
+                        onPress={() => approveWaitlist(w)}
+                      >
+                        <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>Approve</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={{ backgroundColor: colors.error, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 }}
+                        onPress={() => rejectWaitlist(w)}
+                      >
+                        <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>Reject</Text>
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+
+            <TouchableOpacity
+              style={[styles.generateBracketBtn, { backgroundColor: '#4A90D9' }, generating && { opacity: 0.6 }]}
+              onPress={draftSoloPlayers}
+              disabled={generating}
+            >
+              {generating
+                ? <ActivityIndicator color="#fff" size="small" />
+                : <Text style={[styles.generateBracketBtnText, { color: '#fff' }]}>🔀 Draft Solo Players into Teams</Text>
+              }
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.generateBracketBtn, generating && { opacity: 0.6 }]}
@@ -803,6 +1053,61 @@ function AvailabilityHeatmap({ players }) {
   );
 }
 
+// ─── Field Picker ─────────────────────────────────────────────────────────────
+function useFields() {
+  return useQuery({
+    queryKey: ['admin-fields'],
+    queryFn: async () => {
+      const { data } = await supabase.from('fields').select('*').order('name');
+      return data || [];
+    },
+  });
+}
+
+function FieldPicker({ value, onChange }) {
+  const { data: fields = [] } = useFields();
+
+  if (fields.length === 0) return null;
+
+  return (
+    <View>
+      <Text style={styles.formLabel}>Field Photo <Text style={styles.formHint}>(optional — shown on the listing)</Text></Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={fieldPickerStyles.row}>
+        <TouchableOpacity
+          style={[fieldPickerStyles.item, !value && fieldPickerStyles.itemActive]}
+          onPress={() => onChange(null)}
+          activeOpacity={0.8}
+        >
+          <View style={[fieldPickerStyles.thumb, fieldPickerStyles.thumbPlaceholder]}>
+            <Text style={{ fontSize: 18 }}>🚫</Text>
+          </View>
+          <Text style={fieldPickerStyles.label}>None</Text>
+        </TouchableOpacity>
+        {fields.map(f => (
+          <TouchableOpacity
+            key={f.id}
+            style={[fieldPickerStyles.item, value === f.id && fieldPickerStyles.itemActive]}
+            onPress={() => onChange(f.id)}
+            activeOpacity={0.8}
+          >
+            <Image source={{ uri: f.photo_url }} style={fieldPickerStyles.thumb} resizeMode="cover" />
+            <Text style={fieldPickerStyles.label} numberOfLines={1}>{f.name}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
+const fieldPickerStyles = StyleSheet.create({
+  row: { marginBottom: 14 },
+  item: { marginRight: 10, alignItems: 'center', width: 76, padding: 4, borderRadius: 10, borderWidth: 1, borderColor: 'transparent' },
+  itemActive: { borderColor: colors.gold, backgroundColor: 'rgba(245,197,24,0.08)' },
+  thumb: { width: 68, height: 48, borderRadius: 8, marginBottom: 4 },
+  thumbPlaceholder: { backgroundColor: colors.dark, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.darkBorder, borderStyle: 'dashed' },
+  label: { color: colors.gray, fontSize: 10, textAlign: 'center' },
+});
+
 // ─── Create Game Form ─────────────────────────────────────────────────────────
 function CreateGameForm({ onCreated }) {
   const [location, setLocation]         = useState('');
@@ -813,6 +1118,7 @@ function CreateGameForm({ onCreated }) {
   const [fee, setFee]                   = useState('0');
   const [refPay, setRefPay]             = useState('0');
   const [refsNeeded, setRefsNeeded]     = useState('1');
+  const [fieldId, setFieldId]           = useState(null);
   const [saving, setSaving]             = useState(false);
   const [error, setError]               = useState('');
   const [success, setSuccess]           = useState('');
@@ -855,6 +1161,7 @@ function CreateGameForm({ onCreated }) {
       entry_fee: parseFloat(fee) || 0,
       referee_pay: parseFloat(refPay) || 0,
       referees_needed: parseInt(refsNeeded) || 1,
+      field_id: fieldId,
       status: 'open',
       teams_balanced: false,
       latitude,
@@ -868,7 +1175,7 @@ function CreateGameForm({ onCreated }) {
     } else {
       setSuccess(`✅ Game created! ${format} at ${location.trim()} on ${kickoff.toLocaleDateString()}`);
       setLocation(''); setDate(''); setTime(''); setSpots(''); setFee('0');
-      setRefPay('0'); setRefsNeeded('1');
+      setRefPay('0'); setRefsNeeded('1'); setFieldId(null);
       onCreated?.();
     }
   }
@@ -885,6 +1192,8 @@ function CreateGameForm({ onCreated }) {
         value={location}
         onChangeText={setLocation}
       />
+
+      <FieldPicker value={fieldId} onChange={setFieldId} />
 
       <Text style={styles.formLabel}>Format</Text>
       <View style={styles.chipRow}>
@@ -995,8 +1304,10 @@ function CreateCupForm({ onCreated }) {
   const [time, setTime]             = useState('');
   const [maxTeams, setMaxTeams]     = useState('');
   const [fee, setFee]               = useState('0');
+  const [prize, setPrize]           = useState('0');
   const [refPay, setRefPay]         = useState('0');
   const [refsNeeded, setRefsNeeded] = useState('1');
+  const [fieldId, setFieldId]       = useState(null);
   const [saving, setSaving]         = useState(false);
   const [error, setError]           = useState('');
   const [success, setSuccess]       = useState('');
@@ -1026,8 +1337,10 @@ function CreateCupForm({ onCreated }) {
       max_teams: parsedMaxTeams,
       capacity,
       entry_fee: parseFloat(fee) || 0,
+      prize_money: parseFloat(prize) || 0,
       referee_pay: parseFloat(refPay) || 0,
       referees_needed: parseInt(refsNeeded) || 1,
+      field_id: fieldId,
       status: 'upcoming',
     });
     setSaving(false);
@@ -1038,7 +1351,7 @@ function CreateCupForm({ onCreated }) {
     } else {
       setSuccess(`✅ Cup created! ${name.trim()} on ${kickoff.toLocaleDateString()}`);
       setName(''); setVenue(''); setDate(''); setTime(''); setMaxTeams(''); setFee('0');
-      setRefPay('0'); setRefsNeeded('1');
+      setPrize('0'); setRefPay('0'); setRefsNeeded('1'); setFieldId(null);
       onCreated?.();
     }
   }
@@ -1064,6 +1377,8 @@ function CreateCupForm({ onCreated }) {
         value={venue}
         onChangeText={setVenue}
       />
+
+      <FieldPicker value={fieldId} onChange={setFieldId} />
 
       <Text style={styles.formLabel}>Format</Text>
       <View style={styles.chipRow}>
@@ -1125,6 +1440,17 @@ function CreateCupForm({ onCreated }) {
 
       <View style={styles.twoCol}>
         <View style={styles.twoColField}>
+          <Text style={styles.formLabel}>Prize Money ($)</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="0"
+            placeholderTextColor={colors.gray}
+            value={prize}
+            onChangeText={setPrize}
+            keyboardType="decimal-pad"
+          />
+        </View>
+        <View style={styles.twoColField}>
           <Text style={styles.formLabel}>Referee Pay ($)</Text>
           <TextInput
             style={styles.input}
@@ -1135,6 +1461,9 @@ function CreateCupForm({ onCreated }) {
             keyboardType="decimal-pad"
           />
         </View>
+      </View>
+
+      <View style={styles.twoCol}>
         <View style={styles.twoColField}>
           <Text style={styles.formLabel}>Refs Needed</Text>
           <TextInput
@@ -1491,9 +1820,10 @@ function PaymentsPanel() {
     queryFn: fetchRefereePayouts,
   });
 
-  const totalIncome = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
-  const totalOwed   = refPayouts.filter(r => !r.paid).reduce((sum, r) => sum + (r.games?.referee_pay || 0), 0);
-  const totalPaid   = refPayouts.filter(r => r.paid).reduce((sum, r) => sum + (r.games?.referee_pay || 0), 0);
+  const totalIncome    = payments.filter(p => p.status !== 'refunded').reduce((sum, p) => sum + (p.amount || 0), 0);
+  const totalRefunded  = payments.filter(p => p.status === 'refunded').reduce((sum, p) => sum + (p.amount || 0), 0);
+  const totalOwed      = refPayouts.filter(r => !r.paid).reduce((sum, r) => sum + (r.games?.referee_pay || 0), 0);
+  const totalPaid      = refPayouts.filter(r => r.paid).reduce((sum, r) => sum + (r.games?.referee_pay || 0), 0);
 
   async function markPaid(payout) {
     await supabase
@@ -1516,18 +1846,19 @@ function PaymentsPanel() {
     <View>
       {/* Summary cards */}
       <View style={styles.statsGrid}>
-        <View style={styles.statCard}>
-          <Text style={styles.statCardValue}>${totalIncome.toFixed(2)}</Text>
-          <Text style={styles.statCardLabel}>Total Collected</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={[styles.statCardValue, { color: '#ff6b6b' }]}>${totalOwed.toFixed(2)}</Text>
-          <Text style={styles.statCardLabel}>Owed to Refs</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={[styles.statCardValue, { color: colors.success }]}>${totalPaid.toFixed(2)}</Text>
-          <Text style={styles.statCardLabel}>Refs Paid Out</Text>
-        </View>
+        {[
+          { label: 'Net Collected', value: `$${totalIncome.toFixed(2)}`, color: colors.gold },
+          { label: 'Refunded',      value: `$${totalRefunded.toFixed(2)}`, color: '#ff6b6b' },
+          { label: 'Owed to Refs',  value: `$${totalOwed.toFixed(2)}`,    color: '#ff6b6b' },
+          { label: 'Refs Paid',     value: `$${totalPaid.toFixed(2)}`,     color: colors.success },
+        ].map(({ label, value, color }) => (
+          <View key={label} style={[styles.statCard, { flex: 1, paddingHorizontal: 6 }]}>
+            <Text style={{ color, fontSize: 16, fontWeight: 'bold' }} numberOfLines={1} adjustsFontSizeToFit>
+              {value}
+            </Text>
+            <Text style={styles.statCardLabel}>{label}</Text>
+          </View>
+        ))}
       </View>
 
       {/* Tab toggle */}
@@ -1556,25 +1887,38 @@ function PaymentsPanel() {
           ? <ActivityIndicator color={colors.gold} style={{ marginTop: 40 }} />
           : payments.length === 0
             ? <Text style={styles.emptyText}>No payments yet</Text>
-            : payments.map(p => (
-                <View key={p.id} style={styles.payRow}>
-                  <View style={styles.payRowLeft}>
-                    <Text style={styles.payRowName} numberOfLines={1}>
-                      {playerName(p.players)}
-                    </Text>
-                    <Text style={styles.payRowMeta} numberOfLines={1}>
-                      {p.games?.location?.split(',')[0]} · {p.games?.format}
-                    </Text>
-                    <Text style={styles.payRowDate}>
-                      {new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </Text>
+            : payments.map(p => {
+                const isRefunded = p.status === 'refunded';
+                const kickoff = p.games?.kickoff_time
+                  ? new Date(p.games.kickoff_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+                  : null;
+                return (
+                  <View key={p.id} style={[styles.payRow, isRefunded && { opacity: 0.6 }]}>
+                    <View style={styles.payRowLeft}>
+                      <Text style={styles.payRowName} numberOfLines={1}>
+                        {playerName(p.players)}
+                      </Text>
+                      <Text style={styles.payRowMeta} numberOfLines={1}>
+                        {p.games?.location?.split(',')[0]} · {p.games?.format}
+                      </Text>
+                      {kickoff && (
+                        <Text style={styles.payRowMeta} numberOfLines={1}>
+                          🗓 Game: {kickoff}
+                        </Text>
+                      )}
+                      <Text style={styles.payRowDate}>
+                        Paid: {new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </Text>
+                    </View>
+                    <View style={styles.payAmountBadge}>
+                      <Text style={[styles.payAmount, isRefunded && { color: '#ff6b6b' }]}>
+                        {isRefunded ? '-' : '+'}${Number(p.amount).toFixed(2)}
+                      </Text>
+                      <Text style={[styles.payStatus, isRefunded && { color: '#ff6b6b' }]}>{p.status}</Text>
+                    </View>
                   </View>
-                  <View style={styles.payAmountBadge}>
-                    <Text style={styles.payAmount}>+${Number(p.amount).toFixed(2)}</Text>
-                    <Text style={styles.payStatus}>{p.status}</Text>
-                  </View>
-                </View>
-              ))
+                );
+              })
       )}
 
       {/* Referee payouts list */}
@@ -1642,7 +1986,12 @@ function RefereesPanel() {
       .update({ referee_approved: true })
       .eq('id', ref.id);
     if (error) { Alert.alert('Error', error.message); return; }
-    queryClient.invalidateQueries(['adminReferees']);
+    queryClient.setQueryData(['adminReferees'], (old = []) =>
+      old.map(r => r.id === ref.id ? { ...r, referee_approved: true } : r)
+    );
+    supabase.functions.invoke('send-email', {
+      body: { type: 'referee_approved', to: ref.email, firstName: ref.first_name },
+    }).catch(() => {});
     Alert.alert('✅ Approved', `${ref.first_name} ${ref.last_name} can now accept games.`);
   }
 
@@ -1656,7 +2005,9 @@ function RefereesPanel() {
           text: 'Remove', style: 'destructive',
           onPress: async () => {
             await supabase.from('players').delete().eq('id', ref.id);
-            queryClient.invalidateQueries(['adminReferees']);
+            queryClient.setQueryData(['adminReferees'], (old = []) =>
+              old.filter(r => r.id !== ref.id)
+            );
           },
         },
       ]
@@ -1761,6 +2112,297 @@ function RefereesPanel() {
   );
 }
 
+// ─── Email Blast Panel ────────────────────────────────────────────────────────
+function EmailBlastPanel() {
+  const [subject, setSubject] = useState('');
+  const [body, setBody] = useState('');
+  const [sending, setSending] = useState(false);
+  const [lastResult, setLastResult] = useState(null);
+
+  async function handleSend() {
+    if (!subject.trim()) { Alert.alert('Missing', 'Enter a subject line.'); return; }
+    if (!body.trim())    { Alert.alert('Missing', 'Enter the email body.'); return; }
+
+    Alert.alert(
+      'Send Email Blast?',
+      `Subject: "${subject}"\n\nThis will send to all players. Are you sure?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Send', style: 'destructive',
+          onPress: async () => {
+            setSending(true);
+            setLastResult(null);
+            try {
+              // Fetch all player emails
+              const { data: players, error } = await supabase
+                .from('players')
+                .select('email')
+                .not('email', 'is', null)
+                .neq('role', 'Referee');
+
+              if (error) throw error;
+              const emails = players.map(p => p.email).filter(Boolean);
+
+              const { data: { session } } = await supabase.auth.getSession();
+              const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/send-email`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+                body: JSON.stringify({ type: 'promo_blast', subject, body, recipients: emails }),
+              });
+              const json = await res.json();
+              if (!res.ok) throw new Error(json.error || 'Send failed');
+              setLastResult({ sent: json.result?.sent || emails.length });
+              setSubject('');
+              setBody('');
+              Alert.alert('✅ Sent!', `Email blast delivered to ${json.result?.sent || emails.length} players.`);
+            } catch (err) {
+              Alert.alert('Error', err.message);
+            } finally {
+              setSending(false);
+            }
+          },
+        },
+      ]
+    );
+  }
+
+  return (
+    <View style={{ paddingBottom: 40 }}>
+      <Text style={adStyles.sectionTitle}>📧 Email Blast</Text>
+      <Text style={adStyles.sectionSub}>Send a promotional email to all registered players.</Text>
+
+      <Text style={adStyles.label}>Subject</Text>
+      <TextInput
+        style={adStyles.input}
+        value={subject}
+        onChangeText={setSubject}
+        placeholder="e.g. Summer Series Registration is Open!"
+        placeholderTextColor={colors.gray}
+      />
+
+      <Text style={adStyles.label}>Message</Text>
+      <TextInput
+        style={[adStyles.input, adStyles.textArea]}
+        value={body}
+        onChangeText={setBody}
+        placeholder={"Write your message here...\n\nYou can use line breaks and emojis ✅"}
+        placeholderTextColor={colors.gray}
+        multiline
+        numberOfLines={8}
+        textAlignVertical="top"
+      />
+
+      <TouchableOpacity
+        style={[adStyles.sendBtn, sending && { opacity: 0.6 }]}
+        onPress={handleSend}
+        disabled={sending}
+      >
+        {sending
+          ? <ActivityIndicator color={colors.dark} size="small" />
+          : <Text style={adStyles.sendBtnText}>📤 SEND TO ALL PLAYERS</Text>
+        }
+      </TouchableOpacity>
+
+      {lastResult && (
+        <View style={adStyles.resultBox}>
+          <Text style={adStyles.resultText}>✅ Last blast sent to {lastResult.sent} players</Text>
+        </View>
+      )}
+
+      <View style={adStyles.tipsBox}>
+        <Text style={adStyles.tipsTitle}>💡 Tips</Text>
+        {[
+          'Keep subject lines short and punchy',
+          'Use emojis to grab attention ⚽🏆',
+          'Include a clear call-to-action',
+          'Referees are excluded from blasts',
+        ].map(tip => (
+          <Text key={tip} style={adStyles.tipItem}>· {tip}</Text>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+const adStyles = StyleSheet.create({
+  sectionTitle: { fontSize: 20, fontWeight: '800', color: colors.gold, marginBottom: 4 },
+  sectionSub: { fontSize: 13, color: colors.gray, marginBottom: 20 },
+  label: { fontSize: 12, fontWeight: '700', color: colors.gray, letterSpacing: 1, marginBottom: 6, textTransform: 'uppercase' },
+  input: {
+    backgroundColor: colors.darkCard,
+    borderWidth: 1, borderColor: colors.darkBorder,
+    borderRadius: 10, padding: 14,
+    color: '#fff', fontSize: 14, marginBottom: 16,
+  },
+  textArea: { minHeight: 160, paddingTop: 14 },
+  sendBtn: {
+    backgroundColor: colors.gold,
+    borderRadius: 10, paddingVertical: 15,
+    alignItems: 'center', marginBottom: 16,
+  },
+  sendBtnText: { fontSize: 14, fontWeight: '800', color: colors.dark, letterSpacing: 2 },
+  resultBox: {
+    backgroundColor: 'rgba(80,200,80,0.1)',
+    borderWidth: 1, borderColor: 'rgba(80,200,80,0.3)',
+    borderRadius: 8, padding: 12, marginBottom: 16,
+  },
+  resultText: { fontSize: 13, color: '#5CBA5C', fontWeight: '600', textAlign: 'center' },
+  tipsBox: {
+    backgroundColor: colors.darkCard,
+    borderRadius: 10, padding: 16,
+    borderWidth: 1, borderColor: colors.darkBorder,
+  },
+  tipsTitle: { fontSize: 13, fontWeight: '700', color: colors.gold, marginBottom: 8 },
+  tipItem: { fontSize: 12, color: colors.gray, marginBottom: 4, lineHeight: 18 },
+});
+
+// ─── Fields Panel ─────────────────────────────────────────────────────────────
+function FieldsPanel() {
+  const [fields, setFields] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [name, setName] = useState('');
+  const [address, setAddress] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [pickedImage, setPickedImage] = useState(null);
+
+  async function loadFields() {
+    setLoading(true);
+    const { data } = await supabase.from('fields').select('*').order('name');
+    setFields(data || []);
+    setLoading(false);
+  }
+
+  React.useEffect(() => { loadFields(); }, []);
+
+  async function pickImage() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') { Alert.alert('Permission needed', 'Allow photo access to upload field photos.'); return; }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.8,
+    });
+    if (!result.canceled) setPickedImage(result.assets[0]);
+  }
+
+  async function handleAdd() {
+    if (!name.trim()) { Alert.alert('Missing', 'Enter a field name.'); return; }
+    if (!pickedImage) { Alert.alert('Missing', 'Pick a photo first.'); return; }
+
+    setUploading(true);
+    try {
+      const fileName = `field_${Date.now()}.jpg`;
+      const base64 = await FileSystem.readAsStringAsync(pickedImage.uri, { encoding: 'base64' });
+
+      const { error: uploadErr } = await supabase.storage
+        .from('field-photos')
+        .upload(fileName, decode(base64), { contentType: 'image/jpeg', upsert: true });
+      if (uploadErr) throw uploadErr;
+
+      const { data: urlData } = supabase.storage.from('field-photos').getPublicUrl(fileName);
+
+      const { error: dbErr } = await supabase.from('fields').insert({
+        name: name.trim(),
+        address: address.trim(),
+        photo_url: urlData.publicUrl,
+      });
+      if (dbErr) throw dbErr;
+
+      setName(''); setAddress(''); setPickedImage(null);
+      await loadFields();
+      Alert.alert('✅ Done', 'Field added!');
+    } catch (e) {
+      Alert.alert('Error', e.message);
+    }
+    setUploading(false);
+  }
+
+  async function handleDelete(id) {
+    Alert.alert('Delete Field', 'Remove this field?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: async () => {
+        await supabase.from('fields').delete().eq('id', id);
+        await loadFields();
+      }},
+    ]);
+  }
+
+  return (
+    <View>
+      <Text style={fStyles.title}>🏟️ Fields</Text>
+
+      {/* Add field form */}
+      <View style={fStyles.card}>
+        <Text style={fStyles.sectionLabel}>Add New Field</Text>
+        <TextInput style={fStyles.input} placeholder="Field name" placeholderTextColor={colors.gray} value={name} onChangeText={setName} />
+        <TextInput style={fStyles.input} placeholder="Address (optional)" placeholderTextColor={colors.gray} value={address} onChangeText={setAddress} />
+
+        <TouchableOpacity style={fStyles.photoBtn} onPress={pickImage} activeOpacity={0.8}>
+          {pickedImage
+            ? <Image source={{ uri: pickedImage.uri }} style={fStyles.preview} resizeMode="cover" />
+            : <Text style={fStyles.photoBtnText}>📷  Pick Field Photo</Text>
+          }
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[fStyles.addBtn, uploading && { opacity: 0.6 }]}
+          onPress={handleAdd}
+          disabled={uploading}
+        >
+          {uploading
+            ? <ActivityIndicator color={colors.dark} />
+            : <Text style={fStyles.addBtnText}>Upload & Save</Text>
+          }
+        </TouchableOpacity>
+      </View>
+
+      {/* Existing fields */}
+      {loading
+        ? <ActivityIndicator color={colors.gold} style={{ marginTop: 24 }} />
+        : fields.length === 0
+          ? <Text style={fStyles.empty}>No fields yet</Text>
+          : fields.map(f => (
+            <View key={f.id} style={fStyles.fieldRow}>
+              {f.photo_url
+                ? <Image source={{ uri: f.photo_url }} style={fStyles.thumb} resizeMode="cover" />
+                : <View style={[fStyles.thumb, fStyles.thumbPlaceholder]}><Text>🏟️</Text></View>
+              }
+              <View style={{ flex: 1 }}>
+                <Text style={fStyles.fieldName}>{f.name}</Text>
+                {f.address ? <Text style={fStyles.fieldAddr} numberOfLines={1}>{f.address}</Text> : null}
+              </View>
+              <TouchableOpacity onPress={() => handleDelete(f.id)} style={fStyles.deleteBtn}>
+                <Text style={fStyles.deleteBtnText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          ))
+      }
+    </View>
+  );
+}
+
+const fStyles = StyleSheet.create({
+  title: { fontSize: 20, fontWeight: '900', color: colors.gold, marginBottom: 16 },
+  sectionLabel: { fontSize: 13, fontWeight: '700', color: colors.gray, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 },
+  card: { backgroundColor: colors.darkCard, borderRadius: 12, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: colors.darkBorder },
+  input: { backgroundColor: colors.dark, borderRadius: 8, padding: 12, color: colors.white, marginBottom: 10, fontSize: 14, borderWidth: 1, borderColor: colors.darkBorder },
+  photoBtn: { borderRadius: 10, overflow: 'hidden', backgroundColor: colors.dark, borderWidth: 1, borderColor: colors.darkBorder, borderStyle: 'dashed', height: 140, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
+  photoBtnText: { color: colors.gray, fontSize: 14 },
+  preview: { width: '100%', height: 140 },
+  addBtn: { backgroundColor: colors.gold, borderRadius: 8, paddingVertical: 13, alignItems: 'center' },
+  addBtnText: { color: colors.dark, fontWeight: '800', fontSize: 14, letterSpacing: 1 },
+  empty: { color: colors.gray, textAlign: 'center', marginTop: 24 },
+  fieldRow: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.darkCard, borderRadius: 10, padding: 10, marginBottom: 10, borderWidth: 1, borderColor: colors.darkBorder },
+  thumb: { width: 72, height: 50, borderRadius: 8 },
+  thumbPlaceholder: { backgroundColor: colors.dark, justifyContent: 'center', alignItems: 'center' },
+  fieldName: { color: colors.white, fontWeight: '700', fontSize: 14 },
+  fieldAddr: { color: colors.gray, fontSize: 12, marginTop: 2 },
+  deleteBtn: { padding: 6 },
+  deleteBtnText: { color: colors.error, fontSize: 16 },
+});
+
 // ─── Main Admin Screen ────────────────────────────────────────────────────────
 export default function AdminScreen() {
   const { player } = useAuth();
@@ -1825,6 +2467,8 @@ export default function AdminScreen() {
                 : s === 'New Game'     ? '⚽ New Game'
                 : s === 'New Cup'      ? '🏆 New Cup'
                 : s === 'Payments'     ? '💳 Payments'
+                : s === 'Email'        ? '📧 Email'
+                : s === 'Fields'       ? '🏟️ Fields'
                 : '🟨 Referees'}
             </Text>
           </TouchableOpacity>
@@ -1877,6 +2521,14 @@ export default function AdminScreen() {
 
           {activeSection === 'Referees' && (
             <RefereesPanel />
+          )}
+
+          {activeSection === 'Email' && (
+            <EmailBlastPanel />
+          )}
+
+          {activeSection === 'Fields' && (
+            <FieldsPanel />
           )}
 
         </ScrollView>

@@ -34,8 +34,40 @@
       margin: 20px 0;
     }
     .highlight p { margin: 0; font-size: 14px; }
+    ul { margin: 10px 0 14px 20px; }
+    li { font-size: 14px; color: #bbbbbb; margin-bottom: 6px; }
     hr { border: none; border-top: 1px solid #2a2a2a; margin: 40px 0; }
     footer { margin-top: 60px; font-size: 13px; color: #555; text-align: center; }
+    .sample-box {
+      background: #111;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin: 10px 0 16px;
+      font-family: monospace;
+      font-size: 13px;
+      color: #ccc;
+      line-height: 1.6;
+    }
+    .screenshot {
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      overflow: hidden;
+      margin: 16px 0;
+      background: #111;
+      padding: 20px;
+      text-align: center;
+    }
+    .screenshot img {
+      max-width: 320px;
+      border-radius: 8px;
+    }
+    .screenshot-label {
+      font-size: 12px;
+      color: #888;
+      margin-top: 10px;
+      font-style: italic;
+    }
   </style>
 </head>
 <body>
@@ -44,13 +76,23 @@
     <div class="logo">Urban PL <span><a href="https://www.theurbanpl.com">← Back to theurbanpl.com</a></span></div>
 
     <h1>SMS Terms &amp; Conditions</h1>
-    <p class="updated">Last updated: May 2026</p>
+    <p class="updated">Last updated: June 2026</p>
 
     <h2>Program Name</h2>
     <p><strong>Urban PL</strong> — Competitive Pickup Soccer Platform</p>
 
     <h2>Program Description</h2>
-    <p>Urban PL sends SMS notifications to registered players who have opted in via the Urban PL mobile app. Messages include game confirmations, team assignments, lineup notifications, match reminders, and match results.</p>
+    <p>Urban PL sends SMS messages to registered users who have opted in via the Urban PL mobile app or website. Messages fall into two categories:</p>
+    <ul>
+      <li><strong>Account Notifications:</strong> Game confirmations, team assignments, lineup notifications, match reminders, match results, tournament updates, and booking confirmations.</li>
+    </ul>
+
+    <h2>Sample Messages</h2>
+    <p>Below are examples of messages you may receive:</p>
+    <div class="sample-box">Urban PL: You're in for 3600 W Sample Rd (7v7) on Sat Jun 21 at 7:00 PM. See you on the pitch!</div>
+    <div class="sample-box">Urban PL: Team assignment — you're on Dark (Team A) for tonight's 7v7. Kick-off at 7:00 PM.</div>
+    <div class="sample-box">Urban PL: Final score — Dark 2, White 1. Your stats have been updated. See match report in the app.</div>
+    <div class="sample-box">Urban PL: Game reminder — your 7v7 at Coconut Creek kicks off in 2 hours. Don't be late!</div>
 
     <h2>Message Frequency</h2>
     <p>Message frequency varies based on your game schedule. You may receive up to <strong>5 messages per game</strong> you are registered for (confirmation, team assignment, reminders, and result). You will not receive messages for games you have not joined.</p>
@@ -61,25 +103,35 @@
     </div>
 
     <h2>How to Opt In</h2>
-    <p>Users opt in by downloading the Urban PL app or visiting the Urban PL website at theurbanpl.com/signup.html, creating an account, entering their mobile phone number, and checking the <strong>optional</strong> SMS consent checkbox during signup. The checkbox reads:</p>
+    <p>Users opt in through <strong>two methods</strong>:</p>
+
+    <p><strong>1. Mobile App (iOS):</strong> During account signup in the Urban PL app, users enter their phone number and check an <strong>optional</strong> SMS consent checkbox. The checkbox reads:</p>
     <div class="highlight">
       <p>"<strong>Optional:</strong> I agree to receive SMS notifications from Urban PL, including game confirmations, team assignments, lineup notifications, and match reminders. Message frequency varies. Msg &amp; data rates may apply. Reply STOP to opt out. Reply HELP for help."</p>
     </div>
-    <p><strong>SMS consent is completely optional.</strong> You may create an account and use all Urban PL features without opting in to SMS notifications. Consent is not required as a condition of service. When provided, consent is stored securely in the Urban PL database with the player record.</p>
+
+    <p><strong>2. Website:</strong> Users can also sign up at <a href="https://www.theurbanpl.com/signup.html">theurbanpl.com/signup.html</a>, where the same phone number field and SMS consent checkbox are presented during registration.</p>
+
+    <p><strong>SMS consent is completely optional.</strong> You may create an account and use all Urban PL features without opting in to SMS notifications. Consent is not required as a condition of service or purchase. When provided, consent is stored securely in the Urban PL database with the player record.</p>
 
     <h2>How to Opt Out</h2>
-    <p>You may opt out at any time by replying <strong>STOP</strong> to any Urban PL SMS message. You will receive a confirmation message and no further messages will be sent. To re-subscribe, reply <strong>START</strong>.</p>
-    <p>You may also withdraw consent within the Urban PL app under Profile &gt; Settings.</p>
+    <p>You may opt out at any time by:</p>
+    <ul>
+      <li>Replying <strong>STOP</strong> to any Urban PL SMS message</li>
+      <li>Withdrawing consent within the Urban PL app under Profile &gt; Settings</li>
+      <li>Contacting us at <a href="mailto:admin@theurbanpl.com">admin@theurbanpl.com</a></li>
+    </ul>
+    <p>You will receive a confirmation message and no further messages will be sent. To re-subscribe, reply <strong>START</strong>.</p>
 
     <h2>How to Get Help</h2>
     <p>Reply <strong>HELP</strong> to any Urban PL SMS message for assistance, or contact us directly:</p>
-    <p>📧 <a href="mailto:admin@theurbanpl.com">admin@theurbanpl.com</a></p>
+    <p>Email: <a href="mailto:admin@theurbanpl.com">admin@theurbanpl.com</a></p>
 
     <h2>Supported Carriers</h2>
-    <p>Urban PL SMS notifications are supported by all major US carriers including AT&amp;T, Verizon, T-Mobile, Sprint, and others. Carrier support may vary.</p>
+    <p>Urban PL SMS notifications are supported by all major US carriers including AT&amp;T, Verizon, T-Mobile, and others. Carrier support may vary.</p>
 
     <h2>Privacy</h2>
-    <p>Your phone number and consent status are stored securely and are never sold or shared with third parties for marketing purposes. For full details, see our <a href="https://www.theurbanpl.com/privacy-policy.html">Privacy Policy</a>.</p>
+    <p>Your phone number and consent status are stored securely and are <strong>never sold or shared</strong> with third parties for marketing purposes. We share data only as necessary to deliver SMS via our messaging provider (Twilio). For full details, see our <a href="https://www.theurbanpl.com/privacy-policy.html">Privacy Policy</a>.</p>
 
     <hr />
 
@@ -87,6 +139,7 @@
     <p>Urban PL<br />
     Email: <a href="mailto:admin@theurbanpl.com">admin@theurbanpl.com</a><br />
     Website: <a href="https://www.theurbanpl.com">www.theurbanpl.com</a><br />
+    Sign Up: <a href="https://www.theurbanpl.com/signup.html">www.theurbanpl.com/signup.html</a><br />
     Instagram: <a href="https://www.instagram.com/urbanpleague">@urbanpleague</a></p>
 
     <footer>© 2026 Urban PL. All rights reserved.</footer>

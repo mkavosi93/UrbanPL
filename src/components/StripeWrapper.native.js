@@ -4,7 +4,10 @@ const STRIPE_PUBLISHABLE_KEY = 'pk_live_51TOplrJMza4VY3OCdWWHgGNjRcdPHJZAkLwA4mN
 
 export default function StripeWrapper({ children }) {
   return (
-    <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY}>
+    <StripeProvider
+      publishableKey={STRIPE_PUBLISHABLE_KEY}
+      merchantIdentifier="merchant.com.urbanpl.app"
+    >
       {children}
     </StripeProvider>
   );

@@ -4,6 +4,7 @@ import {
   StyleSheet, ActivityIndicator, KeyboardAvoidingView,
   Platform, ScrollView, Alert, Image,
 } from 'react-native';
+import * as Linking from 'expo-linking';
 import { supabase } from '../../lib/supabase';
 import { colors, spacing, radius } from '../../theme';
 import { useLanguage } from '../../context/LanguageContext';
@@ -21,7 +22,10 @@ export default function LoginScreen({ navigation }) {
       return;
     }
     setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    const redirectTo = Linking.createURL('reset-password');
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo,
+    });
     setLoading(false);
     if (error) {
       Alert.alert('Error', error.message);

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=430">
+<title>Screenshot 5 – Sign In</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Oswald:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 428px; height: 926px; background: #080810; font-family: 'Inter', sans-serif; color: #fff; overflow: hidden; position: relative; display: flex; flex-direction: column; align-items: center; }
+
+  .status { display: flex; justify-content: space-between; align-items: center; padding: 14px 24px 0; width: 100%; }
+  .status-time { font-size: 15px; font-weight: 700; }
+
+  /* Lang toggle */
+  .lang { display: flex; gap: 0; margin: 16px auto 0; background: #1a1a2e; border-radius: 30px; padding: 4px; }
+  .lang-btn { padding: 6px 18px; border-radius: 24px; font-size: 12px; font-weight: 700; }
+  .lang-btn.active { background: #C9A84C; color: #000; }
+  .lang-btn.inactive { color: #555; }
+
+  /* Logo area */
+  .logo-area { display: flex; flex-direction: column; align-items: center; margin-top: 40px; margin-bottom: 40px; }
+  .logo-icon { width: 90px; height: 90px; background: url('../../assets/logo.png') center/contain no-repeat; margin-bottom: 18px; }
+  .logo-fallback { width: 90px; height: 90px; border: 3px solid #C9A84C; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 18px; font-size: 36px; }
+  .logo-text { display: flex; align-items: baseline; gap: 6px; margin-bottom: 10px; }
+  .logo-urban { font-family: 'Oswald', sans-serif; font-size: 36px; font-weight: 400; letter-spacing: 6px; color: #fff; }
+  .logo-pl { font-family: 'Oswald', sans-serif; font-size: 36px; font-weight: 700; color: #C9A84C; }
+  .logo-tagline { font-size: 11px; font-weight: 600; color: #555; letter-spacing: 2.5px; text-transform: uppercase; }
+
+  /* Form */
+  .form { width: 100%; padding: 0 28px; display: flex; flex-direction: column; gap: 14px; }
+  .field-label { font-size: 12px; font-weight: 700; color: #888; margin-bottom: 6px; letter-spacing: 0.5px; }
+  .field { background: #111120; border: 1.5px solid #1e1e35; border-radius: 14px; padding: 16px 18px; font-size: 16px; color: #555; display: flex; justify-content: space-between; align-items: center; }
+  .field.filled { color: #fff; }
+  .eye { font-size: 18px; color: #555; }
+
+  .signin-btn { background: #C9A84C; border-radius: 14px; padding: 17px; text-align: center; font-size: 17px; font-weight: 800; color: #000; margin-top: 6px; }
+
+  .links { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 16px; }
+  .link { font-size: 13px; color: #C9A84C; font-weight: 600; }
+  .link-gray { font-size: 13px; color: #666; }
+  .link-gray span { color: #C9A84C; font-weight: 700; }
+
+  .divider { width: 100%; display: flex; align-items: center; gap: 12px; padding: 0 28px; margin-top: 16px; }
+  .div-line { flex: 1; height: 1px; background: #1e1e30; }
+  .div-text { font-size: 11px; color: #444; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+
+  .referee-btn { margin: 12px 28px 0; background: #111120; border: 1.5px solid #1e1e35; border-radius: 14px; padding: 14px 20px; display: flex; align-items: center; gap: 10px; }
+  .ref-icon { width: 24px; height: 24px; background: #C9A84C; border-radius: 5px; }
+  .ref-text { font-size: 14px; font-weight: 700; color: #ccc; }
+  .ref-arrow { font-size: 14px; color: #555; margin-left: auto; }
+</style>
+</head>
+<body>
+
+<div class="status" style="width:100%;">
+  <span class="status-time">18:27</span>
+  <div style="display:flex;gap:6px;font-size:13px;"><span>●●●●</span><span>🔋</span></div>
+</div>
+
+<div class="lang">
+  <div class="lang-btn active">EN</div>
+  <div class="lang-btn inactive">ES</div>
+  <div class="lang-btn inactive">PT</div>
+</div>
+
+<div class="logo-area">
+  <div class="logo-fallback">⚽</div>
+  <div class="logo-text">
+    <span class="logo-urban">URBAN</span>
+    <span class="logo-pl">PL</span>
+  </div>
+  <div class="logo-tagline">The Beautiful Game. Organised.</div>
+</div>
+
+<div class="form">
+  <div>
+    <div class="field-label">Email</div>
+    <div class="field">you@example.com</div>
+  </div>
+  <div>
+    <div class="field-label">Password</div>
+    <div class="field filled">
+      <span>••••••••</span>
+      <span class="eye">👁</span>
+    </div>
+  </div>
+  <div class="signin-btn">Sign In</div>
+</div>
+
+<div class="links">
+  <div class="link">Forgot Password?</div>
+  <div class="link-gray">Don't have an account? <span>Sign Up</span></div>
+</div>
+
+<div class="divider">
+  <div class="div-line"></div>
+  <div class="div-text">Officials</div>
+  <div class="div-line"></div>
+</div>
+
+<div class="referee-btn">
+  <div class="ref-icon"></div>
+  <div class="ref-text">Referee Portal →</div>
+</div>
+
+</body>
+</html>

@@ -84,9 +84,10 @@ async function fetchRefereeHistory(refereeId) {
 async function fetchMyFixtures(refereeId) {
   const { data, error } = await supabase
     .from('game_referees')
-    .select('game_id, checked_in, games(*, game_players(player_id, team, players(id, first_name, last_name, name, role, rating, avatar_url, phone, sms_consent)))')
+    .select('game_id, checked_in, games!inner(*, game_players(player_id, team, players(id, first_name, last_name, name, role, rating, avatar_url, phone, sms_consent)))')
     .eq('referee_id', refereeId)
-    .eq('status', 'accepted');
+    .eq('status', 'accepted')
+    .in('games.status', ['open', 'active']);
   if (error) return [];
   // Merge checked_in onto the game object so it travels through the app
   return (data || []).map(r => r.games ? { ...r.games, checked_in: r.checked_in ?? false } : null).filter(Boolean);
@@ -402,6 +403,85 @@ function StatsModal({ game, visible, onClose, onSubmitted }) {
   );
 }
 
+// ─── Cup Card with Check-in ───────────────────────────────────────────────────
+function CupCard({ cup, isAccepted, showCheckIn, refereeId, onAccept, onDecline, t }) {
+  const [checkedIn, setCheckedIn] = useState(false);
+  const [checking, setChecking] = useState(false);
+
+  useEffect(() => {
+    if (!showCheckIn || !refereeId) return;
+    supabase.from('tournament_checkins').select('id')
+      .eq('tournament_id', cup.id).eq('player_id', refereeId).maybeSingle()
+      .then(({ data }) => { if (data) setCheckedIn(true); });
+  }, [showCheckIn, cup.id, refereeId]);
+
+  async function handleCheckIn() {
+    if (checking || checkedIn) return;
+    setChecking(true);
+    const { error } = await supabase.from('tournament_checkins')
+      .upsert({ tournament_id: cup.id, player_id: refereeId }, { onConflict: 'tournament_id,player_id' });
+    setChecking(false);
+    if (error) { Alert.alert('Error', error.message); return; }
+    setCheckedIn(true);
+  }
+
+  return (
+    <View style={styles.oppCard}>
+      <View style={styles.oppCardTop}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.oppCardTitle} numberOfLines={1}>{cup.name}</Text>
+          <Text style={styles.oppCardMeta}>{cup.format} · {new Date(cup.kickoff_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</Text>
+          <Text style={styles.oppCardMeta}>📍 {cup.venue}</Text>
+        </View>
+        <View style={styles.oppCardRight}>
+          <View style={[styles.payBadge, (cup.referee_pay ?? 0) === 0 && styles.payBadgeMuted]}>
+            <Text style={[styles.payBadgeText, (cup.referee_pay ?? 0) === 0 && styles.payBadgeTextMuted]}>
+              💰 ${(cup.referee_pay ?? 0).toFixed ? (cup.referee_pay ?? 0).toFixed(0) : (cup.referee_pay ?? 0)}
+            </Text>
+          </View>
+          <Text style={styles.refsNeeded}>
+            🟨 {cup.referees_needed ?? 1} ref{(cup.referees_needed ?? 1) !== 1 ? 's' : ''} needed
+          </Text>
+        </View>
+      </View>
+      <View style={styles.oppCardActions}>
+        {isAccepted ? (
+          <>
+            <View style={styles.acceptedBadge}>
+              <Text style={styles.acceptedText}>{t('referee.accepted')}</Text>
+            </View>
+            <TouchableOpacity style={styles.declineBtn} onPress={onDecline}>
+              <Text style={styles.declineBtnText}>{t('referee.withdraw')}</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <TouchableOpacity style={styles.acceptBtn} onPress={onAccept}>
+            <Text style={styles.acceptBtnText}>{t('referee.acceptTournament')}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+      {showCheckIn && (
+        checkedIn ? (
+          <View style={{ backgroundColor: 'rgba(76,175,80,0.1)', borderWidth: 1, borderColor: '#4CAF50', borderRadius: 8, padding: 10, marginTop: 8, alignItems: 'center' }}>
+            <Text style={{ color: '#4CAF50', fontWeight: 'bold', fontSize: 13 }}>✅ You're checked in!</Text>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={{ backgroundColor: colors.gold, borderRadius: 8, padding: 10, marginTop: 8, alignItems: 'center', opacity: checking ? 0.7 : 1 }}
+            onPress={handleCheckIn}
+            disabled={checking}
+          >
+            {checking
+              ? <ActivityIndicator color={colors.dark} size="small" />
+              : <Text style={{ color: colors.dark, fontWeight: 'bold', fontSize: 14 }}>📍 I'm Here!</Text>
+            }
+          </TouchableOpacity>
+        )
+      )}
+    </View>
+  );
+}
+
 // ─── Feed Tab ─────────────────────────────────────────────────────────────────
 function FeedTab({ refereeId }) {
   const queryClient = useQueryClient();
@@ -411,6 +491,19 @@ function FeedTab({ refereeId }) {
   const { data: cups = [] }        = useQuery({ queryKey: ['refFeedCups'],    queryFn: fetchFeedCups });
   const { data: accepted = [] }    = useQuery({ queryKey: ['refAccepted', refereeId], queryFn: () => fetchMyAcceptances(refereeId), enabled: !!refereeId });
   const { data: fixtures = [] }    = useQuery({ queryKey: ['refFixtures', refereeId], queryFn: () => fetchMyFixtures(refereeId), enabled: !!refereeId });
+
+  // Tournament acceptances (separate table)
+  const { data: acceptedCups = [] } = useQuery({
+    queryKey: ['refAcceptedCups', refereeId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('tournament_referees')
+        .select('tournament_id')
+        .eq('referee_id', refereeId);
+      return (data || []).map(r => r.tournament_id);
+    },
+    enabled: !!refereeId,
+  });
 
   async function handleAccept(gameId) {
     const { error } = await supabase.from('game_referees').upsert(
@@ -425,6 +518,21 @@ function FeedTab({ refereeId }) {
     await supabase.from('game_referees').delete()
       .eq('game_id', gameId).eq('referee_id', refereeId);
     queryClient.invalidateQueries(['refAccepted', refereeId]);
+  }
+
+  async function handleAcceptCup(tournamentId) {
+    const { error } = await supabase.from('tournament_referees').upsert(
+      { tournament_id: tournamentId, referee_id: refereeId, status: 'accepted' },
+      { onConflict: 'tournament_id,referee_id' }
+    );
+    if (error) Alert.alert('Error', error.message);
+    else queryClient.invalidateQueries(['refAcceptedCups', refereeId]);
+  }
+
+  async function handleDeclineCup(tournamentId) {
+    await supabase.from('tournament_referees').delete()
+      .eq('tournament_id', tournamentId).eq('referee_id', refereeId);
+    queryClient.invalidateQueries(['refAcceptedCups', refereeId]);
   }
 
   if (games.length === 0 && cups.length === 0) {
@@ -511,43 +619,20 @@ function FeedTab({ refereeId }) {
         <>
           <Text style={styles.feedSection}>{t('referee.tournamentsSection')}</Text>
           {cups.map(c => {
-            const isAccepted = accepted.includes(c.id);
+            const isAccepted = acceptedCups.includes(c.id);
+            const minsUntilCup = (new Date(c.kickoff_date) - new Date()) / 60000;
+            const showCupCheckIn = isAccepted && minsUntilCup <= 60 && minsUntilCup > -30;
             return (
-              <View key={c.id} style={styles.oppCard}>
-                <View style={styles.oppCardTop}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.oppCardTitle} numberOfLines={1}>{c.name}</Text>
-                    <Text style={styles.oppCardMeta}>{c.format} · {new Date(c.kickoff_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</Text>
-                    <Text style={styles.oppCardMeta}>📍 {c.venue}</Text>
-                  </View>
-                  <View style={styles.oppCardRight}>
-                    <View style={[styles.payBadge, (c.referee_pay ?? 0) === 0 && styles.payBadgeMuted]}>
-                      <Text style={[styles.payBadgeText, (c.referee_pay ?? 0) === 0 && styles.payBadgeTextMuted]}>
-                        💰 ${(c.referee_pay ?? 0).toFixed ? (c.referee_pay ?? 0).toFixed(0) : (c.referee_pay ?? 0)}
-                      </Text>
-                    </View>
-                    <Text style={styles.refsNeeded}>
-                      🟨 {c.referees_needed ?? 1} ref{(c.referees_needed ?? 1) !== 1 ? 's' : ''} needed
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.oppCardActions}>
-                  {isAccepted ? (
-                    <>
-                      <View style={styles.acceptedBadge}>
-                        <Text style={styles.acceptedText}>{t('referee.accepted')}</Text>
-                      </View>
-                      <TouchableOpacity style={styles.declineBtn} onPress={() => handleDecline(c.id)}>
-                        <Text style={styles.declineBtnText}>{t('referee.withdraw')}</Text>
-                      </TouchableOpacity>
-                    </>
-                  ) : (
-                    <TouchableOpacity style={styles.acceptBtn} onPress={() => handleAccept(c.id)}>
-                      <Text style={styles.acceptBtnText}>{t('referee.acceptTournament')}</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </View>
+              <CupCard
+                key={c.id}
+                cup={c}
+                isAccepted={isAccepted}
+                showCheckIn={showCupCheckIn}
+                refereeId={refereeId}
+                onAccept={() => handleAcceptCup(c.id)}
+                onDecline={() => handleDeclineCup(c.id)}
+                t={t}
+              />
             );
           })}
         </>
@@ -1536,6 +1621,241 @@ function FixtureDetailModal({ game, visible, onClose, onStartMatch }) {
   );
 }
 
+// ─── Cup Match Flow (referee manages tournament match) ────────────────────────
+function CupMatchFlow({ match, refereeId, onClose, onSaved }) {
+  const gameDuration = match.tournament?.game_duration || 20;
+  const halfSecs = Math.floor(gameDuration / 2) * 60;
+  const breakSecs = 2 * 60;
+
+  const [loading, setLoading] = useState(true);
+  const [playersA, setPlayersA] = useState([]);
+  const [playersB, setPlayersB] = useState([]);
+  const [phase, setPhase] = useState('attendance');
+  const [present, setPresent] = useState({});
+  const [goals, setGoals] = useState({});
+  const [cards, setCards] = useState({});
+  const [scoreA, setScoreA] = useState('');
+  const [scoreB, setScoreB] = useState('');
+  const [timeLeft, setTimeLeft] = useState(halfSecs);
+  const [running, setRunning] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const intervalRef = useRef(null);
+  const endTimeRef = useRef(null);
+
+  useEffect(() => {
+    setPhase('attendance');
+    setGoals({});
+    setCards({});
+    setScoreA('');
+    setScoreB('');
+    setTimeLeft(halfSecs);
+    setRunning(false);
+    setLoading(true);
+
+    (async () => {
+      const ids = [match.team_a_id, match.team_b_id].filter(Boolean);
+      const { data: teams } = await supabase.from('tournament_teams').select('id, name, player_ids').in('id', ids);
+      const teamA = teams?.find(t => t.id === match.team_a_id);
+      const teamB = teams?.find(t => t.id === match.team_b_id);
+      const allIds = [...(teamA?.player_ids || []), ...(teamB?.player_ids || [])];
+      if (allIds.length > 0) {
+        const { data: rows } = await supabase.from('players').select('id, first_name, last_name, name, avatar_url, role, rating, phone, sms_consent').in('id', allIds);
+        const map = {};
+        (rows || []).forEach(p => { map[p.id] = p; });
+        setPlayersA((teamA?.player_ids || []).map(id => map[id]).filter(Boolean));
+        setPlayersB((teamB?.player_ids || []).map(id => map[id]).filter(Boolean));
+        const pres = {};
+        allIds.forEach(id => { pres[id] = true; });
+        setPresent(pres);
+      }
+      setLoading(false);
+    })();
+  }, [match.id]);
+
+  // Timer
+  useEffect(() => {
+    if (running) {
+      if (!endTimeRef.current) endTimeRef.current = Date.now() + timeLeft * 1000;
+      intervalRef.current = setInterval(() => {
+        const rem = Math.max(0, Math.round((endTimeRef.current - Date.now()) / 1000));
+        setTimeLeft(rem);
+        if (rem <= 0) { clearInterval(intervalRef.current); endTimeRef.current = null; setRunning(false); }
+      }, 500);
+    } else { clearInterval(intervalRef.current); endTimeRef.current = null; }
+    return () => clearInterval(intervalRef.current);
+  }, [running]);
+
+  useEffect(() => {
+    if (timeLeft === 0 && (phase === 'first_half' || phase === 'break' || phase === 'second_half')) handleEndHalf();
+  }, [timeLeft]);
+
+  function togglePresent(pid) { setPresent(p => ({ ...p, [pid]: !p[pid] })); }
+  function adjustGoals(pid, d) { setGoals(g => ({ ...g, [pid]: Math.max(0, (g[pid] || 0) + d) })); }
+  function adjustCards(pid, type, d) {
+    setCards(c => { const cur = c[pid] || { yellow: 0, red: 0 }; return { ...c, [pid]: { ...cur, [type]: Math.max(0, cur[type] + d) } }; });
+  }
+
+  function handleStartMatch() { setPhase('first_half'); setTimeLeft(halfSecs); setRunning(true); }
+
+  function handleEndHalf() {
+    setRunning(false);
+    if (phase === 'first_half') {
+      Alert.alert('⏱ Half Time!', `${Math.round(breakSecs / 60)} min break.`, [
+        { text: 'Start Break', onPress: () => { setPhase('break'); setTimeLeft(breakSecs); setRunning(true); } },
+      ]);
+    } else if (phase === 'break') {
+      Alert.alert('▶️ Second Half', 'Ready?', [
+        { text: 'Start 2nd Half', onPress: () => { setPhase('second_half'); setTimeLeft(halfSecs); setRunning(true); } },
+      ]);
+    } else if (phase === 'second_half') {
+      const cA = playersA.filter(p => present[p.id]).reduce((s, p) => s + (goals[p.id] || 0), 0);
+      const cB = playersB.filter(p => present[p.id]).reduce((s, p) => s + (goals[p.id] || 0), 0);
+      setScoreA(String(cA));
+      setScoreB(String(cB));
+      setPhase('final');
+    }
+  }
+
+  async function handleSave() {
+    const a = parseInt(scoreA) || 0;
+    const b = parseInt(scoreB) || 0;
+    if (a === b) { Alert.alert('No Draws', 'Knockout — one team must win.'); return; }
+    setSubmitting(true);
+    const winnerId = a > b ? match.team_a_id : match.team_b_id;
+
+    await supabase.from('tournament_matches')
+      .update({ score_a: a, score_b: b, winner_id: winnerId, status: 'completed' })
+      .eq('id', match.id);
+
+    // Advance winner to next round
+    const nextRound = match.round + 1;
+    const nextMatchNum = Math.ceil(match.match_number / 2);
+    const isSlotA = match.match_number % 2 === 1;
+    const { data: nextMatch } = await supabase.from('tournament_matches')
+      .select('id').eq('tournament_id', match.tournament_id).eq('round', nextRound).eq('match_number', nextMatchNum).maybeSingle();
+    if (nextMatch) {
+      await supabase.from('tournament_matches')
+        .update(isSlotA ? { team_a_id: winnerId } : { team_b_id: winnerId })
+        .eq('id', nextMatch.id);
+    }
+
+    setSubmitting(false);
+    Alert.alert('✅ Match Complete!', 'Scores saved, winner advances.', [{ text: 'Done', onPress: onSaved }]);
+  }
+
+  const teamAName = match.team_a?.name || 'Team A';
+  const teamBName = match.team_b?.name || 'Team B';
+  const presentA = playersA.filter(p => present[p.id]);
+  const presentB = playersB.filter(p => present[p.id]);
+  const fmtTime = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+  const phaseLabel = phase === 'first_half' ? '1st Half' : phase === 'break' ? 'Half Time' : phase === 'second_half' ? '2nd Half' : '';
+  const pName = (p) => [p?.first_name, p?.last_name].filter(Boolean).join(' ') || p?.name || 'Player';
+
+  return (
+    <Modal visible animationType="slide" onRequestClose={onClose}>
+      <View style={styles.matchContainer}>
+        <View style={styles.matchHeader}>
+          <TouchableOpacity onPress={onClose} style={styles.modalBack}><Text style={styles.modalBackText}>✕</Text></TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.matchHeaderTitle} numberOfLines={1}>{teamAName} vs {teamBName}</Text>
+            <Text style={styles.matchHeaderMeta}>{match.tournament?.name} · {match.tournament?.format} · {gameDuration}min</Text>
+          </View>
+        </View>
+
+        {loading ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator color={colors.gold} size="large" /></View>
+        ) : phase === 'attendance' ? (
+          <View style={{ flex: 1 }}>
+            <Text style={styles.phaseTitle}>📋 Take Attendance</Text>
+            <ScrollView contentContainerStyle={{ padding: spacing.md, paddingBottom: 120 }}>
+              <Text style={{ color: colors.gold, fontSize: 13, fontWeight: 'bold', marginBottom: 4 }}>{teamAName}</Text>
+              {playersA.map(p => (
+                <TouchableOpacity key={p.id} style={[styles.attendanceRow, !present[p.id] && { opacity: 0.4 }]} onPress={() => togglePresent(p.id)}>
+                  <View style={styles.attendanceLeft}>
+                    <View style={styles.attAvatarFallback}><Text style={styles.attAvatarText}>{(p.first_name?.[0] || '?').toUpperCase()}</Text></View>
+                    <View><Text style={styles.attName}>{pName(p)}</Text></View>
+                  </View>
+                  <Text style={{ fontSize: 20 }}>{present[p.id] ? '✅' : '❌'}</Text>
+                </TouchableOpacity>
+              ))}
+              <Text style={{ color: '#4A90D9', fontSize: 13, fontWeight: 'bold', marginTop: 12, marginBottom: 4 }}>{teamBName}</Text>
+              {playersB.map(p => (
+                <TouchableOpacity key={p.id} style={[styles.attendanceRow, !present[p.id] && { opacity: 0.4 }]} onPress={() => togglePresent(p.id)}>
+                  <View style={styles.attendanceLeft}>
+                    <View style={styles.attAvatarFallback}><Text style={styles.attAvatarText}>{(p.first_name?.[0] || '?').toUpperCase()}</Text></View>
+                    <View><Text style={styles.attName}>{pName(p)}</Text></View>
+                  </View>
+                  <Text style={{ fontSize: 20 }}>{present[p.id] ? '✅' : '❌'}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <View style={styles.matchFooter}>
+              <Text style={styles.matchFooterHint}>{presentA.length + presentB.length} present</Text>
+              <TouchableOpacity style={styles.matchStartBtn} onPress={handleStartMatch}>
+                <Text style={styles.matchStartBtnText}>▶ Start Match</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (phase === 'first_half' || phase === 'break' || phase === 'second_half') ? (
+          <View style={{ flex: 1 }}>
+            <View style={styles.timerBlock}>
+              <Text style={[styles.timerPhase, { color: phase === 'break' ? colors.gray : colors.gold }]}>{phaseLabel}</Text>
+              <Text style={styles.timerDisplay}>{fmtTime(timeLeft)}</Text>
+              <View style={styles.timerBtns}>
+                <TouchableOpacity style={[styles.timerBtn, { backgroundColor: running ? colors.darkBorder : colors.success }]} onPress={() => setRunning(r => !r)}>
+                  <Text style={styles.timerBtnText}>{running ? '⏸ Pause' : '▶ Resume'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.timerBtn, { backgroundColor: colors.error }]} onPress={handleEndHalf}>
+                  <Text style={styles.timerBtnText}>{phase === 'first_half' ? 'End Half →' : phase === 'break' ? 'Start 2nd →' : 'End Match →'}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            {phase !== 'break' ? (
+              <ScrollView contentContainerStyle={{ padding: spacing.md, paddingBottom: 20 }}>
+                <Text style={styles.liveTeamHeader}>{teamAName}</Text>
+                {presentA.map(p => (
+                  <PlayerLiveCard key={p.id} gp={{ player_id: p.id, players: p }} goals={goals} cards={cards}
+                    onAdjustGoals={adjustGoals} onAdjustCards={adjustCards} team="A" />
+                ))}
+                <Text style={[styles.liveTeamHeader, { color: '#4A90D9' }]}>{teamBName}</Text>
+                {presentB.map(p => (
+                  <PlayerLiveCard key={p.id} gp={{ player_id: p.id, players: p }} goals={goals} cards={cards}
+                    onAdjustGoals={adjustGoals} onAdjustCards={adjustCards} team="B" />
+                ))}
+              </ScrollView>
+            ) : (
+              <View style={styles.breakScreen}><Text style={styles.breakIcon}>☕</Text><Text style={styles.breakTitle}>Half Time</Text></View>
+            )}
+          </View>
+        ) : phase === 'final' ? (
+          <ScrollView contentContainerStyle={{ padding: spacing.md, paddingBottom: 120 }}>
+            <Text style={styles.phaseTitle}>🏁 Full Time</Text>
+            <View style={styles.finalScoreRow}>
+              <View style={styles.finalScoreBox}>
+                <Text style={styles.finalScoreLabel}>{teamAName}</Text>
+                <TextInput style={styles.finalScoreInput} value={scoreA} onChangeText={setScoreA} keyboardType="number-pad" maxLength={2} placeholder="0" placeholderTextColor={colors.gray} />
+              </View>
+              <Text style={styles.finalScoreDash}>—</Text>
+              <View style={styles.finalScoreBox}>
+                <Text style={styles.finalScoreLabel}>{teamBName}</Text>
+                <TextInput style={styles.finalScoreInput} value={scoreB} onChangeText={setScoreB} keyboardType="number-pad" maxLength={2} placeholder="0" placeholderTextColor={colors.gray} />
+              </View>
+            </View>
+          </ScrollView>
+        ) : null}
+
+        {phase === 'final' && (
+          <View style={styles.matchFooter}>
+            <TouchableOpacity style={[styles.matchStartBtn, submitting && { opacity: 0.6 }]} onPress={handleSave} disabled={submitting}>
+              {submitting ? <ActivityIndicator color={colors.dark} /> : <Text style={styles.matchStartBtnText}>✓ Confirm & Close Match</Text>}
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    </Modal>
+  );
+}
+
 // ─── Upcoming Fixtures Tab ────────────────────────────────────────────────────
 function BookingsTab({ refereeId }) {
   const queryClient = useQueryClient();
@@ -1544,6 +1864,7 @@ function BookingsTab({ refereeId }) {
   const [detailGame, setDetailGame] = useState(null);
   const [matchGame, setMatchGame] = useState(null);
   const [initialPresent, setInitialPresent] = useState({});
+  const [selectedCupMatch, setSelectedCupMatch] = useState(null);
 
   const { data: fixtures = [], isLoading, refetch } = useQuery({
     queryKey: ['refFixturesScore', refereeId],
@@ -1553,6 +1874,22 @@ function BookingsTab({ refereeId }) {
   const { data: allGames = [] } = useQuery({
     queryKey: ['refereeGames'],
     queryFn: fetchScoreGames,
+  });
+
+  // Tournament matches assigned to this referee
+  const { data: cupMatches = [], refetch: refetchCupMatches } = useQuery({
+    queryKey: ['refCupMatches', refereeId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tournament_matches')
+        .select('id, tournament_id, round, match_number, team_a_id, team_b_id, score_a, score_b, winner_id, status, kickoff_time, field_number, referee_id, team_a:team_a_id(id, name, player_ids), team_b:team_b_id(id, name, player_ids), tournament:tournament_id(id, name, format, game_duration, venue)')
+        .eq('referee_id', refereeId)
+        .in('status', ['scheduled', 'live'])
+        .order('kickoff_time', { ascending: true });
+      if (error) return [];
+      return data || [];
+    },
+    enabled: !!refereeId,
   });
 
   // Merge: fixtures first, then other open/active games not already in fixtures
@@ -1646,7 +1983,47 @@ function BookingsTab({ refereeId }) {
           </>
         )}
 
-        {fixtures.length === 0 && otherGames.length === 0 && (
+        {cupMatches.length > 0 && (
+          <>
+            <Text style={styles.scoreSection}>🏆 Tournament Matches</Text>
+            {cupMatches.map(match => {
+              const teamAName = match.team_a?.name || 'TBD';
+              const teamBName = match.team_b?.name || 'TBD';
+              const cupName = match.tournament?.name || 'Tournament';
+              const roundLabel = match.round === 1 ? 'Semi-Final' : 'Final';
+              const kickoff = match.kickoff_time ? new Date(match.kickoff_time) : null;
+              const minsUntilMatch = kickoff ? (kickoff - new Date()) / 60000 : Infinity;
+              const canStart = match.team_a_id && match.team_b_id && minsUntilMatch <= 15;
+
+              return (
+                <View key={match.id} style={[styles.gameCard, { borderColor: colors.gold, flexDirection: 'column' }]}>
+                  <View style={styles.gameCardInner}>
+                    <View style={styles.gameCardLeft}>
+                      <Text style={styles.gameCardTitle} numberOfLines={1}>{teamAName} vs {teamBName}</Text>
+                      <Text style={styles.gameCardMeta}>{cupName} · {roundLabel}</Text>
+                      {kickoff && <Text style={styles.gameCardMeta}>⏰ {formatDate(match.kickoff_time)}</Text>}
+                      <Text style={styles.gameCardPlayers}>⚽ {match.tournament?.format} · {match.tournament?.game_duration}min</Text>
+                    </View>
+                    <View style={styles.gameCardRight}>
+                      <View style={[styles.statusDot, { backgroundColor: colors.gold }]} />
+                      <Text style={styles.statusLabel}>Cup</Text>
+                    </View>
+                  </View>
+                  {canStart && (
+                    <TouchableOpacity
+                      style={[styles.checkInBtn, { marginTop: 8 }]}
+                      onPress={() => { setSelectedCupMatch(match); }}
+                    >
+                      <Text style={styles.checkInBtnText}>▶ Start Match</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              );
+            })}
+          </>
+        )}
+
+        {fixtures.length === 0 && otherGames.length === 0 && cupMatches.length === 0 && (
           <View style={styles.center}>
             <Text style={styles.emptyIcon}>📋</Text>
             <Text style={styles.emptyTitle}>{t('referee.noGames')}</Text>
@@ -1694,6 +2071,19 @@ function BookingsTab({ refereeId }) {
             queryClient.invalidateQueries(['refFixturesScore', refereeId]);
             queryClient.invalidateQueries(['refereeGames']);
             setSelectedGame(null);
+          }}
+        />
+      )}
+
+      {/* Cup Match — reuse the regular MatchModal pattern but for tournament */}
+      {selectedCupMatch && (
+        <CupMatchFlow
+          match={selectedCupMatch}
+          refereeId={refereeId}
+          onClose={() => setSelectedCupMatch(null)}
+          onSaved={() => {
+            queryClient.invalidateQueries(['refCupMatches', refereeId]);
+            setSelectedCupMatch(null);
           }}
         />
       )}
@@ -1754,6 +2144,7 @@ const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row', borderBottomWidth: 1,
     borderBottomColor: colors.darkBorder, backgroundColor: colors.darkCard,
+    zIndex: 10,
   },
   tabBtn: { flex: 1, paddingVertical: spacing.sm, alignItems: 'center' },
   tabBtnActive: { borderBottomWidth: 2, borderBottomColor: colors.gold },

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=430">
+<title>Screenshot 4 – Profile</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 428px; height: 926px; background: #080810; font-family: 'Inter', sans-serif; color: #fff; overflow: hidden; position: relative; }
+
+  .status { display: flex; justify-content: space-between; align-items: center; padding: 14px 24px 0; }
+  .status-time { font-size: 15px; font-weight: 700; }
+  .header { padding: 10px 20px 12px; text-align: center; }
+  .header-title { font-size: 22px; font-weight: 800; color: #C9A84C; }
+
+  /* Profile hero */
+  .profile-hero { margin: 0 20px 14px; background: linear-gradient(135deg, #111120, #1a1a30); border-radius: 20px; padding: 20px; display: flex; align-items: center; gap: 16px; border: 1px solid #1e1e35; }
+  .profile-avatar { width: 72px; height: 72px; border-radius: 50%; border: 3px solid #C9A84C; background: #C9A84C; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 900; color: #000; flex-shrink: 0; }
+  .profile-info { flex: 1; }
+  .profile-name { font-size: 20px; font-weight: 800; margin-bottom: 3px; }
+  .profile-role { font-size: 12px; color: #C9A84C; font-weight: 600; margin-bottom: 6px; }
+  .profile-tags { display: flex; gap: 6px; }
+  .profile-tag { background: #1e1e35; border-radius: 20px; padding: 3px 10px; font-size: 10px; font-weight: 600; color: #aaa; }
+  .profile-rating { display: flex; align-items: center; gap: 3px; margin-top: 6px; }
+  .star { color: #C9A84C; font-size: 13px; }
+  .rating-val { font-size: 12px; color: #888; margin-left: 3px; }
+
+  /* Stats grid */
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 0 20px 14px; }
+  .stat-card { background: #111120; border-radius: 14px; padding: 14px 10px; text-align: center; border: 1px solid #1a1a30; }
+  .stat-icon { font-size: 20px; margin-bottom: 5px; }
+  .stat-val { font-size: 24px; font-weight: 900; color: #C9A84C; margin-bottom: 2px; }
+  .stat-label { font-size: 9px; color: #666; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* Performance */
+  .section-title { padding: 0 20px 8px; font-size: 11px; font-weight: 800; color: #C9A84C; letter-spacing: 1px; text-transform: uppercase; }
+  .perf-row { display: flex; gap: 8px; margin: 0 20px 14px; }
+  .perf-card { flex: 1; background: #111120; border-radius: 14px; padding: 12px; text-align: center; border: 1px solid #1a1a30; }
+  .perf-val { font-size: 20px; font-weight: 900; margin-bottom: 2px; }
+  .perf-label { font-size: 9px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+  .perf-val.green { color: #4CAF50; }
+  .perf-val.yellow { color: #C9A84C; }
+  .perf-val.red { color: #ef5350; }
+
+  /* Recent games */
+  .game-row { display: flex; align-items: center; gap: 10px; margin: 0 20px 8px; background: #111120; border-radius: 12px; padding: 11px 14px; border: 1px solid #1a1a30; }
+  .game-result { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; flex-shrink: 0; }
+  .game-result.w { background: rgba(76,175,80,0.2); color: #4CAF50; border: 1px solid rgba(76,175,80,0.3); }
+  .game-result.l { background: rgba(239,83,80,0.2); color: #ef5350; border: 1px solid rgba(239,83,80,0.3); }
+  .game-result.d { background: rgba(150,150,150,0.2); color: #999; border: 1px solid rgba(150,150,150,0.3); }
+  .game-info { flex: 1; }
+  .game-venue { font-size: 13px; font-weight: 700; }
+  .game-date { font-size: 10px; color: #666; }
+  .game-pts { font-size: 13px; font-weight: 800; color: #C9A84C; }
+
+  .tabbar { position: absolute; bottom: 0; left: 0; right: 0; height: 84px; background: #0e0e1a; border-top: 1px solid #1e1e30; display: flex; align-items: flex-start; padding-top: 12px; }
+  .tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .tab-icon { font-size: 22px; }
+  .tab-label { font-size: 10px; font-weight: 600; }
+  .tab.active .tab-label { color: #C9A84C; }
+  .tab.inactive .tab-label { color: #555; }
+  .tab.inactive .tab-icon { filter: grayscale(1) opacity(0.4); }
+</style>
+</head>
+<body>
+
+<div class="status">
+  <span class="status-time">18:55</span>
+  <div style="display:flex;gap:6px;font-size:13px;"><span>●●●●</span><span>🔋</span></div>
+</div>
+<div class="header"><span class="header-title">Profile</span></div>
+
+<div class="profile-hero">
+  <div class="profile-avatar">MK</div>
+  <div class="profile-info">
+    <div class="profile-name">M. Kavosi</div>
+    <div class="profile-role">⚽ Versatile · Intermediate</div>
+    <div class="profile-tags">
+      <span class="profile-tag">🏆 #1 Ranked</span>
+      <span class="profile-tag">South Florida</span>
+    </div>
+    <div class="profile-rating">
+      <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span>
+      <span class="rating-val">4.8 rating</span>
+    </div>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card"><div class="stat-icon">⚽</div><div class="stat-val">23</div><div class="stat-label">Goals</div></div>
+  <div class="stat-card"><div class="stat-icon">🏆</div><div class="stat-val">11</div><div class="stat-label">Wins</div></div>
+  <div class="stat-card"><div class="stat-icon">🎮</div><div class="stat-val">16</div><div class="stat-label">Games</div></div>
+  <div class="stat-card"><div class="stat-icon">📊</div><div class="stat-val">58</div><div class="stat-label">Total Pts</div></div>
+  <div class="stat-card"><div class="stat-icon">🟨</div><div class="stat-val">2</div><div class="stat-label">Yellows</div></div>
+  <div class="stat-card"><div class="stat-icon">🧤</div><div class="stat-val">3</div><div class="stat-label">Clean Shts</div></div>
+</div>
+
+<div class="section-title">Recent Games</div>
+
+<div class="game-row">
+  <div class="game-result w">W</div>
+  <div class="game-info"><div class="game-venue">Boca Raton Sports Park</div><div class="game-date">Jun 15 · 7v7</div></div>
+  <div class="game-pts">+6 pts</div>
+</div>
+<div class="game-row">
+  <div class="game-result w">W</div>
+  <div class="game-info"><div class="game-venue">West Palm Beach Field</div><div class="game-date">Jun 10 · 6v6</div></div>
+  <div class="game-pts">+5 pts</div>
+</div>
+<div class="game-row">
+  <div class="game-result l">L</div>
+  <div class="game-info"><div class="game-venue">Fort Lauderdale Complex</div><div class="game-date">Jun 5 · 7v7</div></div>
+  <div class="game-pts">+2 pts</div>
+</div>
+
+<div class="tabbar">
+  <div class="tab inactive"><span class="tab-icon">⚽</span><span class="tab-label">Feed</span></div>
+  <div class="tab inactive"><span class="tab-icon">🏆</span><span class="tab-label">Cups</span></div>
+  <div class="tab inactive"><span class="tab-icon">📊</span><span class="tab-label">Rankings</span></div>
+  <div class="tab active"><span class="tab-icon">👤</span><span class="tab-label">Profile</span></div>
+</div>
+
+</body>
+</html>

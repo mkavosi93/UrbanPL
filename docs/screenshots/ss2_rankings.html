@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=430">
+<title>Screenshot 2 – Rankings</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 428px; height: 926px; background: #080810; font-family: 'Inter', sans-serif; color: #fff; overflow: hidden; position: relative; }
+
+  .status { display: flex; justify-content: space-between; align-items: center; padding: 14px 24px 0; }
+  .status-time { font-size: 15px; font-weight: 700; }
+
+  .header { padding: 10px 20px 16px; text-align: center; }
+  .header-title { font-size: 22px; font-weight: 800; color: #C9A84C; }
+
+  /* Points formula card */
+  .formula-card { margin: 0 20px 14px; background: #111120; border-radius: 14px; border: 1px solid rgba(201,168,76,0.25); overflow: hidden; }
+  .formula-header { padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; }
+  .formula-title { font-size: 12px; font-weight: 700; color: #C9A84C; letter-spacing: 0.5px; }
+  .formula-toggle { font-size: 11px; color: #555; }
+  .formula-rows { padding: 0 14px 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+  .formula-row { display: flex; align-items: center; gap: 6px; padding: 4px 0; }
+  .formula-icon { font-size: 13px; }
+  .formula-label { font-size: 10px; color: #aaa; flex: 1; }
+  .formula-val { font-size: 11px; font-weight: 800; }
+  .formula-val.pos { color: #4CAF50; }
+  .formula-val.neg { color: #ef5350; }
+
+  /* Podium */
+  .podium { display: flex; align-items: flex-end; justify-content: center; gap: 8px; padding: 14px 20px 10px; }
+  .podium-place { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .podium-avatar { border-radius: 50%; border: 3px solid #555; overflow: hidden; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; }
+  .podium-name { font-size: 10px; font-weight: 700; text-align: center; color: #ddd; }
+  .podium-pts { font-size: 9px; color: #888; }
+  .podium-block { display: flex; align-items: center; justify-content: center; border-radius: 8px 8px 0 0; font-size: 18px; }
+
+  .p1 .podium-avatar { width: 54px; height: 54px; border-color: #FFD700; background: #C9A84C; color: #000; }
+  .p2 .podium-avatar { width: 46px; height: 46px; border-color: #C0C0C0; background: #555; color: #fff; }
+  .p3 .podium-avatar { width: 42px; height: 42px; border-color: #CD7F32; background: #6B4226; color: #fff; }
+  .p1 .podium-block { width: 90px; height: 70px; background: linear-gradient(to top, #C9A84C, #f0d070); color: #000; font-weight: 900; }
+  .p2 .podium-block { width: 80px; height: 50px; background: linear-gradient(to top, #555, #888); }
+  .p3 .podium-block { width: 75px; height: 36px; background: linear-gradient(to top, #6B4226, #9B6040); }
+
+  /* Rankings list */
+  .list { margin: 0 20px; }
+  .rank-row { display: flex; align-items: center; gap: 12px; padding: 11px 14px; background: #111120; border-radius: 12px; margin-bottom: 7px; border: 1px solid #1a1a2e; }
+  .rank-num { font-size: 14px; font-weight: 800; color: #555; width: 20px; text-align: center; }
+  .rank-avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+  .rank-info { flex: 1; }
+  .rank-name { font-size: 14px; font-weight: 700; }
+  .rank-sub { font-size: 10px; color: #666; margin-top: 1px; }
+  .rank-pts { font-size: 16px; font-weight: 900; color: #C9A84C; }
+  .rank-pts-label { font-size: 9px; color: #666; text-align: right; }
+
+  .tabbar { position: absolute; bottom: 0; left: 0; right: 0; height: 84px; background: #0e0e1a; border-top: 1px solid #1e1e30; display: flex; align-items: flex-start; padding-top: 12px; }
+  .tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .tab-icon { font-size: 22px; }
+  .tab-label { font-size: 10px; font-weight: 600; }
+  .tab.active .tab-label { color: #C9A84C; }
+  .tab.inactive .tab-label { color: #555; }
+  .tab.inactive .tab-icon { filter: grayscale(1) opacity(0.4); }
+</style>
+</head>
+<body>
+
+<div class="status">
+  <span class="status-time">18:54</span>
+  <div style="display:flex;gap:6px;font-size:13px;"><span>●●●●</span><span>🔋</span></div>
+</div>
+
+<div class="header"><span class="header-title">Rankings</span></div>
+
+<!-- Points Formula -->
+<div class="formula-card">
+  <div class="formula-header">
+    <span class="formula-title">⚡ HOW POINTS WORK</span>
+    <span class="formula-toggle">▾ collapse</span>
+  </div>
+  <div class="formula-rows">
+    <div class="formula-row"><span class="formula-icon">🏆</span><span class="formula-label">Win</span><span class="formula-val pos">+3</span></div>
+    <div class="formula-row"><span class="formula-icon">⚽</span><span class="formula-label">Goal</span><span class="formula-val pos">+1</span></div>
+    <div class="formula-row"><span class="formula-icon">🧤</span><span class="formula-label">Clean sheet</span><span class="formula-val pos">+3</span></div>
+    <div class="formula-row"><span class="formula-icon">🧤</span><span class="formula-label">Concede only 1</span><span class="formula-val pos">+1</span></div>
+    <div class="formula-row"><span class="formula-icon">🟨</span><span class="formula-label">Yellow card</span><span class="formula-val neg">−1</span></div>
+    <div class="formula-row"><span class="formula-icon">🟥</span><span class="formula-label">Red card</span><span class="formula-val neg">−3</span></div>
+  </div>
+</div>
+
+<!-- Podium -->
+<div class="podium">
+  <div class="podium-place p2">
+    <div class="podium-avatar">JR</div>
+    <div class="podium-name">J. Rivera</div>
+    <div class="podium-pts">41 pts</div>
+    <div class="podium-block">🥈</div>
+  </div>
+  <div class="podium-place p1">
+    <div class="podium-avatar">MK</div>
+    <div class="podium-name">M. Kavosi</div>
+    <div class="podium-pts">58 pts</div>
+    <div class="podium-block">🥇</div>
+  </div>
+  <div class="podium-place p3">
+    <div class="podium-avatar">AL</div>
+    <div class="podium-name">A. Lopez</div>
+    <div class="podium-pts">37 pts</div>
+    <div class="podium-block">🥉</div>
+  </div>
+</div>
+
+<!-- Rankings List -->
+<div class="list">
+  <div class="rank-row">
+    <span class="rank-num">4</span>
+    <div class="rank-avatar" style="background:#1e2d4a;color:#6fa3e0;">DS</div>
+    <div class="rank-info"><div class="rank-name">D. Santos</div><div class="rank-sub">⚽ 8 goals · 🏆 4 wins</div></div>
+    <div><div class="rank-pts">34</div><div class="rank-pts-label">pts</div></div>
+  </div>
+  <div class="rank-row">
+    <span class="rank-num">5</span>
+    <div class="rank-avatar" style="background:#2d1e3a;color:#b06fe0;">CM</div>
+    <div class="rank-info"><div class="rank-name">C. Martinez</div><div class="rank-sub">⚽ 6 goals · 🏆 5 wins</div></div>
+    <div><div class="rank-pts">31</div><div class="rank-pts-label">pts</div></div>
+  </div>
+  <div class="rank-row">
+    <span class="rank-num">6</span>
+    <div class="rank-avatar" style="background:#1e3a2d;color:#6fc08a;">TN</div>
+    <div class="rank-info"><div class="rank-name">T. Nguyen</div><div class="rank-sub">⚽ 5 goals · 🏆 3 wins</div></div>
+    <div><div class="rank-pts">28</div><div class="rank-pts-label">pts</div></div>
+  </div>
+  <div class="rank-row">
+    <span class="rank-num">7</span>
+    <div class="rank-avatar" style="background:#3a2a1e;color:#e0a06f;">BB</div>
+    <div class="rank-info"><div class="rank-name">B. Brown</div><div class="rank-sub">⚽ 4 goals · 🏆 4 wins</div></div>
+    <div><div class="rank-pts">25</div><div class="rank-pts-label">pts</div></div>
+  </div>
+</div>
+
+<div class="tabbar">
+  <div class="tab inactive"><span class="tab-icon">⚽</span><span class="tab-label">Feed</span></div>
+  <div class="tab inactive"><span class="tab-icon">🏆</span><span class="tab-label">Cups</span></div>
+  <div class="tab active"><span class="tab-icon">📊</span><span class="tab-label">Rankings</span></div>
+  <div class="tab inactive"><span class="tab-icon">👤</span><span class="tab-label">Profile</span></div>
+</div>
+
+</body>
+</html>

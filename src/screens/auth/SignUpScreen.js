@@ -8,6 +8,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { colors, spacing, radius } from '../../theme';
 
 const TOTAL_STEPS = 4;
@@ -38,6 +39,7 @@ function SelectCard({ label, selected, onPress }) {
 
 export default function SignUpScreen({ navigation }) {
   const { fetchPlayer } = useAuth();
+  const { t } = useLanguage();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
@@ -88,7 +90,7 @@ export default function SignUpScreen({ navigation }) {
   async function pickPhoto() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Please allow access to your photo library.');
+      Alert.alert(t('signup.permissionNeeded'), t('signup.permissionMsg'));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -104,23 +106,23 @@ export default function SignUpScreen({ navigation }) {
   }
 
   function validateStep1() {
-    if (!firstName.trim()) { Alert.alert('Missing name', 'Please enter your first name.'); return false; }
-    if (!lastName.trim()) { Alert.alert('Missing name', 'Please enter your last name.'); return false; }
-    if (!email.includes('@')) { Alert.alert('Invalid email', 'Please enter a valid email.'); return false; }
-    if (password.length < 8) { Alert.alert('Weak password', 'Password must be at least 8 characters.'); return false; }
+    if (!firstName.trim()) { Alert.alert(t('signup.missingName'), t('signup.enterFirstName')); return false; }
+    if (!lastName.trim()) { Alert.alert(t('signup.missingName'), t('signup.enterLastName')); return false; }
+    if (!email.includes('@')) { Alert.alert(t('signup.invalidEmail'), t('signup.enterValidEmail')); return false; }
+    if (password.length < 8) { Alert.alert(t('signup.weakPassword'), t('signup.passwordMin')); return false; }
     return true;
   }
 
   function validateStep2() {
-    if (phone.length < 10) { Alert.alert('Invalid phone', 'Please enter a valid phone number.'); return false; }
-    if (!birthMonth) { Alert.alert('Missing info', 'Please select your birth month.'); return false; }
+    if (phone.length < 10) { Alert.alert(t('signup.invalidPhone'), t('signup.enterValidPhone')); return false; }
+    if (!birthMonth) { Alert.alert(t('signup.missingInfo'), t('signup.selectMonth')); return false; }
     const year = parseInt(birthYear);
     if (!birthYear || year < 1940 || year > 2010) {
-      Alert.alert('Invalid year', 'Please enter a valid birth year (1940–2010).');
+      Alert.alert(t('signup.invalidYear'), t('signup.invalidYearMsg'));
       return false;
     }
     if (!smsConsent) {
-      Alert.alert('SMS consent required', 'Please agree to receive game confirmations and reminders to continue.');
+      Alert.alert(t('signup.smsRequired'), t('signup.smsRequiredMsg'));
       return false;
     }
     return true;
@@ -128,15 +130,15 @@ export default function SignUpScreen({ navigation }) {
 
   function validateStep4() {
     if (!skill || !role) {
-      Alert.alert('Missing info', 'Please select your skill level and role.');
+      Alert.alert(t('signup.missingInfo'), t('signup.selectAll'));
       return false;
     }
     if (countAvailabilitySelections() < 2) {
-      Alert.alert('Availability required', 'Please select at least 2 time slots when you are available to play.');
+      Alert.alert(t('signup.availabilityRequired'), t('signup.availabilityRequiredMsg'));
       return false;
     }
     if (!photo) {
-      Alert.alert('Photo required', 'Please upload a profile photo so other players can identify you at the game.');
+      Alert.alert(t('signup.photoRequiredAlert'), t('signup.photoRequiredMsg'));
       return false;
     }
     return true;
@@ -168,7 +170,7 @@ export default function SignUpScreen({ navigation }) {
     if (step === 2) { setStep(3); await sendOtp(); return; }
     if (step === 3) {
       if (otp.trim() !== generatedOtp && otp.trim() !== '000000') {
-        Alert.alert('Invalid code', 'The code you entered is incorrect. Please try again.');
+        Alert.alert(t('signup.invalidPhone'), 'The code you entered is incorrect. Please try again.');
         return;
       }
     }
@@ -248,23 +250,23 @@ export default function SignUpScreen({ navigation }) {
 
       if (profileError) throw profileError;
 
+      // Send welcome email (fire and forget)
+      supabase.functions.invoke('send-email', {
+        body: { type: 'welcome', to: email.trim(), firstName: firstName.trim() },
+      }).catch(() => {});
+
       // Explicitly load the player into context now that the row exists
       await fetchPlayer(userId);
 
     } catch (err) {
-      Alert.alert('Sign up failed', err.message);
+      Alert.alert(t('signup.signUpFailed'), err.message);
     } finally {
       setLoading(false);
     }
   }
 
-  const stepTitles = ['Create Account', 'Personal Info', 'Verify Phone', 'Your Profile'];
-  const stepSubs = [
-    'Enter your details and password',
-    'Phone number and date of birth',
-    'Enter the code we sent you',
-    'Tell us about your game',
-  ];
+  const stepTitles = [t('signup.step1Title'), t('signup.step2Title'), t('signup.step3Title'), t('signup.step4Title')];
+  const stepSubs = [t('signup.step1Sub'), t('signup.step2Sub'), t('signup.step3Sub'), t('signup.step4Sub')];
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -288,10 +290,10 @@ export default function SignUpScreen({ navigation }) {
           <View style={styles.stepContent}>
             <View style={styles.nameRow}>
               <View style={styles.nameField}>
-                <Text style={styles.label}>First Name</Text>
+                <Text style={styles.label}>{t('signup.firstName')}</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="First"
+                  placeholder={t('signup.firstPlaceholder')}
                   placeholderTextColor={colors.gray}
                   value={firstName}
                   onChangeText={setFirstName}
@@ -299,10 +301,10 @@ export default function SignUpScreen({ navigation }) {
                 />
               </View>
               <View style={styles.nameField}>
-                <Text style={styles.label}>Last Name</Text>
+                <Text style={styles.label}>{t('signup.lastName')}</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Last"
+                  placeholder={t('signup.lastPlaceholder')}
                   placeholderTextColor={colors.gray}
                   value={lastName}
                   onChangeText={setLastName}
@@ -311,21 +313,21 @@ export default function SignUpScreen({ navigation }) {
               </View>
             </View>
 
-            <Text style={styles.label}>Email</Text>
+            <Text style={styles.label}>{t('signup.email')}</Text>
             <TextInput
               style={styles.input}
-              placeholder="you@example.com"
+              placeholder={t('login.emailPlaceholder')}
               placeholderTextColor={colors.gray}
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
               keyboardType="email-address"
             />
-            <Text style={styles.label}>Password</Text>
+            <Text style={styles.label}>{t('signup.password')}</Text>
             <View style={styles.passwordRow}>
               <TextInput
                 style={[styles.input, styles.passwordInput]}
-                placeholder="At least 8 characters"
+                placeholder={t('signup.passwordPlaceholder')}
                 placeholderTextColor={colors.gray}
                 value={password}
                 onChangeText={setPassword}
@@ -341,33 +343,35 @@ export default function SignUpScreen({ navigation }) {
         {/* STEP 2 — Phone + DOB */}
         {step === 2 && (
           <View style={styles.stepContent}>
-            <Text style={styles.label}>Phone Number</Text>
+            <Text style={styles.label}>{t('signup.phone')}</Text>
             <TextInput
               style={styles.input}
-              placeholder="+1 555 000 0000"
+              placeholder={t('signup.phonePlaceholder')}
               placeholderTextColor={colors.gray}
               value={phone}
               onChangeText={setPhone}
               keyboardType="phone-pad"
             />
 
-            <Text style={styles.label}>Birth Month</Text>
+            <Text style={styles.label}>{t('signup.birthMonth')}</Text>
             <View style={styles.monthGrid}>
-              {MONTHS.map(m => (
+              {MONTHS.map((m, idx) => (
                 <TouchableOpacity
                   key={m}
                   style={[styles.monthBtn, birthMonth === m && styles.monthBtnSelected]}
                   onPress={() => setBirthMonth(m)}
                 >
-                  <Text style={[styles.monthText, birthMonth === m && styles.monthTextSelected]}>{m}</Text>
+                  <Text style={[styles.monthText, birthMonth === m && styles.monthTextSelected]}>
+                    {t('months')[idx] || m}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
 
-            <Text style={styles.label}>Birth Year</Text>
+            <Text style={styles.label}>{t('signup.birthYear')}</Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. 1990"
+              placeholder={t('signup.birthYearPlaceholder')}
               placeholderTextColor={colors.gray}
               value={birthYear}
               onChangeText={setBirthYear}
@@ -377,9 +381,7 @@ export default function SignUpScreen({ navigation }) {
 
             {/* Legal / TCPA */}
             <View style={styles.legalBox}>
-              <Text style={styles.legalText}>
-                By providing your phone number, you agree that Urban PL may send you SMS notifications including game confirmations, team assignments, lineup notifications, and match reminders. Message frequency varies. Msg & data rates may apply. Reply STOP to opt out at any time. Reply HELP for assistance. Privacy Policy: theurbanpl.com/privacy-policy.html
-              </Text>
+              <Text style={styles.legalText}>{t('signup.legalText')}</Text>
             </View>
 
             {/* Required SMS consent */}
@@ -389,7 +391,7 @@ export default function SignUpScreen({ navigation }) {
               </View>
               <Text style={styles.checkLabel}>
                 <Text style={styles.checkRequired}>* </Text>
-                I agree to receive SMS notifications from Urban PL, including game confirmations, team assignments, lineup notifications, and match reminders. Message frequency varies. Msg & data rates may apply. Reply STOP to opt out. Reply HELP for help.
+                {t('signup.smsConsent')}
               </Text>
             </TouchableOpacity>
 
@@ -398,21 +400,17 @@ export default function SignUpScreen({ navigation }) {
               <View style={[styles.checkbox, marketingConsent && styles.checkboxChecked]}>
                 {marketingConsent && <Text style={styles.checkmark}>✓</Text>}
               </View>
-              <Text style={styles.checkLabel}>
-                I'd like to receive news, promotions, and updates from Urban PL. (Optional)
-              </Text>
+              <Text style={styles.checkLabel}>{t('signup.marketingConsent')}</Text>
             </TouchableOpacity>
 
-            <Text style={styles.legalFooter}>
-              Reply STOP to opt out at any time. Reply HELP for help. Visit our Privacy Policy for more info.
-            </Text>
+            <Text style={styles.legalFooter}>{t('signup.legalFooter')}</Text>
           </View>
         )}
 
         {/* STEP 3 — OTP */}
         {step === 3 && (
           <View style={styles.stepContent}>
-            <Text style={styles.hint}>A 6-digit code was sent to {phone}. Enter it below.</Text>
+            <Text style={styles.hint}>{t('signup.otpHint')} {phone}. {t('signup.otpHint2')}</Text>
             <TextInput
               style={[styles.input, styles.otpInput]}
               placeholder="000000"
@@ -423,7 +421,7 @@ export default function SignUpScreen({ navigation }) {
               maxLength={6}
             />
             <TouchableOpacity onPress={sendOtp} style={{ marginTop: spacing.md, alignItems: 'center' }}>
-              <Text style={[styles.hint, { color: colors.gold }]}>Didn't receive it? Tap to resend</Text>
+              <Text style={[styles.hint, { color: colors.gold }]}>{t('signup.otpNotReceived')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -433,26 +431,26 @@ export default function SignUpScreen({ navigation }) {
           <View style={styles.stepContent}>
 
             {/* Photo Upload */}
-            <Text style={styles.label}>Profile Photo <Text style={{ color: colors.error, fontSize: 13 }}>*</Text></Text>
+            <Text style={styles.label}>{t('signup.photo')} <Text style={{ color: colors.error, fontSize: 13 }}>*</Text></Text>
             <TouchableOpacity style={styles.photoPicker} onPress={pickPhoto}>
               {photo ? (
                 <Image source={{ uri: photo.uri }} style={styles.photoPreview} />
               ) : (
                 <View style={styles.photoPlaceholder}>
                   <Text style={styles.photoPlaceholderIcon}>📷</Text>
-                  <Text style={styles.photoPlaceholderText}>Required — tap to upload</Text>
+                  <Text style={styles.photoPlaceholderText}>{t('signup.photoRequired')}</Text>
                 </View>
               )}
             </TouchableOpacity>
 
-            <Text style={styles.label}>Your Role</Text>
+            <Text style={styles.label}>{t('signup.yourRole')}</Text>
             <View style={styles.cardRow}>
               {ROLES.map(r => (
                 <SelectCard key={r} label={r} selected={role === r} onPress={() => setRole(r)} />
               ))}
             </View>
 
-            <Text style={styles.label}>Skill Level</Text>
+            <Text style={styles.label}>{t('signup.skillLevel')}</Text>
             <View style={styles.cardRow}>
               {SKILLS.map(s => (
                 <SelectCard key={s} label={s} selected={skill === s} onPress={() => setSkill(s)} />
@@ -460,9 +458,9 @@ export default function SignUpScreen({ navigation }) {
             </View>
 
             <Text style={styles.label}>
-              Availability <Text style={styles.hint}>({countAvailabilitySelections()} selected — min. 2)</Text>
+              {t('signup.availability')} <Text style={styles.hint}>({countAvailabilitySelections()} {t('signup.availabilityHint')})</Text>
             </Text>
-            <Text style={styles.hint}>Tap to cycle: Off → Available (gold) → Maybe (dim)</Text>
+            <Text style={styles.hint}>{t('signup.availabilityTip')}</Text>
 
             <View style={styles.grid}>
               <View style={styles.gridHeaderRow}>
@@ -473,7 +471,7 @@ export default function SignUpScreen({ navigation }) {
               </View>
               {DAYS.map(day => (
                 <View key={day} style={styles.gridRow}>
-                  <Text style={styles.gridDayLabel}>{day}</Text>
+                  <Text style={styles.gridDayLabel}>{t('days')[day] || day}</Text>
                   {SLOTS.map(slot => (
                     <TouchableOpacity
                       key={slot}
@@ -492,7 +490,7 @@ export default function SignUpScreen({ navigation }) {
         <View style={styles.btnRow}>
           {step > 1 && (
             <TouchableOpacity style={styles.backBtn} onPress={() => setStep(step - 1)}>
-              <Text style={styles.backBtnText}>Back</Text>
+              <Text style={styles.backBtnText}>{t('signup.back')}</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity
@@ -502,7 +500,7 @@ export default function SignUpScreen({ navigation }) {
           >
             {loading
               ? <ActivityIndicator color={colors.dark} />
-              : <Text style={styles.btnText}>{step === TOTAL_STEPS ? 'Create Account' : 'Continue'}</Text>
+              : <Text style={styles.btnText}>{step === TOTAL_STEPS ? t('signup.createAccount') : t('signup.continue')}</Text>
             }
           </TouchableOpacity>
         </View>
@@ -510,7 +508,7 @@ export default function SignUpScreen({ navigation }) {
         {step === 1 && (
           <TouchableOpacity style={styles.linkBtn} onPress={() => navigation.navigate('Login')}>
             <Text style={styles.linkText}>
-              Already have an account? <Text style={styles.linkHighlight}>Sign In</Text>
+              {t('signup.alreadyHaveAccount')} <Text style={styles.linkHighlight}>{t('signup.signIn')}</Text>
             </Text>
           </TouchableOpacity>
         )}

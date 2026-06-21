@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Alert, ActivityIndicator, Platform, TextInput,
+  Alert, ActivityIndicator, Platform, TextInput, KeyboardAvoidingView,
 } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
@@ -114,6 +114,7 @@ export default function TermsScreen({ onAccepted }) {
   const { player } = useAuth();
   const [typedName, setTypedName] = useState('');
   const [saving, setSaving] = useState(false);
+  const scrollRef = useRef(null);
 
   const signed = typedName.trim().length > 0;
 
@@ -129,7 +130,10 @@ export default function TermsScreen({ onAccepted }) {
     setSaving(true);
     const { error } = await supabase
       .from('players')
-      .update({ terms_accepted_at: new Date().toISOString() })
+      .update({
+        terms_accepted_at: new Date().toISOString(),
+        terms_signature_name: typedName.trim(),
+      })
       .eq('id', player.id);
     setSaving(false);
     if (error) {
@@ -141,7 +145,11 @@ export default function TermsScreen({ onAccepted }) {
   }
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={0}
+    >
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Terms and Conditions</Text>
@@ -149,9 +157,11 @@ export default function TermsScreen({ onAccepted }) {
 
       {/* T&C Text */}
       <ScrollView
+        ref={scrollRef}
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         <Text style={styles.intro}>
           IN CONSIDERATION of being permitted to participate in any Urban PL activity, I agree to the following Terms of Service, Release and Waiver of Liability, and Assumption of Risk. By signing below I certify that I have read and fully understand this agreement and that I sign it freely and voluntarily.
@@ -176,6 +186,7 @@ export default function TermsScreen({ onAccepted }) {
             autoCorrect={false}
             autoCapitalize="words"
             returnKeyType="done"
+            onFocus={() => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 300)}
           />
           {typedName.trim().length > 0 && (
             <Text style={styles.sigPreview}>{typedName}</Text>
@@ -206,12 +217,12 @@ export default function TermsScreen({ onAccepted }) {
           <Text style={styles.clearTxt}>Clear signature</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#fff', flexDirection: 'column' },
 
   header: {
     paddingTop: Platform.OS === 'ios' ? 56 : 24,

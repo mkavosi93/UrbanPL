@@ -13,16 +13,40 @@ import { supabase } from '../lib/supabase';
 import { colors, spacing, radius } from '../theme';
 
 async function fetchPlayerHistory(playerId) {
-  const { data, error } = await supabase
+  const now = new Date().toISOString();
+
+  // Games with recorded stats (referee processed)
+  const { data: statsData } = await supabase
     .from('game_player_stats')
     .select(`
       goals, won, yellow_cards, red_cards, is_goalkeeper, goals_conceded,
-      games(id, location, format, kickoff_time, score_a, score_b, completed_at)
+      games(id, location, format, kickoff_time, score_a, score_b, completed_at, status)
     `)
     .eq('player_id', playerId);
-  if (error) throw error;
-  // Sort by completed_at descending client-side
-  return (data || []).sort((a, b) => {
+
+  // Games player joined but no stats recorded (e.g. referee didn't process)
+  const { data: joinedData } = await supabase
+    .from('game_players')
+    .select(`games(id, location, format, kickoff_time, score_a, score_b, completed_at, status)`)
+    .eq('player_id', playerId)
+    .lt('games.kickoff_time', now);
+
+  const statsGameIds = new Set((statsData || []).map(s => s.games?.id).filter(Boolean));
+
+  // Merge: stats entries first, then joined-only entries for games not already in stats
+  const statsEntries = (statsData || []).filter(s => s.games);
+  const joinedOnlyEntries = (joinedData || [])
+    .filter(j => j.games && j.games.kickoff_time < now && !statsGameIds.has(j.games.id))
+    .map(j => ({
+      goals: null, won: null, yellow_cards: null, red_cards: null,
+      is_goalkeeper: null, goals_conceded: null,
+      games: j.games,
+      noStats: true,
+    }));
+
+  const all = [...statsEntries, ...joinedOnlyEntries];
+
+  return all.sort((a, b) => {
     const da = new Date(a.games?.completed_at || a.games?.kickoff_time || 0);
     const db = new Date(b.games?.completed_at || b.games?.kickoff_time || 0);
     return db - da;
@@ -60,9 +84,9 @@ function GameHistoryList({ playerId }) {
           : '';
         const scoreA = g.score_a ?? '–';
         const scoreB = g.score_b ?? '–';
-        const resultColor = s.won ? colors.success : '#e05555';
-        const resultLabel = s.won ? 'WIN' : (g.score_a === g.score_b ? 'DRAW' : 'LOSS');
-        const resultBg = s.won ? '#1a3a1a' : (g.score_a === g.score_b ? '#2a2a1a' : '#3a1a1a');
+        const resultColor = s.noStats ? colors.gray : (s.won ? colors.success : '#e05555');
+        const resultLabel = s.noStats ? 'PLAYED' : (s.won ? 'WIN' : (g.score_a === g.score_b ? 'DRAW' : 'LOSS'));
+        const resultBg = s.noStats ? '#1e1e30' : (s.won ? '#1a3a1a' : (g.score_a === g.score_b ? '#2a2a1a' : '#3a1a1a'));
 
         return (
           <View key={i} style={styles.historyCard}>
