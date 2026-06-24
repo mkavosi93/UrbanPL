@@ -8,8 +8,10 @@ import * as Linking from 'expo-linking';
 import { supabase } from '../../lib/supabase';
 import { colors, spacing, radius } from '../../theme';
 import { useLanguage } from '../../context/LanguageContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function LoginScreen({ navigation }) {
+  const { setIsGuest } = useAuth();
   const { t, language, setLanguage } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -159,6 +161,13 @@ export default function LoginScreen({ navigation }) {
           >
             <Text style={styles.refBtnText}>🟨 Referee Portal →</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.guestBtn}
+            onPress={() => setIsGuest(true)}
+          >
+            <Text style={styles.guestBtnText}>Browse as Guest →</Text>
+          </TouchableOpacity>
         </View>
 
       </ScrollView>
@@ -284,4 +293,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   refBtnText: { color: colors.gray, fontSize: 14 },
+  guestBtn: { marginTop: spacing.lg, alignItems: 'center', padding: spacing.sm },
+  guestBtnText: { color: colors.gray, fontSize: 13, textDecorationLine: 'underline' },
 });

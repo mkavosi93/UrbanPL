@@ -18,7 +18,10 @@
       "bundleIdentifier": "com.urbanpl.app",
       "deploymentTarget": "16.0",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSPhotoLibraryUsageDescription": "Urban PL needs access to your photo library so you can upload a profile photo that will be visible to other players and referees in your games.",
+        "NSCameraUsageDescription": "Urban PL needs access to your camera so you can take a profile photo or upload referee identification documents.",
+        "NSLocationWhenInUseUsageDescription": "Urban PL uses your location to show nearby games on the map and provide directions to game venues."
       }
     },
     "android": {

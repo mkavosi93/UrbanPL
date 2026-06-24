@@ -11,6 +11,7 @@ export function AuthProvider({ children }) {
   const [playerError, setPlayerError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
+  const [isGuest, setIsGuest] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -87,6 +88,7 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider value={{
       session, player, loading, playerLoading, playerError,
       signOut, fetchPlayer, isPasswordRecovery, setIsPasswordRecovery,
+      isGuest, setIsGuest,
     }}>
       {children}
     </AuthContext.Provider>

@@ -368,6 +368,42 @@ export default function ProfileScreen() {
     ]);
   }
 
+  function confirmDeleteAccount() {
+    Alert.alert(
+      'Delete Account',
+      'This will permanently delete your account and all associated data (profile, stats, game history). This action cannot be undone.\n\nAre you sure?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete My Account',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              'Final Confirmation',
+              'Your account will be permanently deleted. You will be signed out immediately.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Yes, Delete Everything',
+                  style: 'destructive',
+                  onPress: async () => {
+                    try {
+                      await supabase.from('players').delete().eq('id', player.id);
+                      await supabase.auth.signOut();
+                      signOut();
+                    } catch (err) {
+                      Alert.alert('Error', err.message || 'Could not delete account. Contact urbanpl.app@gmail.com for assistance.');
+                    }
+                  },
+                },
+              ]
+            );
+          },
+        },
+      ]
+    );
+  }
+
   const [avatarError, setAvatarError] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
@@ -564,6 +600,11 @@ export default function ProfileScreen() {
       {/* Sign Out Button */}
       <TouchableOpacity style={styles.signOutFullBtn} onPress={confirmSignOut}>
         <Text style={styles.signOutFullText}>{t('profile.signOut')}</Text>
+      </TouchableOpacity>
+
+      {/* Delete Account Button */}
+      <TouchableOpacity style={styles.deleteAccountBtn} onPress={confirmDeleteAccount}>
+        <Text style={styles.deleteAccountText}>Delete Account</Text>
       </TouchableOpacity>
 
       {/* Change Password Modal */}
@@ -843,12 +884,23 @@ const styles = StyleSheet.create({
   signOutFullBtn: {
     marginHorizontal: spacing.lg,
     marginTop: spacing.xl,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.sm,
     padding: spacing.md,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.error,
     alignItems: 'center',
+  },
+  deleteAccountBtn: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+    padding: spacing.md,
+    alignItems: 'center',
+  },
+  deleteAccountText: {
+    color: colors.gray,
+    fontSize: 13,
+    textDecorationLine: 'underline',
   },
   signOutFullText: {
     color: colors.error,

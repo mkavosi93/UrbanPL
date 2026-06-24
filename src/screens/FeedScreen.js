@@ -2198,18 +2198,16 @@ export default function FeedScreen() {
         }),
       });
 
-      const json = await res.json();
+      let json;
+      try { json = await res.json(); } catch (_) { throw new Error('Payment service unavailable. Please try again.'); }
       if (!res.ok || !json.clientSecret) {
-        throw new Error(json.error || 'Could not create payment');
+        throw new Error(json?.error || 'Could not create payment. Please try again later.');
       }
 
       // 2. Initialise the Stripe payment sheet
       const { error: initError } = await initPaymentSheet({
         merchantDisplayName: 'Urban PL',
         paymentIntentClientSecret: json.clientSecret,
-        applePay: {
-          merchantCountryCode: 'US',
-        },
         defaultBillingDetails: {
           name: `${player.first_name ?? ''} ${player.last_name ?? ''}`.trim(),
           email: player.email ?? '',
