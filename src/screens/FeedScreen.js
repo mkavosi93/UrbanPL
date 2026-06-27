@@ -2324,7 +2324,7 @@ export default function FeedScreen() {
     <View style={styles.container}>
 
       {/* Summer Series announcement modal */}
-      <SummerSeriesModal />
+      {/* SummerSeriesModal disabled during App Store review */}
 
       {/* Top bar */}
       <View style={styles.topBar}>
