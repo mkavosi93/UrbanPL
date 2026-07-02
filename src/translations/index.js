@@ -32,7 +32,7 @@ export const translations = {
     signup: {
       step1Title: 'Create Account',
       step2Title: 'Personal Info',
-      step3Title: 'Verify Phone',
+      step3Title: 'Verify Email',
       step4Title: 'Your Profile',
       step1Sub: 'Enter your details and password',
       step2Sub: 'Phone number and date of birth',
@@ -321,7 +321,7 @@ export const translations = {
     signup: {
       step1Title: 'Crear Cuenta',
       step2Title: 'Info Personal',
-      step3Title: 'Verificar Teléfono',
+      step3Title: 'Verificar Correo',
       step4Title: 'Tu Perfil',
       step1Sub: 'Ingresa tus datos y contraseña',
       step2Sub: 'Número de teléfono y fecha de nacimiento',
@@ -610,7 +610,7 @@ export const translations = {
     signup: {
       step1Title: 'Criar Conta',
       step2Title: 'Info Pessoal',
-      step3Title: 'Verificar Telefone',
+      step3Title: 'Verificar Email',
       step4Title: 'Seu Perfil',
       step1Sub: 'Insira seus dados e senha',
       step2Sub: 'Número de telefone e data de nascimento',

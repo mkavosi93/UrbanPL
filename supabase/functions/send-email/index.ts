@@ -302,6 +302,28 @@ function refereeApprovedEmail(firstName: string) {
   `);
 }
 
+function otpEmail(code: string) {
+  return baseLayout(`
+    <div style="text-align:center;margin-bottom:32px;">
+      <div style="display:inline-block;background:rgba(245,197,24,0.1);border:1px solid rgba(245,197,24,0.4);border-radius:50%;width:64px;height:64px;line-height:64px;font-size:32px;text-align:center;">🔐</div>
+    </div>
+    <h1 style="margin:0 0 8px;font-size:24px;font-weight:900;color:#ffffff;text-align:center;">Verify your account</h1>
+    <p style="margin:0 0 32px;font-size:14px;color:rgba(255,255,255,0.5);text-align:center;">Enter the code below in the Urban PL app to continue signing up.</p>
+
+    <div style="background:rgba(245,197,24,0.08);border:2px solid rgba(245,197,24,0.4);border-radius:16px;padding:28px;text-align:center;margin-bottom:32px;">
+      <p style="margin:0 0 8px;font-size:11px;color:rgba(255,255,255,0.4);letter-spacing:3px;text-transform:uppercase;">Verification Code</p>
+      <div style="font-size:52px;font-weight:900;color:#F5C518;letter-spacing:16px;font-family:monospace;">${code}</div>
+    </div>
+
+    <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:14px 16px;margin-bottom:16px;">
+      <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.4);text-align:center;line-height:1.6;">
+        ⏰ This code expires in <strong style="color:rgba(255,255,255,0.6);">10 minutes</strong>.<br/>
+        If you didn't request this, you can safely ignore this email.
+      </p>
+    </div>
+  `);
+}
+
 function promoEmail(subject: string, body: string) {
   return baseLayout(`
     <div style="white-space:pre-wrap;font-size:15px;color:rgba(255,255,255,0.8);line-height:1.7;">${body}</div>
@@ -335,11 +357,15 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const { type, to, firstName, lastName, refereeEmail, certLevel, experience, formats, game, tournament, teamName, subject, body, recipients } = await req.json();
+    const { type, to, firstName, lastName, refereeEmail, certLevel, experience, formats, game, tournament, teamName, subject, body, recipients, code } = await req.json();
 
     let result;
 
     switch (type) {
+      case 'otp_verification':
+        result = await sendEmail(to, '🔐 Your Urban PL verification code', otpEmail(code));
+        break;
+
       case 'welcome':
         result = await sendEmail(to, 'Welcome to Urban PL ⚽', welcomeEmail(firstName));
         break;

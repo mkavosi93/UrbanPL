@@ -7,6 +7,7 @@ import * as SecureStore from 'expo-secure-store';
 import { colors, spacing, radius, typography } from '../theme';
 
 const { width, height } = Dimensions.get('window');
+const LAYOUT_WIDTH = Math.min(width, 420);
 
 const SLIDES = [
   {
@@ -208,24 +209,24 @@ const styles = StyleSheet.create({
   // Orb background
   orbOuter: {
     position: 'absolute',
-    width: width * 0.85,
-    height: width * 0.85,
-    borderRadius: width * 0.425,
+    width: LAYOUT_WIDTH * 0.85,
+    height: LAYOUT_WIDTH * 0.85,
+    borderRadius: LAYOUT_WIDTH * 0.425,
     alignItems: 'center',
     justifyContent: 'center',
     top: height * 0.08,
   },
   orbInner: {
-    width: width * 0.55,
-    height: width * 0.55,
-    borderRadius: width * 0.275,
+    width: LAYOUT_WIDTH * 0.55,
+    height: LAYOUT_WIDTH * 0.55,
+    borderRadius: LAYOUT_WIDTH * 0.275,
   },
 
   // Pitch lines
   pitchLines: {
     position: 'absolute',
-    width: width * 0.7,
-    height: width * 0.7,
+    width: LAYOUT_WIDTH * 0.7,
+    height: LAYOUT_WIDTH * 0.7,
     top: height * 0.08,
     alignItems: 'center',
     justifyContent: 'center',
@@ -251,7 +252,7 @@ const styles = StyleSheet.create({
   // Slide content
   slideContent: {
     alignItems: 'center',
-    marginTop: width * 0.45,
+    marginTop: LAYOUT_WIDTH * 0.45,
   },
   emojiBubble: {
     width: 96,

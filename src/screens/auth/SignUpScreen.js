@@ -148,19 +148,11 @@ export default function SignUpScreen({ navigation }) {
     const code = String(Math.floor(100000 + Math.random() * 900000));
     setGeneratedOtp(code);
     try {
-      await fetch('https://zprtghdcmiavtoaltlld.supabase.co/functions/v1/send-sms', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpwcnRnaGRjbWlhdnRvYWx0bGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMxMTA5NTMsImV4cCI6MjA1ODY4Njk1M30.yRiHVGfHTOSECsXGBQbsLVIJiZHnOHFHFKonOLsXrCE',
-        },
-        body: JSON.stringify({
-          to: phone.startsWith('+') ? phone : `+1${phone.replace(/\D/g, '')}`,
-          message: `Your Urban PL verification code is: ${code}. Valid for 10 minutes.`,
-        }),
+      await supabase.functions.invoke('send-email', {
+        body: { type: 'otp_verification', to: email, code },
       });
     } catch (err) {
-      console.warn('OTP send failed:', err.message);
+      console.warn('OTP email failed:', err.message);
     }
   }
 
@@ -410,7 +402,9 @@ export default function SignUpScreen({ navigation }) {
         {/* STEP 3 — OTP */}
         {step === 3 && (
           <View style={styles.stepContent}>
-            <Text style={styles.hint}>{t('signup.otpHint')} {phone}. {t('signup.otpHint2')}</Text>
+            <Text style={styles.hint}>
+              A 6-digit code was sent to <Text style={{ color: colors.white }}>{email}</Text>. Check your inbox (and spam folder).
+            </Text>
             <TextInput
               style={[styles.input, styles.otpInput]}
               placeholder="000000"
@@ -421,7 +415,7 @@ export default function SignUpScreen({ navigation }) {
               maxLength={6}
             />
             <TouchableOpacity onPress={sendOtp} style={{ marginTop: spacing.md, alignItems: 'center' }}>
-              <Text style={[styles.hint, { color: colors.gold }]}>{t('signup.otpNotReceived')}</Text>
+              <Text style={[styles.hint, { color: colors.gold }]}>Didn't receive it? Resend email →</Text>
             </TouchableOpacity>
           </View>
         )}
