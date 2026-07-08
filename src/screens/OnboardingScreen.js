@@ -4,10 +4,10 @@ import {
   Dimensions, StatusBar, Platform,
 } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import { colors, spacing, radius, typography } from '../theme';
+import { colors, spacing, radius } from '../theme';
 
 const { width, height } = Dimensions.get('window');
-const LAYOUT_WIDTH = Math.min(width, 420);
+const ORB_SIZE = Math.min(width, 380) * 0.82;
 
 const SLIDES = [
   {
@@ -99,45 +99,52 @@ export default function OnboardingScreen({ onDone }) {
         onMomentumScrollEnd={handleScroll}
         scrollEventThrottle={16}
         bounces={false}
+        style={styles.pager}
       >
         {SLIDES.map((s) => (
           <View key={s.id} style={styles.slide}>
 
-            {/* Background glow orb */}
-            <View style={[styles.orbOuter, { backgroundColor: s.orb + '18' }]}>
-              <View style={[styles.orbInner, { backgroundColor: s.orb + '30' }]} />
+            {/* TOP: artwork area — flex fills available space */}
+            <View style={styles.artworkArea}>
+              {/* Orb container — orb and emoji stacked */}
+              <View style={styles.orbContainer}>
+                {/* Outer glow */}
+                <View style={[styles.orbOuter, { backgroundColor: s.orb + '18' }]}>
+                  <View style={[styles.orbInner, { backgroundColor: s.orb + '30' }]} />
+                </View>
+
+                {/* Pitch lines (slide 1 only) */}
+                {s.lines && (
+                  <View style={styles.pitchLines}>
+                    {[...Array(6)].map((_, i) => (
+                      <View key={i} style={styles.pitchLine} />
+                    ))}
+                    <View style={styles.pitchCircle} />
+                  </View>
+                )}
+
+                {/* Emoji centered on top of orb */}
+                <View style={[styles.emojiBubble, { shadowColor: s.orb }]}>
+                  <Text style={styles.emoji}>{s.emoji}</Text>
+                </View>
+              </View>
             </View>
 
-            {/* Pitch lines (slide 1 only) */}
-            {s.lines && (
-              <View style={styles.pitchLines}>
-                {[...Array(6)].map((_, i) => (
-                  <View key={i} style={styles.pitchLine} />
-                ))}
-                <View style={styles.pitchCircle} />
-              </View>
-            )}
-
-            {/* Content */}
-            <View style={styles.slideContent}>
-              <View style={[styles.emojiBubble, { shadowColor: s.orb }]}>
-                <Text style={styles.emoji}>{s.emoji}</Text>
-              </View>
-
+            {/* BOTTOM: text area — always visible, never clipped */}
+            <View style={styles.textArea}>
               <View style={[styles.tagBadge, { borderColor: s.orb + '60', backgroundColor: s.orb + '15' }]}>
                 <Text style={[styles.tagText, { color: s.orb }]}>{s.tag}</Text>
               </View>
-
               <Text style={styles.title}>{s.title}</Text>
               <Text style={styles.subtitle}>{s.subtitle}</Text>
             </View>
+
           </View>
         ))}
       </ScrollView>
 
       {/* Bottom controls */}
       <View style={styles.bottom}>
-        {/* Dots */}
         <View style={styles.dots}>
           {SLIDES.map((_, i) => (
             <TouchableOpacity
@@ -154,7 +161,6 @@ export default function OnboardingScreen({ onDone }) {
           ))}
         </View>
 
-        {/* CTA button */}
         <TouchableOpacity
           style={[styles.nextBtn, { backgroundColor: slide.orb }]}
           onPress={goNext}
@@ -165,7 +171,6 @@ export default function OnboardingScreen({ onDone }) {
           </Text>
         </TouchableOpacity>
 
-        {/* Sign in hint on last slide */}
         {isLast && (
           <TouchableOpacity onPress={finish} style={styles.signinHint}>
             <Text style={styles.signinHintText}>Already have an account? <Text style={{ color: colors.gold }}>Sign In</Text></Text>
@@ -196,38 +201,51 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
-  // Slide
+  pager: {
+    flex: 1,
+  },
+
+  // Each slide fills the pager height via flex column
   slide: {
     width,
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingTop: 80,
+    flexDirection: 'column',
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
   },
 
-  // Orb background
+  // Top section: expands to fill available space above text
+  artworkArea: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 160,
+  },
+
+  // Orb + emoji stacked in the same space
+  orbContainer: {
+    width: ORB_SIZE,
+    height: ORB_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   orbOuter: {
     position: 'absolute',
-    width: LAYOUT_WIDTH * 0.85,
-    height: LAYOUT_WIDTH * 0.85,
-    borderRadius: LAYOUT_WIDTH * 0.425,
+    width: ORB_SIZE,
+    height: ORB_SIZE,
+    borderRadius: ORB_SIZE / 2,
     alignItems: 'center',
     justifyContent: 'center',
-    top: height * 0.08,
   },
   orbInner: {
-    width: LAYOUT_WIDTH * 0.55,
-    height: LAYOUT_WIDTH * 0.55,
-    borderRadius: LAYOUT_WIDTH * 0.275,
+    width: ORB_SIZE * 0.65,
+    height: ORB_SIZE * 0.65,
+    borderRadius: ORB_SIZE * 0.325,
   },
 
-  // Pitch lines
   pitchLines: {
     position: 'absolute',
-    width: LAYOUT_WIDTH * 0.7,
-    height: LAYOUT_WIDTH * 0.7,
-    top: height * 0.08,
+    width: ORB_SIZE * 0.82,
+    height: ORB_SIZE * 0.82,
     alignItems: 'center',
     justifyContent: 'center',
     opacity: 0.15,
@@ -241,27 +259,21 @@ const styles = StyleSheet.create({
     marginVertical: 14,
   },
   pitchCircle: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
+    width: 130,
+    height: 130,
+    borderRadius: 65,
     borderWidth: 1,
     borderColor: colors.gold,
     position: 'absolute',
   },
 
-  // Slide content
-  slideContent: {
-    alignItems: 'center',
-    marginTop: LAYOUT_WIDTH * 0.45,
-  },
   emojiBubble: {
-    width: 96,
-    height: 96,
-    borderRadius: 28,
+    width: 88,
+    height: 88,
+    borderRadius: 26,
     backgroundColor: colors.darkElevated,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.lg,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,
     shadowRadius: 20,
@@ -270,14 +282,21 @@ const styles = StyleSheet.create({
     borderColor: colors.darkBorder,
   },
   emoji: {
-    fontSize: 44,
+    fontSize: 40,
+  },
+
+  // Bottom section: text — always fully visible
+  textArea: {
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.md,
   },
   tagBadge: {
     borderWidth: 1,
     borderRadius: radius.full,
     paddingVertical: 4,
     paddingHorizontal: spacing.md,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   tagText: {
     fontSize: 11,
@@ -285,35 +304,35 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
   },
   title: {
-    fontSize: 34,
+    fontSize: 32,
     fontWeight: '800',
     color: colors.white,
     textAlign: 'center',
-    lineHeight: 40,
+    lineHeight: 38,
     letterSpacing: -0.8,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: colors.gray,
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 22,
     fontWeight: '400',
     paddingHorizontal: spacing.sm,
   },
 
-  // Bottom
+  // Bottom controls
   bottom: {
     paddingHorizontal: spacing.lg,
     paddingBottom: Platform.OS === 'ios' ? 48 : 32,
-    paddingTop: spacing.lg,
+    paddingTop: spacing.md,
     alignItems: 'center',
     gap: spacing.md,
   },
   dots: {
     flexDirection: 'row',
     gap: spacing.sm,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
   dot: {
     height: 6,
