@@ -349,6 +349,10 @@ function RegisterModal({ tournament, visible, onClose, onDone, waitlistMode }) {
         const { error: initError } = await initPaymentSheet({
           merchantDisplayName: 'Urban PL',
           paymentIntentClientSecret: json.clientSecret,
+          applePay: {
+            merchantCountryCode: 'US',
+            merchantIdentifier: 'merchant.com.urbanpl.app',
+          },
           defaultBillingDetails: {
             name: `${player.first_name ?? ''} ${player.last_name ?? ''}`.trim(),
             email: player.email ?? '',
